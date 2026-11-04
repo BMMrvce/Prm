@@ -1,37 +1,22 @@
 {
-  "name": "figma-make-app",
+  "name": "workbench",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "NODE_OPTIONS=--no-deprecation next dev --port ${PORT:-3000} --hostname 0.0.0.0",
-    "build": "NODE_OPTIONS=--no-deprecation payload build",
-    "start": "NODE_OPTIONS=--no-deprecation next start",
-    "format": "oxfmt",
-    "generate:importmap": "NODE_OPTIONS=--no-deprecation payload generate:importmap",
-    "generate:types": "NODE_OPTIONS=--no-deprecation payload generate:types",
-    "payload": "NODE_OPTIONS=--no-deprecation payload"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "format": "oxfmt"
   },
   "dependencies": {
-    "@payloadcms/figma": "1.0.0-beta.1",
-    "@payloadcms/next": "4.0.0-beta.4",
-    "@payloadcms/plugin-cloud-storage": "4.0.0-beta.4",
-    "@payloadcms/plugin-mcp": "4.0.0-beta.4",
-    "@payloadcms/richtext-lexical": "4.0.0-beta.4",
-    "@payloadcms/translations": "4.0.0-beta.4",
-    "@payloadcms/ui": "4.0.0-beta.4",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
-    "graphql": "^16.8.1",
-    "html-react-parser": "^5.2.10",
-    "lucide-react": "^1.67.0",
-    "monaco-editor": "0.55.1",
+    "lucide-react": "~1.66.0",
     "next": "16.4.2",
-    "payload": "4.0.0-beta.4",
     "react": "19.3.1",
-    "react-dom": "19.3.1",
-    "sharp": "^0.35.4",
-    "zod": "^4.6.7"
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
@@ -44,13 +29,10 @@
     "typescript": "6.0.3"
   },
   "engines": {
-    "node": ">=24.22.1",
-    "pnpm": "^9 || ^10 || ^11"
+    "node": ">=20.9.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "sharp",
-      "esbuild",
       "unrs-resolver"
     ]
   }

@@ -1,7 +1,7 @@
 import type { OxfmtConfig } from 'oxfmt'
 
 export default {
-  ignorePatterns: ['**/payload-types.ts', 'tsconfig.json'],
+  ignorePatterns: ['tsconfig.json'],
   printWidth: 100,
   semi: false,
   singleQuote: true,
