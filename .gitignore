@@ -8,7 +8,7 @@ build/
 !.env.example
 !.env.demo
 next-env.d.ts
-# Encrypted OAuth tokens (see src/lib/mail/token-store.ts)
+# Local fallback for connected-account sign-ins (see src/lib/connections.ts)
 .data/
 *.tsbuildinfo
 *-debug.log*
@@ -25,3 +25,6 @@ logs/
 # beside it.
 /.plugins/
 /.opencode-skills/
+
+# Env file for importing into Vercel (contains secrets)
+add.env

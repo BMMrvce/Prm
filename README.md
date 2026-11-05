@@ -39,15 +39,17 @@ stored per user in the `user_connections` table (server-only, encrypted with
 `OAUTH_TOKEN_ENCRYPTION_KEY`). Until migration `202611050004` is run they fall back to
 encrypted files in `.data/`, which only suits local development.
 
-| Workspace | Mailbox options (one at a time)  |
-| --------- | -------------------------------- |
-| Office    | Hostinger Mail, Gmail or Outlook |
-| Studio    | Outlook or Gmail                 |
-| Personal  | Gmail                            |
+| Workspace | Mailbox options (one at a time) |
+| --------- | ------------------------------- |
+| Office    | Hostinger Mail or Gmail         |
+| Studio    | Gmail                           |
+| Personal  | Gmail                           |
+
+Outlook support is built but switched off; re-enable it in `src/lib/mail/providers.ts`.
 
 Users connect a mailbox in **Integrations**. Hostinger asks for the mailbox address and
 password (checked by signing in; the IMAP/SMTP servers are fixed to Hostinger's,
-`HOSTINGER_*_HOST/PORT`). Gmail and Outlook use OAuth sign-in.
+`HOSTINGER_*_HOST/PORT`). Gmail uses Google sign-in.
 
 ### One-time setup for the deployer
 
@@ -63,7 +65,7 @@ password (checked by signing in; the IMAP/SMTP servers are fixed to Hostinger's,
    Google verification including a security assessment.
 4. Set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
 
-**Microsoft (Outlook)**: register a multi-tenant app in Microsoft Entra with the **Web**
+**Microsoft (Outlook, currently switched off)**: register a multi-tenant app in Microsoft Entra with the **Web**
 redirect URI `http://localhost:3000/api/oauth/outlook/callback` (and the deployed one), the
 delegated Graph permissions `User.Read`, `Mail.ReadWrite`, `Mail.Send`, `offline_access`,
 and set `OUTLOOK_CLIENT_ID` / `OUTLOOK_CLIENT_SECRET` / `OUTLOOK_TENANT_ID=common`.

@@ -1,10 +1,13 @@
 import type { SpaceKey } from '@/types/workbench'
 import type { MailProviderKey } from './types'
 
-/** Mailboxes each workspace can connect, in the order they are offered. */
+/**
+ * Mailboxes each workspace can connect, in the order they are offered. Outlook is turned
+ * off for now; add 'outlook' back here (office, studio) to offer it again.
+ */
 const OPTIONS: Record<SpaceKey, MailProviderKey[]> = {
-  office: ['hostinger', 'gmail', 'outlook'],
-  studio: ['outlook', 'gmail'],
+  office: ['hostinger', 'gmail'],
+  studio: ['gmail'],
   personal: ['gmail'],
 }
 
