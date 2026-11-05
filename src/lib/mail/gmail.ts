@@ -9,7 +9,7 @@ import {
 } from '@/lib/connections'
 import { googleFetch, refreshGoogleToken } from '@/lib/google'
 import type { SpaceKey } from '@/types/workbench'
-import type { MailFolder, MailMessage, MailSummary, SendMailInput } from './types'
+import type { MailContact, MailFolder, MailMessage, MailSummary, SendMailInput } from './types'
 
 /** Gmail mailboxes via the Gmail API, signed in with the shared Google OAuth client. */
 const API = 'https://gmail.googleapis.com/gmail/v1/users/me'
@@ -145,4 +145,28 @@ export async function sendGmail(token: string, from: string, { to, subject, body
     method: 'POST',
     body: JSON.stringify({ raw: raw.toString('base64url') }),
   })
+}
+
+/** Senders and recipients of the latest messages in Inbox and Sent. */
+export async function contactsGmail(token: string, perFolder = 60): Promise<MailContact[]> {
+  const headers = ['From', 'To', 'Cc'].map((name) => `metadataHeaders=${name}`).join('&')
+  const lists = await Promise.all(
+    ['INBOX', 'SENT'].map((label) =>
+      gmail<{ messages?: { id: string }[] }>(
+        token,
+        `messages?labelIds=${label}&maxResults=${perFolder}`,
+      ),
+    ),
+  )
+  const messages = await Promise.all(
+    lists
+      .flatMap((list) => list.messages ?? [])
+      .map((item) => gmail<GmailMessage>(token, `messages/${item.id}?format=metadata&${headers}`)),
+  )
+  return messages.flatMap((message) =>
+    (message.payload?.headers ?? [])
+      .flatMap((header) => header.value.split(','))
+      .map(parseAddress)
+      .filter((person) => person.address.includes('@')),
+  )
 }

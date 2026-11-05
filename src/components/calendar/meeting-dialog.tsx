@@ -108,7 +108,7 @@ export function MeetingDialog({ meeting, onClose }: { meeting: Meeting; onClose:
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="submit"
-            className="h-10 rounded-lg bg-[#493bd0] px-5 text-sm font-medium text-white"
+            className="h-10 rounded-lg bg-primary px-5 text-sm font-medium text-white hover:bg-primary-hover active:bg-primary-active"
           >
             Save changes
           </button>
@@ -117,7 +117,7 @@ export function MeetingDialog({ meeting, onClose }: { meeting: Meeting; onClose:
               href={meeting.meetingUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex h-10 items-center rounded-lg border border-[#d8d8dc] px-4 text-sm"
+              className="flex h-10 items-center rounded-lg border border-line-strong px-4 text-sm"
             >
               Join
             </a>
@@ -125,7 +125,7 @@ export function MeetingDialog({ meeting, onClose }: { meeting: Meeting; onClose:
           <button
             type="button"
             onClick={() => void remove()}
-            className="ml-auto flex h-10 items-center gap-1.5 rounded-lg px-3 text-sm text-[#a52828] hover:bg-[#fdf0f0]"
+            className="ml-auto flex h-10 items-center gap-1.5 rounded-lg px-3 text-sm text-error-ink hover:bg-error-light"
           >
             <Trash2 size={14} /> Delete
           </button>

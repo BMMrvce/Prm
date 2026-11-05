@@ -15,14 +15,14 @@ export function ProjectDetail() {
     useWorkspace()
   const project = projects.find((item) => item.slug === slug)
 
-  if (!ready) return <p className="text-sm text-[#88888e]">Loading project…</p>
+  if (!ready) return <p className="text-sm text-ink-3">Loading project…</p>
   if (!project) {
     return (
       <div className="neo-card rounded-xl p-6 text-sm">
         <p>This project does not exist in {workspace.name}.</p>
         <Link
           href={workspacePath(workspace.key, 'projects')}
-          className="mt-3 inline-block font-medium text-[#493bd0]"
+          className="mt-3 inline-block font-medium text-secondary"
         >
           ← All projects
         </Link>
@@ -37,7 +37,7 @@ export function ProjectDetail() {
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <h2 className="font-semibold">{project.name}</h2>
-            <p className="text-xs text-[#73737a]">
+            <p className="text-xs text-ink-2">
               {own
                 ? 'People you tag see this project and all its tasks on their dashboard.'
                 : `Shared by ${project.sharedBy}${project.sharedDomain ? ` with everyone @${project.sharedDomain}` : ''}. Tasks you add here belong to their workspace.`}
@@ -45,14 +45,14 @@ export function ProjectDetail() {
           </div>
         </div>
         {own && domain && (
-          <label className="mt-4 flex items-start gap-2 text-xs text-[#55555c]">
+          <label className="mt-4 flex items-start gap-2 text-xs text-ink-2">
             <input
               type="checkbox"
               checked={project.sharedDomain === domain}
               onChange={(event) =>
                 void setProjectDomain(project.id, event.target.checked ? domain : null)
               }
-              className="mt-0.5 size-4 shrink-0 accent-[#493bd0]"
+              className="mt-0.5 size-4 shrink-0 accent-primary"
             />
             <span>
               Share with everyone <strong className="font-medium">@{domain}</strong>, including

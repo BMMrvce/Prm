@@ -1,8 +1,9 @@
+import { createHash } from 'node:crypto'
 import { ImapFlow, type FetchMessageObject } from 'imapflow'
 import { simpleParser, type AddressObject } from 'mailparser'
 import nodemailer from 'nodemailer'
 import MailComposer from 'nodemailer/lib/mail-composer'
-import type { MailFolder, MailMessage, MailSummary, SendMailInput } from './types'
+import type { MailContact, MailFolder, MailMessage, MailSummary, SendMailInput } from './types'
 
 /**
  * Hostinger mail: IMAP for reading, SMTP for sending, signed in with the user's own
@@ -20,20 +21,94 @@ function servers() {
   }
 }
 
-async function withImap<T>({ user, pass }: HostingerLogin, run: (client: ImapFlow) => Promise<T>) {
-  const { imapHost, imapPort } = servers()
-  const client = new ImapFlow({
-    host: imapHost,
-    port: imapPort,
-    secure: imapPort === 993,
-    auth: { user, pass },
-    logger: false,
-  })
-  await client.connect()
+/**
+ * Open IMAP sessions, reused for a short while: every request logging in afresh (list,
+ * open, contacts…) quickly trips Hostinger's login limits. Keyed by a hash of the login so
+ * a changed password never reuses a session.
+ */
+const IDLE_MS = 45_000
+type PooledSession = {
+  client: ImapFlow
+  ready: Promise<void>
+  users: number
+  idle?: NodeJS.Timeout
+}
+const pool = new Map<string, PooledSession>()
+
+const poolKey = ({ user, pass }: HostingerLogin) =>
+  createHash('sha256').update(`${user}\0${pass}`).digest('hex')
+
+function drop(key: string, session: PooledSession) {
+  if (pool.get(key) === session) pool.delete(key)
+  clearTimeout(session.idle)
+  session.client.logout().catch(() => {})
+}
+
+async function acquire(login: HostingerLogin) {
+  const key = poolKey(login)
+  let session = pool.get(key)
+  if (session && !session.client.usable && session.users === 0) {
+    drop(key, session)
+    session = undefined
+  }
+  if (!session) {
+    const { imapHost, imapPort } = servers()
+    const client = new ImapFlow({
+      host: imapHost,
+      port: imapPort,
+      secure: imapPort === 993,
+      auth: { user: login.user, pass: login.pass },
+      logger: false,
+    })
+    // Socket errors surface through the pending command; an unhandled 'error' event would crash.
+    client.on('error', () => {})
+    const created: PooledSession = { client, ready: client.connect(), users: 0 }
+    client.on('close', () => {
+      if (pool.get(key) === created) pool.delete(key)
+    })
+    pool.set(key, created)
+    session = created
+  }
+  const current = session
   try {
-    return await run(client)
-  } finally {
-    await client.logout().catch(() => {})
+    await current.ready
+  } catch (error) {
+    drop(key, current)
+    throw error
+  }
+  clearTimeout(current.idle)
+  current.users++
+  return {
+    client: current.client,
+    release: (broken: boolean) => {
+      current.users--
+      if (broken) return drop(key, current)
+      if (current.users === 0) {
+        current.idle = setTimeout(() => drop(key, current), IDLE_MS)
+        current.idle.unref?.()
+      }
+    },
+  }
+}
+
+const isAuthFailure = (error: unknown) =>
+  Boolean(error && typeof error === 'object' && 'authenticationFailed' in error)
+
+/** Runs `run` on a pooled session, retrying once on a fresh one if the connection broke. */
+async function withImap<T>(login: HostingerLogin, run: (client: ImapFlow) => Promise<T>) {
+  for (let attempt = 1; ; attempt++) {
+    let lease: Awaited<ReturnType<typeof acquire>> | undefined
+    try {
+      lease = await acquire(login)
+      const result = await run(lease.client)
+      lease.release(false)
+      return result
+    } catch (error) {
+      const broken = !lease || !lease.client.usable
+      lease?.release(broken)
+      if (!broken || isAuthFailure(error) || attempt >= 2) throw error
+      await new Promise((resolve) => setTimeout(resolve, 800))
+    }
   }
 }
 
@@ -147,4 +222,36 @@ export async function sendHostinger(login: HostingerLogin, { to, subject, body }
   await withImap(login, async (client) => {
     await client.append(await mailboxPath(client, 'sent'), raw, ['\\Seen'])
   }).catch(() => {})
+}
+
+/** Senders and recipients of the latest messages in Inbox and Sent. */
+export async function contactsHostinger(login: HostingerLogin, perFolder = 150) {
+  return withImap(login, async (client) => {
+    const found: MailContact[] = []
+    for (const folder of ['inbox', 'sent'] as const) {
+      const lock = await client.getMailboxLock(await mailboxPath(client, folder), {
+        readOnly: true,
+      })
+      try {
+        const exists = client.mailbox ? client.mailbox.exists : 0
+        if (!exists) continue
+        const messages = await client.fetchAll(`${Math.max(1, exists - perFolder + 1)}:*`, {
+          envelope: true,
+        })
+        for (const message of messages) {
+          const envelope = message.envelope
+          for (const person of [
+            ...(envelope?.from ?? []),
+            ...(envelope?.to ?? []),
+            ...(envelope?.cc ?? []),
+          ]) {
+            if (person.address) found.push({ name: person.name ?? '', address: person.address })
+          }
+        }
+      } finally {
+        lock.release()
+      }
+    }
+    return found
+  })
 }

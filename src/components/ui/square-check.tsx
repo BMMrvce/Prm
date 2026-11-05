@@ -13,8 +13,10 @@ export function SquareCheck({
     <button
       type="button"
       onClick={onClick}
-      className={`grid size-[17px] shrink-0 place-items-center rounded-[2px] border text-white ${
-        checked ? 'border-[#4a3fd1] bg-[#4a3fd1]' : 'border-[#858585] bg-white'
+      className={`grid size-[18px] shrink-0 place-items-center rounded-[5px] border text-on-primary ${
+        checked
+          ? 'border-secondary bg-secondary'
+          : 'border-line-strong bg-field hover:border-secondary'
       }`}
       aria-label={label}
     >

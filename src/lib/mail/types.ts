@@ -42,6 +42,9 @@ export type MailListResponse = {
   error?: string
 }
 
+/** Someone you have exchanged mail with, for recipient suggestions. */
+export type MailContact = { name: string; address: string }
+
 export type SendMailInput = {
   to: string
   subject: string

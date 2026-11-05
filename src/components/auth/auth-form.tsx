@@ -61,25 +61,24 @@ export function AuthForm() {
   }
 
   const field =
-    'flex h-11 items-center gap-2 rounded-lg border border-slate-200 px-3 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100'
-  const input =
-    'min-w-0 flex-1 border-0 bg-transparent text-sm outline-none placeholder:text-slate-400'
+    'flex h-11 items-center gap-2 rounded-lg border border-line-strong px-3 focus-within:border-secondary focus-within:ring-2 focus-within:ring-secondary-light'
+  const input = 'min-w-0 flex-1 border-0 bg-transparent text-sm outline-none placeholder:text-ink-3'
 
   return (
     <div className="w-full max-w-md">
-      <p className="text-sm font-medium text-indigo-600">
+      <p className="text-sm font-medium text-secondary">
         {mode === 'signin' ? 'Welcome back' : 'Get started'}
       </p>
-      <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+      <h2 className="mt-2 text-3xl font-semibold tracking-tight text-ink">
         {mode === 'signin' ? 'Sign in to your workspace' : 'Create your account'}
       </h2>
-      <div className="mt-6 grid grid-cols-2 rounded-lg bg-slate-100 p-1 text-sm font-medium">
+      <div className="mt-6 grid grid-cols-2 rounded-lg bg-surface-2 p-1 text-sm font-medium">
         {(['signin', 'signup'] as const).map((value) => (
           <button
             type="button"
             key={value}
             onClick={() => switchMode(value)}
-            className={`h-9 rounded-md transition ${mode === value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+            className={`h-9 rounded-md transition ${mode === value ? 'bg-surface text-ink shadow-sm' : 'text-ink-2'}`}
           >
             {value === 'signin' ? 'Sign in' : 'Create account'}
           </button>
@@ -88,9 +87,9 @@ export function AuthForm() {
       <form onSubmit={submit} className="mt-6 space-y-4">
         {mode === 'signup' && (
           <label className="block">
-            <span className="text-xs font-medium text-slate-700">Full name</span>
+            <span className="text-xs font-medium text-ink-2">Full name</span>
             <span className={`mt-2 ${field}`}>
-              <User size={16} className="text-slate-400" />
+              <User size={16} className="text-ink-3" />
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
@@ -103,9 +102,9 @@ export function AuthForm() {
           </label>
         )}
         <label className="block">
-          <span className="text-xs font-medium text-slate-700">Email address</span>
+          <span className="text-xs font-medium text-ink-2">Email address</span>
           <span className={`mt-2 ${field}`}>
-            <Mail size={16} className="text-slate-400" />
+            <Mail size={16} className="text-ink-3" />
             <input
               type="email"
               value={email}
@@ -118,9 +117,9 @@ export function AuthForm() {
           </span>
         </label>
         <label className="block">
-          <span className="text-xs font-medium text-slate-700">Password</span>
+          <span className="text-xs font-medium text-ink-2">Password</span>
           <span className={`mt-2 ${field}`}>
-            <Lock size={16} className="text-slate-400" />
+            <Lock size={16} className="text-ink-3" />
             <input
               type="password"
               value={password}
@@ -134,25 +133,25 @@ export function AuthForm() {
           </span>
         </label>
         {error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+          <p className="rounded-lg bg-error-light px-3 py-2 text-sm text-error-ink" role="alert">
             {error}
           </p>
         )}
         <button
           type="submit"
           disabled={busy}
-          className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60"
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-medium text-white shadow-sm hover:bg-primary-hover disabled:opacity-60"
         >
           {busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
           {!busy && <ArrowRight size={16} />}
         </button>
       </form>
-      <p className="mt-8 text-center text-sm text-slate-500">
-        {mode === 'signin' ? 'New to Workbench? ' : 'Already have an account? '}
+      <p className="mt-8 text-center text-sm text-ink-2">
+        {mode === 'signin' ? 'New to ಆyaama? ' : 'Already have an account? '}
         <button
           type="button"
           onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
-          className="font-medium text-indigo-600"
+          className="font-medium text-secondary"
         >
           {mode === 'signin' ? 'Create an account' : 'Sign in'}
         </button>

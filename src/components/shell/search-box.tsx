@@ -40,7 +40,7 @@ export function SearchBox({ className = '' }: { className?: string }) {
   return (
     <div className={`relative ${className}`}>
       <Search
-        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#96969c]"
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-3"
         size={15}
       />
       <input
@@ -55,7 +55,7 @@ export function SearchBox({ className = '' }: { className?: string }) {
           if (event.key === 'Enter' && results[0]) go(results[0].href)
           if (event.key === 'Escape') setOpen(false)
         }}
-        className="h-10 w-full rounded-lg border border-[#d8d8dc] bg-white pl-9 pr-3 text-[14px] outline-none focus:border-[#675ee0]"
+        className="h-10 w-full rounded-lg border border-line-strong bg-field pl-9 pr-3 text-[14px] outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
         placeholder="Search..."
         aria-label="Search pages, projects and tasks"
       />
@@ -68,14 +68,14 @@ export function SearchBox({ className = '' }: { className?: string }) {
                 key={`${item.kind}-${item.label}`}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => go(item.href)}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] hover:bg-[#f5f5f7]"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] hover:bg-surface-2"
               >
                 <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                <span className="shrink-0 text-[10px] text-[#88888e]">{item.kind}</span>
+                <span className="shrink-0 text-[11px] text-ink-3">{item.kind}</span>
               </button>
             ))
           ) : (
-            <p className="px-3 py-2 text-[13px] text-[#88888e]">No matches</p>
+            <p className="px-3 py-2 text-[13px] text-ink-3">No matches</p>
           )}
         </div>
       )}

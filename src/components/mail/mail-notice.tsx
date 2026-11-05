@@ -19,7 +19,7 @@ export function MailNotice({
   if (status?.state === 'disconnected') {
     return (
       <div className={`flex flex-col items-center gap-3 py-6 text-center ${text}`}>
-        <p className="text-[#55555c]">
+        <p className="text-ink-2">
           {status.note ??
             `Connect your ${status.options
               .map((option) => option.label)
@@ -28,7 +28,7 @@ export function MailNotice({
         </p>
         <Link
           href={workspacePath(space, 'integrations')}
-          className="rounded-lg bg-[#493bd0] px-4 py-2 text-xs font-medium text-white hover:bg-[#382bb9]"
+          className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-white hover:bg-primary-hover"
         >
           Connect a mailbox
         </Link>
@@ -37,7 +37,7 @@ export function MailNotice({
   }
   if (error) {
     return (
-      <p className={`rounded-lg bg-[#fde8e8] px-3 py-2 text-[#a52828] ${text}`} role="alert">
+      <p className={`rounded-lg bg-error-light px-3 py-2 text-error-ink ${text}`} role="alert">
         {error}
       </p>
     )

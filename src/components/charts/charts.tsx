@@ -3,7 +3,8 @@
  * palette (blue, orange); text always uses ink colors, never the series color.
  */
 
-export const SERIES = ['#2a78d6', '#eb6834'] as const
+// CSS variables so dark mode can use the steps validated for the dark surface (globals.css).
+export const SERIES = ['var(--series-1)', 'var(--series-2)'] as const
 
 export type Series = { name: string; color: string }
 
@@ -18,7 +19,7 @@ function niceMax(value: number) {
 export function Legend({ series }: { series: Series[] }) {
   if (series.length < 2) return null
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#55555c]">
+    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-2">
       {series.map((item) => (
         <span key={item.name} className="flex items-center gap-1.5">
           <span className="size-2.5 rounded-[2px]" style={{ background: item.color }} />
@@ -40,6 +41,8 @@ export function ColumnChart({
   axisFormat = format,
   height = 180,
   labelEvery = 1,
+  selected = -1,
+  onSelect,
 }: {
   data: { label: string; detail?: string; values: number[] }[]
   series: Series[]
@@ -49,6 +52,10 @@ export function ColumnChart({
   height?: number
   /** Show every Nth x label when columns are dense. */
   labelEvery?: number
+  /** Index of the highlighted column group, if any. */
+  selected?: number
+  /** Makes each column group clickable. */
+  onSelect?: (index: number) => void
 }) {
   const max = niceMax(Math.max(0, ...data.flatMap((item) => item.values)))
   const ticks = [max, max / 2, 0]
@@ -56,7 +63,7 @@ export function ColumnChart({
   return (
     <div className="flex min-w-0 gap-2">
       <div
-        className="flex shrink-0 flex-col justify-between text-right text-[10px] leading-none text-[#88888e]"
+        className="flex shrink-0 flex-col justify-between text-right text-[11px] leading-none text-ink-3"
         style={{ height }}
         aria-hidden
       >
@@ -71,7 +78,7 @@ export function ColumnChart({
           {ticks.map((tick, index) => (
             <div
               key={tick}
-              className={`absolute inset-x-0 border-t ${index === ticks.length - 1 ? 'border-[#c9c9cf]' : 'border-[#ececf0]'}`}
+              className={`absolute inset-x-0 border-t ${index === ticks.length - 1 ? 'border-line-strong' : 'border-line'}`}
               style={{ top: `${(index / (ticks.length - 1)) * 100}%` }}
             />
           ))}
@@ -86,8 +93,23 @@ export function ColumnChart({
               return (
                 <div
                   key={`${index}:${item.label}`}
-                  className="group relative flex h-full min-w-0 flex-1 items-end justify-center gap-[2px] outline-none hover:bg-[#f4f4f8] focus-visible:bg-[#f4f4f8]"
+                  className={`group relative flex h-full min-w-0 flex-1 items-end justify-center gap-[2px] rounded-t-md outline-none hover:bg-surface-2 focus-visible:bg-surface-2 ${
+                    index === selected ? 'bg-primary-subtle' : ''
+                  } ${onSelect ? 'cursor-pointer' : ''}`}
                   tabIndex={0}
+                  role={onSelect ? 'button' : undefined}
+                  aria-pressed={onSelect ? index === selected : undefined}
+                  onClick={onSelect ? () => onSelect(index) : undefined}
+                  onKeyDown={
+                    onSelect
+                      ? (event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            onSelect(index)
+                          }
+                        }
+                      : undefined
+                  }
                   aria-label={`${item.detail ?? item.label}: ${series
                     .map((entry, slot) => `${entry.name} ${format(item.values[slot] ?? 0)}`)
                     .join(', ')}`}
@@ -107,16 +129,16 @@ export function ColumnChart({
                     )
                   })}
                   <div
-                    className={`pointer-events-none absolute top-0 z-10 hidden w-max max-w-[180px] rounded-md border border-[#e4e4e7] bg-white px-2.5 py-1.5 text-[11px] shadow-md group-hover:block group-focus-visible:block ${align}`}
+                    className={`pointer-events-none absolute top-0 z-10 hidden w-max max-w-[180px] rounded-md border border-line bg-surface px-2.5 py-1.5 text-[11px] shadow-md group-hover:block group-focus-visible:block ${align}`}
                   >
-                    <p className="text-[#73737a]">{item.detail ?? item.label}</p>
+                    <p className="text-ink-2">{item.detail ?? item.label}</p>
                     {series.map((entry, slot) => (
                       <p key={entry.name} className="flex items-center gap-1.5">
                         <span className="h-0.5 w-2.5" style={{ background: entry.color }} />
-                        <strong className="font-semibold text-[#222226]">
+                        <strong className="font-semibold text-ink">
                           {format(item.values[slot] ?? 0)}
                         </strong>
-                        {series.length > 1 && <span className="text-[#73737a]">{entry.name}</span>}
+                        {series.length > 1 && <span className="text-ink-2">{entry.name}</span>}
                       </p>
                     ))}
                   </div>
@@ -129,7 +151,7 @@ export function ColumnChart({
           {data.map((item, index) => (
             <span
               key={`${index}:${item.label}`}
-              className="min-w-0 flex-1 overflow-visible whitespace-nowrap text-center text-[10px] text-[#88888e]"
+              className="min-w-0 flex-1 overflow-visible whitespace-nowrap text-center text-[11px] text-ink-3"
             >
               {index % labelEvery === 0 ? item.label : ''}
             </span>
@@ -158,7 +180,7 @@ export function BarRows({
     <ul className="space-y-3">
       {rows.map((row) => (
         <li key={row.label} className="min-w-0">
-          <p className="truncate text-xs text-[#36363a]">{row.label}</p>
+          <p className="truncate text-xs text-ink">{row.label}</p>
           <div className="mt-1 space-y-[2px]">
             {series.map((entry, slot) => {
               const value = row.values[slot] ?? 0
@@ -175,7 +197,7 @@ export function BarRows({
                       background: entry.color,
                     }}
                   />
-                  <span className="shrink-0 text-[11px] tabular-nums text-[#55555c]">
+                  <span className="shrink-0 text-[11px] tabular-nums text-ink-2">
                     {format(value)}
                   </span>
                 </div>
@@ -192,9 +214,9 @@ export function BarRows({
 export function StatTile({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <div className="neo-card min-w-0 rounded-xl p-4">
-      <p className="text-xs text-[#73737a]">{label}</p>
+      <p className="text-xs text-ink-2">{label}</p>
       <p className="mt-1 truncate text-2xl font-semibold tracking-tight">{value}</p>
-      {note && <p className="mt-0.5 truncate text-[11px] text-[#88888e]">{note}</p>}
+      {note && <p className="mt-0.5 truncate text-[11px] text-ink-3">{note}</p>}
     </div>
   )
 }

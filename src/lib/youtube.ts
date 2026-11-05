@@ -12,7 +12,7 @@ import { googleFetch, googleMissing, refreshGoogleToken } from './google'
 /**
  * A YouTube playlist the user picks, read with the YouTube Data API. YouTube's own
  * "Watch later" list is not available to any app, so the user saves videos to a normal
- * playlist instead. Each Workbench user connects their own Google account.
+ * playlist instead. Each ಆyaama user connects their own Google account.
  */
 const API = 'https://www.googleapis.com/youtube/v3'
 /** Playlist items fetched at most (50 per page). */

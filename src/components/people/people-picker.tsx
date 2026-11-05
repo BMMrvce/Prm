@@ -38,7 +38,7 @@ export function PeoplePicker({
         const people = await searchPeople(query)
         if (cancelled) return
         setResults(people)
-        setMessage(people.length ? null : 'No one found. They need a Workbench account first.')
+        setMessage(people.length ? null : 'No one found. They need a ಆyaama account first.')
       } catch (error) {
         if (!cancelled) setMessage(error instanceof Error ? error.message : 'Search failed.')
       }
@@ -61,13 +61,13 @@ export function PeoplePicker({
   return (
     <div>
       <div className="flex flex-wrap gap-1.5">
-        {!ids.length && <p className="text-xs text-[#88888e]">{emptyText}</p>}
+        {!ids.length && <p className="text-xs text-ink-3">{emptyText}</p>}
         {ids.map((id) => (
           <span
             key={id}
-            className="flex max-w-full items-center gap-1.5 rounded-full bg-[#eeedff] py-1 pl-1 pr-2 text-xs text-[#3e34ad]"
+            className="flex max-w-full items-center gap-1.5 rounded-full bg-primary-light py-1 pl-1 pr-2 text-xs text-primary-ink"
           >
-            <span className="grid size-5 shrink-0 place-items-center rounded-full bg-white text-[9px] font-semibold">
+            <span className="grid size-5 shrink-0 place-items-center rounded-full bg-surface text-[11px] font-semibold">
               {initials(personName(id))}
             </span>
             <span className="truncate">{personName(id)}</span>
@@ -85,7 +85,7 @@ export function PeoplePicker({
         ))}
       </div>
       {canEdit && !collaboration && (
-        <p className="mt-2 text-xs text-[#8a6100]">
+        <p className="mt-2 text-xs text-warning-ink">
           Tagging needs a database update: run
           supabase/migrations/202611050002_collaboration_time_income.sql in the Supabase SQL editor.
         </p>
@@ -94,34 +94,32 @@ export function PeoplePicker({
         <div className="relative mt-2">
           <UserPlus
             size={14}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#88888e]"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-3"
           />
           <input
             value={term}
             onChange={(event) => setTerm(event.target.value)}
-            className="h-9 w-full rounded-lg border border-[#d8d8dc] bg-white pl-8 pr-3 text-xs outline-none focus:border-[#493bd0]"
+            className="h-9 w-full rounded-lg border border-line-strong bg-field pl-8 pr-3 text-xs outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
             placeholder="Tag someone by name or email"
             aria-label="Search people to tag"
           />
           {(options.length > 0 || message) && (
-            <div className="absolute inset-x-0 top-10 z-20 overflow-hidden rounded-lg border border-[#dedee2] bg-white shadow-lg">
-              {message && <p className="px-3 py-2.5 text-xs text-[#77777d]">{message}</p>}
+            <div className="absolute inset-x-0 top-10 z-20 overflow-hidden rounded-lg border border-line bg-surface shadow-lg">
+              {message && <p className="px-3 py-2.5 text-xs text-ink-2">{message}</p>}
               {options.map((person) => (
                 <button
                   type="button"
                   key={person.id}
                   onClick={() => void pick(person)}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-[#f5f5ff]"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-primary-subtle"
                 >
-                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-[#eef0ff] text-[10px] font-semibold text-[#2721a6]">
+                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary-light text-[11px] font-semibold text-primary-ink">
                     {initials(person.name)}
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate text-xs font-medium">{person.name}</span>
                     {person.email && (
-                      <span className="block truncate text-[11px] text-[#77777d]">
-                        {person.email}
-                      </span>
+                      <span className="block truncate text-[11px] text-ink-2">{person.email}</span>
                     )}
                   </span>
                 </button>

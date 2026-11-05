@@ -32,19 +32,19 @@ export function IntegrationsList() {
   const youtubeStatus = youtube.feed?.status
   const youtubeBadge =
     youtubeStatus?.state === 'connected'
-      ? ['Connected', 'bg-[#e6f7ea] text-[#2f7045]']
+      ? ['Connected', 'bg-success-light text-success-ink']
       : youtubeStatus?.state === 'needs_playlist'
-        ? ['Pick a playlist', 'bg-[#fff4cf] text-[#8a6100]']
+        ? ['Pick a playlist', 'bg-warning-light text-warning-ink']
         : youtubeStatus?.state === 'needs_auth'
-          ? ['Not connected', 'bg-[#eeeeef] text-[#66666c]']
-          : ['Not configured', 'bg-[#eeeeef] text-[#66666c]']
+          ? ['Not connected', 'bg-surface-2 text-ink-2']
+          : ['Not configured', 'bg-surface-2 text-ink-2']
 
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <MailConnection space={workspace.key} />
         <div className="neo-card flex min-w-0 flex-wrap items-center gap-4 rounded-xl p-5">
-          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[#fdecec] text-[#c4302b]">
+          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-light text-primary-ink">
             <ListVideo size={19} />
           </span>
           <div className="min-w-0 flex-1">
@@ -52,13 +52,13 @@ export function IntegrationsList() {
               <h3 className="text-sm font-semibold">YouTube</h3>
               {youtubeStatus && (
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${youtubeBadge[1]}`}
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${youtubeBadge[1]}`}
                 >
                   {youtubeBadge[0]}
                 </span>
               )}
             </div>
-            <p className="mt-1 truncate text-xs text-[#77777d]">
+            <p className="mt-1 truncate text-xs text-ink-2">
               {!youtubeStatus
                 ? 'Checking…'
                 : youtubeStatus.state === 'connected'
@@ -73,7 +73,7 @@ export function IntegrationsList() {
           {youtubeStatus?.state === 'needs_auth' && (
             <a
               href={connectYouTubeUrl(workspacePath('personal'))}
-              className="rounded-lg bg-[#c4302b] px-3 py-2 text-xs font-medium text-white"
+              className="rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white hover:bg-primary-hover active:bg-primary-active"
             >
               Connect
             </a>
@@ -82,7 +82,7 @@ export function IntegrationsList() {
             <div className="flex gap-2">
               <Link
                 href={workspacePath('personal')}
-                className="rounded-lg border border-[#d8d8dc] bg-white px-3 py-2 text-xs font-medium"
+                className="rounded-lg border border-line-strong bg-surface px-3 py-2 text-xs font-medium"
               >
                 {youtubeStatus.state === 'connected' ? 'Open dashboard' : 'Pick playlist'}
               </Link>
@@ -90,7 +90,7 @@ export function IntegrationsList() {
                 type="button"
                 onClick={() => void disconnectYouTube()}
                 disabled={busy}
-                className="rounded-lg border border-[#d8d8dc] bg-white px-3 py-2 text-xs font-medium text-[#a52828] disabled:opacity-60"
+                className="rounded-lg border border-line-strong bg-surface px-3 py-2 text-xs font-medium text-error-ink disabled:opacity-60"
               >
                 Disconnect
               </button>
@@ -99,15 +99,15 @@ export function IntegrationsList() {
         </div>
         {upcoming.map(([name, detail, icon, envVar]) => (
           <div className="neo-card flex min-w-0 items-center gap-4 rounded-xl p-5" key={name}>
-            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[#f2f2f4] text-[#77777d]">
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-surface-2 text-ink-2">
               {icon}
             </span>
             <div className="min-w-0 flex-1">
               <h3 className="text-sm font-semibold">{name}</h3>
-              <p className="mt-1 text-xs text-[#77777d]">{detail}</p>
+              <p className="mt-1 text-xs text-ink-2">{detail}</p>
             </div>
             <span
-              className="shrink-0 rounded-full bg-[#eeeeef] px-2 py-1 text-[10px] font-medium text-[#66666c]"
+              className="shrink-0 rounded-full bg-surface-2 px-2 py-1 text-[11px] font-medium text-ink-2"
               title={`Needs ${envVar} and a server integration`}
             >
               Coming soon

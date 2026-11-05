@@ -1,22 +1,197 @@
 @import 'tailwindcss';
 
-/* Inline so the utilities read next/font's variables, which are set on <body>, not :root. */
-@theme inline {
-  --font-sans: var(--font-app), ui-sans-serif, system-ui, sans-serif;
-  --font-funky: var(--font-shantell), 'Comic Sans MS', cursive;
+/* `dark:` follows the theme switcher (html.dark), not only the device setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * ಆyaama design tokens. Every color in the UI comes from these variables, exposed to
+ * Tailwind as `bg-primary`, `text-ink-2`, `border-line` and so on; `html.dark` swaps the
+ * values, so components never need dark-specific classes.
+ */
+:root {
+  /* Brand: deep indigo (primary), electric violet (secondary), cyan (accent) */
+  --brand-primary: #17175e;
+  --brand-primary-hover: #24247a;
+  --brand-primary-active: #101044;
+  --brand-primary-light: #eeeeff;
+  --brand-primary-subtle: #f5f5ff;
+  --brand-primary-deep: #101044;
+  /* Indigo text: deep on light surfaces, lifted in dark mode so it stays readable. */
+  --brand-primary-ink: #17175e;
+  --brand-secondary: #7047eb;
+  --brand-secondary-hover: #6036d8;
+  --brand-secondary-light: #f1ebff;
+  --brand-secondary-subtle: #f8f5ff;
+  --brand-accent: #06b6d4;
+  --brand-accent-hover: #0891b2;
+  --brand-accent-light: #e6fafe;
+  /* Cyan text that stays readable on light surfaces. */
+  --brand-accent-ink: #0e7490;
+
+  /* Neutrals */
+  --background: #f6f7fb;
+  --surface: #ffffff;
+  --surface-secondary: #f1f2f8;
+  --surface-tertiary: #e9ebf3;
+  --text-primary: #17172b;
+  --text-secondary: #62677a;
+  --text-muted: #9298aa;
+  --border: #e6e8f0;
+  --border-strong: #d9dce7;
+  --divider: #eceef4;
+  --on-primary: #ffffff;
+  --on-primary-muted: #c9cbef;
+
+  /* Functional states (never brand accents); *-ink is the readable text shade. */
+  --success: #16a36a;
+  --success-light: #e7f6ef;
+  --success-ink: #0f7a4f;
+  --warning: #d97706;
+  --warning-light: #fef3e2;
+  --warning-ink: #b45309;
+  --error: #dc4545;
+  --error-light: #fdecec;
+  --error-ink: #b93333;
+  --info: #2585d8;
+  --info-light: #e8f2fc;
+  --info-ink: #1d6ab0;
+
+  /* Chart series: cyan then violet. */
+  --series-1: #0891b2;
+  --series-2: #7047eb;
+  --sidebar: #ffffff;
+  --field: #ffffff;
+  --elevated: #ffffff;
+  --nav-active: #eeeeff;
+  --nav-active-text: #7047eb;
 }
 
-@theme {
-  --color-brand: #4338ca;
+:root.dark {
+  --brand-primary: #4f46c8;
+  --brand-primary-hover: #5b53d6;
+  --brand-primary-active: #433bb0;
+  --brand-primary-light: #232a5c;
+  --brand-primary-subtle: #1a2042;
+  --brand-primary-deep: #0b0e26;
+  --brand-primary-ink: #c3c5ff;
+  --brand-secondary: #9a7bff;
+  --brand-secondary-hover: #ab90ff;
+  --brand-secondary-light: #2b2456;
+  --brand-secondary-subtle: #211c44;
+  --brand-accent: #06b6d4;
+  --brand-accent-hover: #4fd5ea;
+  --brand-accent-light: #0f2f3c;
+  --brand-accent-ink: #67e1f2;
+
+  --background: #0b0e1b;
+  --surface: #151b30;
+  --surface-secondary: #1c2340;
+  --surface-tertiary: #242c4c;
+  --text-primary: #f5f6ff;
+  --text-secondary: #a5adc5;
+  --text-muted: #77819d;
+  --border: #293250;
+  --border-strong: #343e63;
+  --divider: #212842;
+  --on-primary: #ffffff;
+  --on-primary-muted: #a9add6;
+
+  --success: #2fbf85;
+  --success-light: #12302a;
+  --success-ink: #5fd8a6;
+  --warning: #f59e0b;
+  --warning-light: #33260f;
+  --warning-ink: #fbbf5c;
+  --error: #ef6464;
+  --error-light: #3a1a22;
+  --error-ink: #ff9a9a;
+  --info: #4aa3ee;
+  --info-light: #13283f;
+  --info-ink: #8cc6f7;
+
+  --series-1: #22c5e0;
+  --series-2: #9a7bff;
+  --sidebar: #101428;
+  --field: #11172a;
+  --elevated: #1c2340;
+  --nav-active: #292052;
+  --nav-active-text: #a78bfa;
+}
+
+@theme inline {
+  /* Inline so the utilities read next/font's variables, which are set on <body>, not :root. */
+  --font-sans: var(--font-app), ui-sans-serif, system-ui, sans-serif;
+  --font-handwritten: var(--font-comic), 'Comic Neue', 'Comic Sans MS', cursive;
+
+  --color-primary: var(--brand-primary);
+  --color-primary-hover: var(--brand-primary-hover);
+  --color-primary-active: var(--brand-primary-active);
+  --color-primary-light: var(--brand-primary-light);
+  --color-primary-subtle: var(--brand-primary-subtle);
+  --color-primary-deep: var(--brand-primary-deep);
+  --color-primary-ink: var(--brand-primary-ink);
+  --color-secondary: var(--brand-secondary);
+  --color-secondary-hover: var(--brand-secondary-hover);
+  --color-secondary-light: var(--brand-secondary-light);
+  --color-secondary-subtle: var(--brand-secondary-subtle);
+  --color-accent: var(--brand-accent);
+  --color-accent-hover: var(--brand-accent-hover);
+  --color-accent-light: var(--brand-accent-light);
+  --color-accent-ink: var(--brand-accent-ink);
+
+  --color-canvas: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-secondary);
+  --color-surface-3: var(--surface-tertiary);
+  --color-sidebar: var(--sidebar);
+  --color-field: var(--field);
+  --color-elevated: var(--elevated);
+  --color-nav-active: var(--nav-active);
+  --color-nav-active-text: var(--nav-active-text);
+  --color-ink: var(--text-primary);
+  --color-ink-2: var(--text-secondary);
+  --color-ink-3: var(--text-muted);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-line-soft: var(--divider);
+  --color-on-primary: var(--on-primary);
+  --color-on-primary-muted: var(--on-primary-muted);
+
+  --color-success: var(--success);
+  --color-success-light: var(--success-light);
+  --color-success-ink: var(--success-ink);
+  --color-warning: var(--warning);
+  --color-warning-light: var(--warning-light);
+  --color-warning-ink: var(--warning-ink);
+  --color-error: var(--error);
+  --color-error-light: var(--error-light);
+  --color-error-ink: var(--error-ink);
+  --color-info: var(--info);
+  --color-info-light: var(--info-light);
+  --color-info-ink: var(--info-ink);
 }
 
 @layer base {
   * {
-    border-color: #e2e8f0;
+    border-color: var(--border);
   }
 
   html {
-    background: #f7f7f8;
+    background: var(--background);
+    color: var(--text-primary);
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  ::placeholder {
+    color: var(--text-muted);
+  }
+
+  ::selection {
+    background: var(--brand-secondary-light);
   }
 
   body {
@@ -32,27 +207,117 @@
   a:focus-visible,
   input:focus-visible,
   textarea:focus-visible {
-    outline: 2px solid #6366f1;
+    outline: 2px solid var(--brand-secondary);
     outline-offset: 2px;
   }
 }
 
 .neo-card {
-  border: 1px solid #dedee2;
-  background: #fff;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgb(23 23 94 / 0.04);
+}
+
+:root.dark .neo-card {
   box-shadow: none;
 }
 
 .neo-inset {
-  border: 1px solid #e4e4e7;
-  background: #fff;
+  border: 1px solid var(--divider);
+  background: var(--surface);
   box-shadow: none;
 }
 
 .neo-control {
-  border: 1px solid #d8d8dc;
-  background: #fff;
+  border: 1px solid var(--border-strong);
+  background: var(--field);
   box-shadow: none;
+}
+
+dialog::backdrop {
+  background: rgb(13 16 32 / 0.45);
+}
+
+/* Motion: short, eased, and off for people who ask for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  .neo-card,
+  .neo-control {
+    transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+    transition-duration: 160ms;
+    transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  button:not(:disabled):active {
+    transform: scale(0.97);
+  }
+
+  html.theme-switching * {
+    transition-duration: 280ms !important;
+  }
+
+  .animate-pop {
+    animation: pop-in 170ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform-origin: top right;
+  }
+
+  .animate-page {
+    animation: page-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .animate-toast {
+    animation: toast-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .modal-dialog[open] {
+    animation: dialog-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .modal-dialog[open]::backdrop {
+    animation: fade-in 220ms ease-out;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
 }
 
 .workbench-scale {

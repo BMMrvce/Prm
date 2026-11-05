@@ -7,7 +7,7 @@ import {
   type TokenGrant,
 } from '@/lib/connections'
 import type { SpaceKey } from '@/types/workbench'
-import type { MailFolder, MailMessage, MailSummary, SendMailInput } from './types'
+import type { MailContact, MailFolder, MailMessage, MailSummary, SendMailInput } from './types'
 
 /** Outlook mailboxes via OAuth 2.0 (authorization code) and Microsoft Graph, per user. */
 const REQUIRED = [
@@ -25,6 +25,7 @@ type GraphMessage = {
   subject?: string
   from?: GraphRecipient
   toRecipients?: GraphRecipient[]
+  ccRecipients?: GraphRecipient[]
   receivedDateTime?: string
   sentDateTime?: string
   isRead?: boolean
@@ -211,4 +212,28 @@ export async function sendOutlook(token: string, { to, subject, body }: SendMail
       saveToSentItems: true,
     }),
   })
+}
+
+/** Senders and recipients of the latest messages in Inbox and Sent Items. */
+export async function contactsOutlook(token: string, perFolder = 100): Promise<MailContact[]> {
+  const pages = await Promise.all(
+    ['inbox', 'sentitems'].map((folder) =>
+      graph<{ value: GraphMessage[] }>(
+        token,
+        `/me/mailFolders/${folder}/messages?$top=${perFolder}&$select=from,toRecipients,ccRecipients`,
+      ),
+    ),
+  )
+  return pages
+    .flatMap((page) => page.value)
+    .flatMap((message) => [
+      message.from,
+      ...(message.toRecipients ?? []),
+      ...(message.ccRecipients ?? []),
+    ])
+    .map((person) => ({
+      name: person?.emailAddress?.name ?? '',
+      address: person?.emailAddress?.address ?? '',
+    }))
+    .filter((person) => person.address.includes('@'))
 }

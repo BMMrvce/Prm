@@ -1,8 +1,9 @@
 'use client'
 
-import { Clock, Play, Plus, Square } from 'lucide-react'
+import { Clock, ListTodo, Play, Plus, Square } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState, type FormEvent } from 'react'
+import { EmptyState } from '@/components/ui/empty-state'
 import { TaskDialog } from '@/components/tasks/task-dialog'
 import { SquareCheck } from '@/components/ui/square-check'
 import {
@@ -63,18 +64,16 @@ export function TaskList() {
     : 0
 
   return (
-    <section className="neo-card flex min-h-[437px] min-w-0 max-w-full flex-col overflow-hidden rounded-xl p-4 font-funky">
+    <section className="neo-card flex min-h-[437px] min-w-0 max-w-full flex-col overflow-hidden rounded-xl p-4">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-[15px] font-semibold">To Do</h2>
-        <span className="text-[13px] text-[#66666d]">
+        <span className="text-[13px] text-ink-2">
           {open.length} open · {done.length} done
         </span>
       </div>
-      {!ready && <p className="py-6 text-center text-[13px] text-[#88888e]">Loading tasks…</p>}
+      {!ready && <p className="py-6 text-center text-[13px] text-ink-3">Loading tasks…</p>}
       {ready && !tasks.length && (
-        <p className="py-6 text-center text-[13px] text-[#88888e]">
-          No tasks yet. Add your first one below.
-        </p>
+        <EmptyState icon={ListTodo} title="No tasks yet" hint="Add your first one below." />
       )}
       <div className="space-y-4">
         {visible.map((task) => {
@@ -92,11 +91,11 @@ export function TaskList() {
                 className="min-w-0 flex-1 text-left"
               >
                 <p
-                  className={`break-words text-[15px] leading-[18px] ${task.state === 'completed' ? 'text-[#88888e] line-through' : 'text-[#222226]'}`}
+                  className={`break-words font-handwritten text-[15px] leading-[18px] ${task.state === 'completed' ? 'text-ink-3 line-through' : 'text-ink'}`}
                 >
                   {task.title}
                 </p>
-                <p className="mt-0.5 truncate text-[12px] text-[#67676c]">
+                <p className="mt-0.5 truncate font-handwritten text-[12px] text-ink-2">
                   {task.code}
                   {task.projectName && ` · ${task.projectName}`}
                   {task.dueAt && ` · Due ${shortDate(task.dueAt)}`}
@@ -110,7 +109,7 @@ export function TaskList() {
               </button>
               {task.priority !== 'none' && (
                 <span
-                  className={`hidden shrink-0 rounded-full px-2.5 py-0.5 text-[11px] sm:inline ${priorityStyle(task.priority)}`}
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium sm:px-2.5 ${priorityStyle(task.priority)}`}
                 >
                   {capitalize(task.priority)}
                 </span>
@@ -119,7 +118,7 @@ export function TaskList() {
                 <button
                   type="button"
                   onClick={() => void startTimer(task.id)}
-                  className="grid size-6 shrink-0 place-items-center rounded-md text-[#493bd0] opacity-60 hover:bg-[#eeeeff] hover:opacity-100"
+                  className="grid size-6 shrink-0 place-items-center rounded-md text-secondary opacity-60 hover:bg-secondary-light hover:opacity-100"
                   aria-label={`Start timer for ${task.title}`}
                 >
                   <Play size={13} />
@@ -132,7 +131,7 @@ export function TaskList() {
       {tasks.length > VISIBLE_TASKS && (
         <Link
           href={workspacePath(workspace.key, 'tasks')}
-          className="mt-3 text-[12px] font-medium text-[#493bd0]"
+          className="mt-3 text-[12px] font-medium text-secondary"
         >
           View all {tasks.length} tasks →
         </Link>
@@ -142,14 +141,14 @@ export function TaskList() {
           value={newTask}
           onChange={(event) => setNewTask(event.target.value)}
           disabled={!ready}
-          className="h-9 min-w-0 flex-1 rounded-lg border border-[#d8d8dc] bg-white px-3 text-xs outline-none focus:border-[#493bd0]"
+          className="h-9 min-w-0 flex-1 rounded-lg border border-line-strong bg-field px-3 font-handwritten text-xs outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
           placeholder="Add a to-do item"
           aria-label="New to-do item"
         />
         <button
           type="submit"
           disabled={!ready}
-          className="grid size-9 shrink-0 place-items-center rounded-lg bg-[#493bd0] text-white disabled:opacity-60"
+          className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-white disabled:opacity-60 hover:bg-primary-hover active:bg-primary-active"
           aria-label="Add to-do item"
         >
           <Plus size={15} />
@@ -159,25 +158,25 @@ export function TaskList() {
       <div className="neo-inset mt-auto rounded-lg p-2.5">
         {timer ? (
           <>
-            <div className="flex items-center justify-between text-[11px] text-[#555561]">
-              <span>Now tracking</span>
+            <div className="flex items-center justify-between text-[11px] text-ink-2">
+              <span className="font-handwritten">Now tracking</span>
               <button
                 type="button"
                 onClick={() => void stopTimer()}
-                className="flex items-center gap-1 font-medium text-[#a52828]"
+                className="flex items-center gap-1 font-medium text-error-ink"
               >
                 <Square size={10} /> Stop
               </button>
             </div>
-            <p className="mt-1 truncate text-[13px] font-medium">
+            <p className="mt-1 truncate font-handwritten text-[13px] font-medium">
               {timer.taskTitle ?? 'Untitled task'}
             </p>
-            <span className="mt-1 block text-[20px] font-semibold leading-none tracking-[-0.03em]">
+            <span className="mt-1 block font-handwritten text-[20px] font-semibold leading-none tracking-[-0.03em]">
               {stopwatch(elapsed)}
             </span>
           </>
         ) : (
-          <p className="text-[12px] text-[#77777d]">
+          <p className="font-handwritten text-[12px] text-ink-2">
             No timer running. Press <Play size={11} className="inline" /> on a task to track time.
           </p>
         )}
@@ -199,8 +198,8 @@ function TaskTime({
   const over = Boolean(estimateMinutes && seconds / 60 > estimateMinutes)
   return (
     <p
-      className={`mt-1 flex items-center gap-1 text-[12px] font-medium ${
-        over ? 'text-[#b42828]' : running ? 'text-[#2a6fc4]' : 'text-[#4a3fd1]'
+      className={`mt-1 flex items-center gap-1 font-handwritten text-[12px] font-medium ${
+        over ? 'text-error-ink' : running ? 'text-accent-ink' : 'text-secondary'
       }`}
     >
       <Clock size={12} className="shrink-0" />

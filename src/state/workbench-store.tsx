@@ -400,13 +400,17 @@ async function loadSpace(
   }
 }
 
-function readSettings(): Partial<BySpace<WorkspaceSettings>> {
+/** Settings from before they moved to the account; read once to carry them over. */
+function readLegacySettings(): Partial<BySpace<WorkspaceSettings>> {
   try {
     return JSON.parse(window.localStorage.getItem(SETTINGS_KEY) || '{}')
   } catch {
     return {}
   }
 }
+
+/** Currency used until the user picks another one in Settings. */
+export const DEFAULT_CURRENCY: Currency = 'INR'
 
 type WorkbenchState = ReturnType<typeof useWorkbenchState>
 
@@ -437,7 +441,6 @@ function useWorkbenchState() {
 
   // Signed-in user, profile and any running timer.
   useEffect(() => {
-    setSettings(readSettings())
     // Drop the seeded data earlier versions kept in localStorage; Supabase is the source now.
     try {
       for (const key of LEGACY_KEYS) window.localStorage.removeItem(key)
@@ -473,6 +476,18 @@ function useWorkbenchState() {
           '',
       })
       if (timerRow.data) setTimer(toTimer(timerRow.data))
+      // Settings live in the account's metadata so every browser and the PWA share them.
+      const saved = user.user_metadata?.settings as Partial<BySpace<WorkspaceSettings>> | undefined
+      const legacy = readLegacySettings()
+      setSettings({ ...legacy, ...saved })
+      if (!saved && Object.keys(legacy).length) {
+        void supabase.auth.updateUser({ data: { settings: legacy } })
+      }
+      try {
+        window.localStorage.removeItem(SETTINGS_KEY)
+      } catch {
+        // Storage blocked: nothing to clean up.
+      }
     })()
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') router.replace('/login')
@@ -499,6 +514,43 @@ function useWorkbenchState() {
     },
     [profile, supabase],
   )
+
+  // New bell entries (reminders, tags) arrive live; RLS limits them to this user's rows.
+  const userId = profile?.id
+  useEffect(() => {
+    if (!userId) return
+    const channel = supabase
+      .channel(`notifications-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`,
+        },
+        (change) => {
+          const row = change.new as Row
+          const notification = toNotification(row)
+          setSpaceData((current) => {
+            const next = { ...current }
+            for (const key of Object.keys(next) as SpaceKey[]) {
+              const data = next[key]!
+              const belongs =
+                data.workspaceId === row.workspace_id || Boolean(data.workspaces[row.workspace_id])
+              if (belongs && !data.notifications.some((item) => item.id === notification.id)) {
+                next[key] = { ...data, notifications: [notification, ...data.notifications] }
+              }
+            }
+            return next
+          })
+        },
+      )
+      .subscribe()
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [userId, supabase])
 
   // Load the workspace in the URL the first time it is visited.
   useEffect(() => {
@@ -984,7 +1036,7 @@ function useWorkbenchState() {
               description: input.description,
               category: input.category,
               amount: input.amount,
-              currency: settings[space]?.currency ?? 'USD',
+              currency: settings[space]?.currency ?? DEFAULT_CURRENCY,
               expense_date: input.date ?? localDate(),
               status: office ? 'pending' : 'recorded',
             })
@@ -1033,17 +1085,13 @@ function useWorkbenchState() {
         setProfile({ ...profile, fullName })
       }),
 
-    saveSettings: (space: SpaceKey, next: WorkspaceSettings) => {
-      setSettings((current) => {
-        const merged = { ...current, [space]: next }
-        try {
-          window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged))
-        } catch {
-          // Storage blocked: the setting still applies for this session.
-        }
-        return merged
-      })
-    },
+    saveSettings: (space: SpaceKey, next: WorkspaceSettings) =>
+      run(async () => {
+        const merged = { ...settings, [space]: next }
+        setSettings(merged)
+        const { error } = await supabase.auth.updateUser({ data: { settings: merged } })
+        if (error) throw new Error(error.message)
+      }),
 
     markNotificationsRead: (space: SpaceKey) =>
       run(async () => {
@@ -1169,7 +1217,7 @@ export function useWorkspace() {
   const store = useWorkbench()
   const key = config.key
   const data = store.spaceData[key]
-  const currency: Currency = store.settings[key]?.currency ?? 'USD'
+  const currency: Currency = store.settings[key]?.currency ?? DEFAULT_CURRENCY
 
   return {
     workspace: data ? { ...config, name: data.name } : config,

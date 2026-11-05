@@ -108,12 +108,12 @@ export function WatchLaterPanel() {
   return (
     <section className="neo-card mt-[15px] min-w-0 rounded-xl p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="grid size-8 place-items-center rounded-lg bg-[#fdecec] text-[#c4302b]">
+        <span className="grid size-8 place-items-center rounded-lg bg-primary-light text-primary-ink">
           <ListVideo size={17} />
         </span>
         <div className="mr-auto min-w-0">
           <h2 className="text-[15px] font-semibold">Watch Later</h2>
-          <p className="truncate text-[12px] text-[#73737a]">
+          <p className="truncate text-[12px] text-ink-2">
             {connected
               ? `${connected.playlist.title} · ${videos.length} videos · ${connected.account}`
               : 'Videos you save to a YouTube playlist'}
@@ -124,7 +124,7 @@ export function WatchLaterPanel() {
             <button
               type="button"
               onClick={() => setChoosing(true)}
-              className="h-8 rounded-lg border border-[#d8d8dc] bg-white px-3 text-[12px]"
+              className="h-8 rounded-lg border border-line-strong bg-surface px-3 text-[12px]"
             >
               Change playlist
             </button>
@@ -132,7 +132,7 @@ export function WatchLaterPanel() {
               type="button"
               onClick={() => void load()}
               disabled={loading}
-              className="grid size-8 place-items-center rounded-lg border border-[#d8d8dc] bg-white text-[#55555c] disabled:opacity-50"
+              className="grid size-8 place-items-center rounded-lg border border-line-strong bg-surface text-ink-2 disabled:opacity-50"
               aria-label="Refresh videos"
             >
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
@@ -141,10 +141,10 @@ export function WatchLaterPanel() {
         )}
       </div>
 
-      {!feed && <p className="mt-4 text-[13px] text-[#88888e]">Loading…</p>}
+      {!feed && <p className="mt-4 text-[13px] text-ink-3">Loading…</p>}
 
       {feed?.status.state === 'not_configured' && (
-        <p className="mt-4 text-[13px] text-[#55555c]">
+        <p className="mt-4 text-[13px] text-ink-2">
           Add a Google OAuth client to <code className="text-[12px]">.env</code> (
           {feed.status.missing.join(', ')}) to connect YouTube. See the README for the steps.
         </p>
@@ -152,13 +152,13 @@ export function WatchLaterPanel() {
 
       {state === 'needs_auth' && (
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <p className="min-w-0 flex-1 text-[13px] text-[#55555c]">
+          <p className="min-w-0 flex-1 text-[13px] text-ink-2">
             Connect your Google account, then pick a playlist (for example one called
             &ldquo;Later&rdquo;). YouTube&rsquo;s own Watch later list can&rsquo;t be read by apps.
           </p>
           <a
             href={connectYouTubeUrl(window.location.pathname)}
-            className="h-9 rounded-lg bg-[#c4302b] px-4 text-[13px] font-medium leading-9 text-white"
+            className="h-9 rounded-lg bg-primary px-4 text-[13px] font-medium leading-9 text-white hover:bg-primary-hover active:bg-primary-active"
           >
             Connect YouTube
           </a>
@@ -168,13 +168,13 @@ export function WatchLaterPanel() {
       {picker && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {playlists === null ? (
-            <p className="text-[13px] text-[#88888e]">Loading your playlists…</p>
+            <p className="text-[13px] text-ink-3">Loading your playlists…</p>
           ) : playlists.length ? (
             <>
               <select
                 value={choice}
                 onChange={(event) => setChoice(event.target.value)}
-                className="h-9 min-w-0 max-w-full flex-1 rounded-lg border border-[#d8d8dc] bg-white px-2 text-[13px] sm:max-w-sm"
+                className="h-9 min-w-0 max-w-full flex-1 rounded-lg border border-line-strong bg-surface px-2 text-[13px] sm:max-w-sm"
                 aria-label="Playlist"
               >
                 {playlists.map((item) => (
@@ -186,7 +186,7 @@ export function WatchLaterPanel() {
               <button
                 type="button"
                 onClick={() => void save()}
-                className="h-9 rounded-lg bg-[#493bd0] px-4 text-[13px] font-medium text-white"
+                className="h-9 rounded-lg bg-primary px-4 text-[13px] font-medium text-white hover:bg-primary-hover active:bg-primary-active"
               >
                 Show this playlist
               </button>
@@ -194,14 +194,14 @@ export function WatchLaterPanel() {
                 <button
                   type="button"
                   onClick={() => setChoosing(false)}
-                  className="h-9 rounded-lg px-3 text-[13px] text-[#55555c]"
+                  className="h-9 rounded-lg px-3 text-[13px] text-ink-2"
                 >
                   Cancel
                 </button>
               )}
             </>
           ) : (
-            <p className="text-[13px] text-[#55555c]">
+            <p className="text-[13px] text-ink-2">
               No playlists on this YouTube account yet. Create one (e.g. &ldquo;Later&rdquo;) on
               YouTube, save a video to it, then reload.
             </p>
@@ -211,9 +211,9 @@ export function WatchLaterPanel() {
 
       {state === 'connected' && !choosing && (
         <>
-          {feed?.error && <p className="mt-4 text-[13px] text-[#a52828]">{feed.error}</p>}
+          {feed?.error && <p className="mt-4 text-[13px] text-error-ink">{feed.error}</p>}
           {!videos.length && !feed?.error && (
-            <p className="mt-4 text-[13px] text-[#88888e]">
+            <p className="mt-4 text-[13px] text-ink-3">
               This playlist is empty. Save a video to it on YouTube and press refresh.
             </p>
           )}
@@ -224,9 +224,9 @@ export function WatchLaterPanel() {
                   href={video.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]"
+                  className="group block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-secondary"
                 >
-                  <div className="aspect-video overflow-hidden rounded-lg bg-[#eeeeef]">
+                  <div className="aspect-video overflow-hidden rounded-lg bg-surface-2">
                     {video.thumbnail && (
                       // Remote YouTube thumbnails; next/image would need a remote-patterns config.
                       <img
@@ -237,10 +237,10 @@ export function WatchLaterPanel() {
                       />
                     )}
                   </div>
-                  <p className="mt-2 line-clamp-2 text-[13px] font-medium leading-[18px] text-[#222226] group-hover:text-[#493bd0]">
+                  <p className="mt-2 line-clamp-2 text-[13px] font-medium leading-[18px] text-ink group-hover:text-secondary">
                     {video.title}
                   </p>
-                  <p className="mt-0.5 truncate text-[11px] text-[#77777d]">
+                  <p className="mt-0.5 truncate text-[11px] text-ink-2">
                     {video.channel}
                     {video.addedAt && ` · added ${mailDate(video.addedAt)}`}
                   </p>
@@ -252,7 +252,7 @@ export function WatchLaterPanel() {
             <button
               type="button"
               onClick={() => setExpanded((value) => !value)}
-              className="mt-3 text-[12px] font-medium text-[#493bd0]"
+              className="mt-3 text-[12px] font-medium text-secondary"
             >
               {expanded ? 'Show fewer' : `Show all ${videos.length} videos`}
             </button>
