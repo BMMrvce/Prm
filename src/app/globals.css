@@ -121,7 +121,7 @@
 @theme inline {
   /* Inline so the utilities read next/font's variables, which are set on <body>, not :root. */
   --font-sans: var(--font-app), ui-sans-serif, system-ui, sans-serif;
-  --font-handwritten: var(--font-comic), 'Comic Neue', 'Comic Sans MS', cursive;
+  --font-handwritten: var(--font-handwritten-face), 'Comic Sans MS', cursive;
 
   --color-primary: var(--brand-primary);
   --color-primary-hover: var(--brand-primary-hover);
@@ -210,6 +210,17 @@
     outline: 2px solid var(--brand-secondary);
     outline-offset: 2px;
   }
+}
+
+/*
+ * Shantell Sans, fully informal with a little bounce: letters wobble like handwriting.
+ * Sized to Inter's x-height (0.54) so the To Do list reads at the same size as the rest.
+ */
+.font-handwritten {
+  font-variation-settings:
+    'INFM' 100,
+    'BNCE' 40;
+  font-size-adjust: 0.54;
 }
 
 .neo-card {

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Comic_Neue, Inter } from 'next/font/google'
+import { Inter, Shantell_Sans } from 'next/font/google'
 import type { ReactNode } from 'react'
 import { PwaRegister } from '@/components/pwa-register'
 import { THEME_SCRIPT } from '@/lib/theme'
@@ -7,11 +7,12 @@ import './globals.css'
 
 // One UI typeface everywhere (Inter); tabular numbers keep timers and money aligned.
 const appFont = Inter({ subsets: ['latin'], variable: '--font-app' })
-// Friendly handwritten face, only for the dashboard To Do list (`font-handwritten`).
-const handwrittenFont = Comic_Neue({
+// Funky handwritten face, only for the dashboard To Do list (`font-handwritten`). Its
+// Informal and Bounce axes give the hand-drawn, slightly dancing letters.
+const handwrittenFont = Shantell_Sans({
   subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-comic',
+  axes: ['INFM', 'BNCE'],
+  variable: '--font-handwritten-face',
 })
 
 export const metadata: Metadata = {

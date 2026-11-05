@@ -91,7 +91,7 @@ export function TaskList() {
                 className="min-w-0 flex-1 text-left"
               >
                 <p
-                  className={`break-words font-handwritten text-[15px] leading-[18px] ${task.state === 'completed' ? 'text-ink-3 line-through' : 'text-ink'}`}
+                  className={`break-words font-handwritten text-[15px] leading-[20px] ${task.state === 'completed' ? 'text-ink-3 line-through' : 'text-ink'}`}
                 >
                   {task.title}
                 </p>
