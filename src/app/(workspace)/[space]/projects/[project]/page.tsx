@@ -1,36 +1,13 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
-import { ProjectGrid } from '@/components/projects/project-grid'
-import { findWorkspace } from '@/data/workspaces'
-import { findProjectBySlug, projectSlug } from '@/lib/routes'
-import { resolveWorkspace } from '@/lib/workspace'
+import { ProjectDetail } from '@/components/projects/project-detail'
 
-type ProjectParams = Promise<{ space: string; project: string }>
+export const metadata: Metadata = { title: 'Project' }
 
-export const dynamicParams = false
-
-export function generateStaticParams({ params }: { params: { space: string } }) {
-  const workspace = findWorkspace(params.space)
-  return (workspace?.projects ?? []).map((name) => ({ project: projectSlug(name) }))
-}
-
-async function resolveProject(params: ProjectParams) {
-  const workspace = await resolveWorkspace(params)
-  const project = findProjectBySlug(workspace, (await params).project)
-  if (!project) notFound()
-  return { workspace, project }
-}
-
-export async function generateMetadata({ params }: { params: ProjectParams }): Promise<Metadata> {
-  const { project } = await resolveProject(params)
-  return { title: project }
-}
-
-export default async function ProjectPage({ params }: { params: ProjectParams }) {
-  const { workspace, project } = await resolveProject(params)
+// Projects live in the database, so this page renders on demand for any slug.
+export default function ProjectPage() {
   return (
     <div className="mt-5">
-      <ProjectGrid workspace={workspace} projects={[project]} />
+      <ProjectDetail />
     </div>
   )
 }

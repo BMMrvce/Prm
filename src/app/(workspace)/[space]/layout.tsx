@@ -3,9 +3,8 @@ import { WorkspaceShell } from '@/components/shell/workspace-shell'
 import { SPACE_KEYS } from '@/data/workspaces'
 import { resolveWorkspace, type SpaceParams } from '@/lib/workspace'
 
-// Only /office, /studio and /personal exist; anything else is a 404.
-export const dynamicParams = false
-
+// /office, /studio and /personal are prerendered. Any other value 404s in resolveWorkspace().
+// dynamicParams stays on so database-backed project slugs below can render on demand.
 export function generateStaticParams() {
   return SPACE_KEYS.map((space) => ({ space }))
 }

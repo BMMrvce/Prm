@@ -8,6 +8,8 @@ build/
 !.env.example
 !.env.demo
 next-env.d.ts
+# Encrypted OAuth tokens (see src/lib/mail/token-store.ts)
+.data/
 *.tsbuildinfo
 *-debug.log*
 logs/

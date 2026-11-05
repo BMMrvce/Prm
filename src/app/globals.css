@@ -1,7 +1,12 @@
 @import 'tailwindcss';
 
+/* Inline so the utilities read next/font's variables, which are set on <body>, not :root. */
+@theme inline {
+  --font-sans: var(--font-app), ui-sans-serif, system-ui, sans-serif;
+  --font-funky: var(--font-shantell), 'Comic Sans MS', cursive;
+}
+
 @theme {
-  --font-sans: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
   --color-brand: #4338ca;
 }
 
@@ -15,7 +20,7 @@
   }
 
   body {
-    font-family: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-app), ui-sans-serif, system-ui, sans-serif;
   }
 
   button,
@@ -51,7 +56,9 @@
 }
 
 .workbench-scale {
-  width: 111.111%;
-  min-height: 111.111vh;
-  zoom: 0.9;
+  /* Full-viewport app frame. The old 111%-width + zoom:0.9 trick overflowed every page. */
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip;
 }
