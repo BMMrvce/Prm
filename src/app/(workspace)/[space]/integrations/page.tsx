@@ -1,14 +1,16 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { IntegrationsList } from '@/components/integrations/integrations-list'
-import { resolveWorkspace, type SpaceParams } from '@/lib/workspace'
 
 export const metadata: Metadata = { title: 'Integrations' }
 
-export default async function IntegrationsPage({ params }: { params: SpaceParams }) {
-  const workspace = await resolveWorkspace(params)
+export default function IntegrationsPage() {
   return (
     <div className="mt-5">
-      <IntegrationsList workspace={workspace} />
+      {/* Reads ?outlook= from the OAuth callback, which needs a Suspense boundary on static pages. */}
+      <Suspense>
+        <IntegrationsList />
+      </Suspense>
     </div>
   )
 }

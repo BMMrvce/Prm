@@ -20,28 +20,93 @@ pnpm dev            # http://localhost:3000 (set PORT to change it)
 | `pnpm typecheck` | TypeScript check with no emit                     |
 | `pnpm format`    | Format with oxfmt                                 |
 
-Copy `.env.example` to `.env.local` only when you connect Supabase or mail/OAuth
-integrations. The app runs without any environment variables.
+Copy `.env.example` to `.env.local` (or `.env`) and fill in at least the Supabase values:
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY`.
+Apply every file in `supabase/migrations/` to the project first (see `supabase/README.md`).
+
+## Accounts
+
+Every page requires a signed-in user; `src/proxy.ts` redirects signed-out visitors to
+`/login` and answers API calls with 401. **Create account** on `/login` calls
+`POST /api/auth/signup`, which uses the service-role key to create an already-confirmed
+user, then signs in. On first visit to each workspace the app creates the matching
+`workspaces` row (via the `create_workspace` RPC) for that user.
+
+## Mail and connected accounts
+
+Every user connects their **own** accounts; nothing is shared between users. Sign-ins are
+stored per user in the `user_connections` table (server-only, encrypted with
+`OAUTH_TOKEN_ENCRYPTION_KEY`). Until migration `202611050004` is run they fall back to
+encrypted files in `.data/`, which only suits local development.
+
+| Workspace | Mailbox options (one at a time) |
+| --------- | ------------------------------- |
+| Office    | Hostinger Mail or Gmail         |
+| Studio    | Gmail                           |
+| Personal  | Gmail                           |
+
+Outlook support is built but switched off; re-enable it in `src/lib/mail/providers.ts`.
+
+Users connect a mailbox in **Integrations**. Hostinger asks for the mailbox address and
+password (checked by signing in; the IMAP/SMTP servers are fixed to Hostinger's,
+`HOSTINGER_*_HOST/PORT`). Gmail uses Google sign-in.
+
+### One-time setup for the deployer
+
+**Google (Gmail + YouTube)**, one OAuth client for both:
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), enable **Gmail API** and
+   **YouTube Data API v3**.
+2. Under **Google Auth Platform → Clients**, create a **Web application** client with the
+   redirect URI `http://localhost:3000/api/oauth/google/callback` (and
+   `https://<your-domain>/api/oauth/google/callback` once deployed).
+3. Under **Audience**, add test users, or publish the app. Unverified apps show a warning
+   and are capped at 100 users; Gmail access is a "restricted" scope, so public use needs
+   Google verification including a security assessment.
+4. Set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
+
+**Microsoft (Outlook, currently switched off)**: register a multi-tenant app in Microsoft Entra with the **Web**
+redirect URI `http://localhost:3000/api/oauth/outlook/callback` (and the deployed one), the
+delegated Graph permissions `User.Read`, `Mail.ReadWrite`, `Mail.Send`, `offline_access`,
+and set `OUTLOOK_CLIENT_ID` / `OUTLOOK_CLIENT_SECRET` / `OUTLOOK_TENANT_ID=common`.
+
+Deployed, also set `SITE_URL=https://<your-domain>` so the redirect URIs match.
+
+### YouTube (Watch Later)
+
+The Personal dashboard shows the videos of a YouTube playlist each user picks. YouTube does
+not let apps read its built-in "Watch later" list, so save videos to a normal playlist
+(for example "Later") instead. Only the read-only `youtube.readonly` scope is requested.
 
 ## Routes
 
 `[space]` is one of `office`, `studio` or `personal`. Any other value returns 404.
 
-| URL                           | Page                                                |
-| ----------------------------- | --------------------------------------------------- |
-| `/`                           | Redirects to `/office`                              |
-| `/login`                      | Sign-in screen (UI only, not wired to auth yet)     |
-| `/[space]`                    | Home dashboard: to-dos, calendar, notes, mail, plan |
-| `/[space]/tasks`              | My Tasks                                            |
-| `/[space]/inbox`              | Unified inbox                                       |
-| `/[space]/calendar`           | Week/day calendar                                   |
-| `/[space]/expenses`           | Reimbursements (Office) or Expenses                 |
-| `/[space]/projects`           | All projects                                        |
-| `/[space]/projects/[project]` | One project, e.g. `/office/projects/website-revamp` |
-| `/[space]/integrations`       | Integrations                                        |
-| `/[space]/settings`           | Workspace settings                                  |
-| `/api/health`                 | `GET` JSON liveness probe                           |
-| `/manifest.webmanifest`       | PWA manifest                                        |
+| URL                            | Page                                                                 |
+| ------------------------------ | -------------------------------------------------------------------- |
+| `/`                            | Redirects to `/office`                                               |
+| `/login`                       | Sign in / create account (Supabase Auth)                             |
+| `/[space]`                     | Home dashboard: to-dos, calendar, notes, mail, plan                  |
+| `/[space]/tasks`               | My Tasks                                                             |
+| `/[space]/inbox`               | Unified inbox                                                        |
+| `/[space]/calendar`            | Week/day calendar with previous/next/today; click an item to edit it |
+| `/[space]/time`                | Time Management: tracked time charts and time log                    |
+| `/[space]/expenses`            | Reimbursements (Office) or Income & Expenses                         |
+| `/[space]/projects`            | All projects                                                         |
+| `/[space]/projects/[project]`  | One project, e.g. `/office/projects/website-revamp`                  |
+| `/[space]/integrations`        | Integrations                                                         |
+| `/[space]/settings`            | Workspace settings                                                   |
+| `/api/health`                  | `GET` JSON liveness probe (public)                                   |
+| `/api/auth/signup`             | `POST` create a confirmed account (public)                           |
+| `/api/mail`                    | `GET` your mailbox status per workspace                              |
+| `/api/mail/[space]`            | `GET ?folder=inbox\|sent` list · `POST` send                         |
+| `/api/mail/[space]/message`    | `GET ?folder=&id=` one message with body                             |
+| `/api/mail/[space]/connection` | `POST` connect Hostinger · `DELETE` disconnect your mailbox          |
+| `/api/oauth/outlook/*`         | Outlook sign-in: `connect?space=`, `callback`                        |
+| `/api/youtube`                 | `GET` status + videos · `POST` choose playlist · `DELETE` disconnect |
+| `/api/youtube/playlists`       | `GET` the signed-in user's YouTube playlists                         |
+| `/api/oauth/google/*`          | Google sign-in for Gmail and YouTube: `connect?purpose=`, `callback` |
+| `/manifest.webmanifest`        | PWA manifest                                                         |
 
 ## File structure
 
@@ -60,36 +125,55 @@ src/
 │       └── [space]/
 │           ├── layout.tsx            # Validates workspace, renders sidebar + header
 │           ├── page.tsx              # /[space]
-│           ├── tasks/ inbox/ calendar/ expenses/ integrations/ settings/
+│           ├── tasks/ inbox/ calendar/ time/ expenses/ integrations/ settings/
 │           └── projects/
 │               ├── page.tsx
 │               └── [project]/page.tsx
 ├── components/
 │   ├── shell/                        # Sidebar, header, workspace switcher, notifications
 │   ├── dashboard/                    # Home widgets (task list, day note, mail, plan, activity)
-│   ├── calendar/ tasks/ expenses/    # Interactive feature views (client components)
-│   ├── inbox/ projects/ integrations/ settings/   # Static views (server components)
+│   ├── calendar/ tasks/ expenses/ time/  # Interactive feature views (client components)
+│   ├── charts/ people/               # Dependency-free charts · tag-people picker
+│   ├── inbox/ integrations/ settings/ mail/       # Live mail + settings (client components)
+│   ├── projects/                     # Static views (server components)
 │   ├── ui/                           # Small shared primitives
 │   └── pwa-register.tsx
-├── data/workspaces.ts                # Seed data for the three workspaces
+├── data/workspaces.ts                # Static config for the three workspaces
 ├── lib/
 │   ├── routes.ts                     # URL builders + sidebar nav (single source of truth)
 │   ├── workspace.ts                  # resolveWorkspace(): [space] param → data or 404
 │   ├── format.ts                     # Formatting helpers
-│   └── supabase/                     # Supabase clients (for when a backend is connected)
-├── state/workbench-store.tsx         # React context store + localStorage persistence
+│   ├── mail/                         # Server-only mail: Hostinger IMAP/SMTP, Outlook Graph, token store
+│   └── supabase/                     # Supabase clients: browser, server, admin (service role)
+├── state/workbench-store.tsx         # Supabase-backed React context store
+├── proxy.ts                          # Auth guard: redirects signed-out users to /login
 └── types/workbench.ts                # Shared domain types
-supabase/                             # SQL migrations and seed for a future Supabase backend
+supabase/                             # SQL migrations for the Supabase project
 public/                               # Icons and service worker
 ```
 
 ## Data
 
-There is no server-side database yet. Workspace content comes from `src/data/workspaces.ts`.
-Tasks, calendar entries and expenses you add are kept in the browser's `localStorage`
-through `src/state/workbench-store.tsx`, so they persist per browser but are not shared
-between devices or users. `supabase/` contains the schema for moving this to a real
-backend. See `supabase/README.md`.
+Everything is stored in Supabase: projects, tasks, meetings, daily notes, plan items,
+expenses, time entries and notifications, scoped to workspaces with row-level security.
+`src/state/workbench-store.tsx` loads a workspace when you open it and writes changes
+straight to the database. `src/data/workspaces.ts` only holds static per-workspace
+config (label, task prefix, mail provider). Only the expense currency preference is kept
+in the browser (`localStorage`), since the schema has no column for it.
+
+**Collaboration.** Tag people on a project (project page) or a task (task editor). They
+see it on their own dashboard in the same space (your Office items appear in their
+Office), can update it, add tasks to a shared project and log time on it, and get a
+notification. Time on a shared task is stored in the owner's workspace, so everyone on
+the task sees the total. People are found by name or email through the `search_people`
+database function. When creating a project you can also share it with everyone on your
+email domain (e.g. `@cfoverseglobal.com`), including people who sign up later; free mail
+domains such as gmail.com can't be shared with. Signup doesn't verify email addresses, so
+anyone who registers an address on your domain gets these projects.
+
+**Time.** Tasks carry an optional estimate. Time is recorded with the timer (▷ on a task)
+or logged by hand in the task editor or on the Time Management page, and compared with
+the estimate there.
 
 ## Adding a page
 

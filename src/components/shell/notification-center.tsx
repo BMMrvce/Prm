@@ -2,17 +2,14 @@
 
 import { Bell } from 'lucide-react'
 import { useState } from 'react'
-import { useToast } from '@/state/workbench-store'
-
-const notifications = [
-  ['Finance review starts soon', '2 min ago'],
-  ['Alex mentioned you in ST-24', '18 min ago'],
-  ['Personal reminder: renew insurance', '1 hour ago'],
-]
+import { mailDate } from '@/lib/format'
+import { useToast, useWorkspace } from '@/state/workbench-store'
 
 export function NotificationCenter() {
   const [open, setOpen] = useState(false)
   const { showToast } = useToast()
+  const { notifications, markNotificationsRead } = useWorkspace()
+  const unread = notifications.filter((item) => !item.readAt).length
 
   const enableNotifications = async () => {
     if (!('Notification' in window)) {
@@ -41,13 +38,18 @@ export function NotificationCenter() {
     <div className="relative">
       <button
         type="button"
-        onClick={() => setOpen((visible) => !visible)}
+        onClick={() => {
+          if (open) void markNotificationsRead()
+          setOpen((visible) => !visible)
+        }}
         className="neo-control relative grid size-9 place-items-center rounded-lg text-[#4d4d55]"
         aria-label="Open notifications"
         aria-expanded={open}
       >
         <Bell size={17} />
-        <span className="absolute right-1.5 top-1.5 size-2 rounded-full border-2 border-[#f4f6fa] bg-[#493bd0]" />
+        {unread > 0 && (
+          <span className="absolute right-1.5 top-1.5 size-2 rounded-full border-2 border-[#f4f6fa] bg-[#493bd0]" />
+        )}
       </button>
       {open && (
         <div className="neo-card absolute right-0 top-12 z-30 w-[min(340px,calc(100vw-2rem))] rounded-xl p-3">
@@ -65,14 +67,20 @@ export function NotificationCenter() {
             </button>
           </div>
           <div className="mt-3 space-y-2">
-            {notifications.map(([title, time], index) => (
-              <div className="neo-inset flex gap-2 rounded-lg p-2.5" key={title}>
+            {!notifications.length && (
+              <p className="py-4 text-center text-[12px] text-[#88888e]">
+                You&apos;re all caught up.
+              </p>
+            )}
+            {notifications.map((item) => (
+              <div className="neo-inset flex gap-2 rounded-lg p-2.5" key={item.id}>
                 <span
-                  className={`mt-1.5 size-2 shrink-0 rounded-full ${index < 2 ? 'bg-[#493bd0]' : 'bg-[#a9a9b0]'}`}
+                  className={`mt-1.5 size-2 shrink-0 rounded-full ${item.readAt ? 'bg-[#a9a9b0]' : 'bg-[#493bd0]'}`}
                 />
-                <div>
-                  <p className="text-[12px] font-medium text-[#333338]">{title}</p>
-                  <p className="mt-0.5 text-[10px] text-[#818188]">{time}</p>
+                <div className="min-w-0">
+                  <p className="text-[12px] font-medium text-[#333338]">{item.title}</p>
+                  {item.body && <p className="mt-0.5 text-[11px] text-[#55555c]">{item.body}</p>}
+                  <p className="mt-0.5 text-[10px] text-[#818188]">{mailDate(item.createdAt)}</p>
                 </div>
               </div>
             ))}

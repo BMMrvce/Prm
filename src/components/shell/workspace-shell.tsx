@@ -1,21 +1,33 @@
 'use client'
 
-import { Menu, Search } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { Fragment, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useState, type ReactNode } from 'react'
+import { greeting } from '@/lib/format'
 import { pageTitle } from '@/lib/routes'
 import { useToast, useWorkspace } from '@/state/workbench-store'
 import { NotificationCenter } from './notification-center'
+import { SearchBox } from './search-box'
 import { Sidebar } from './sidebar'
+import { UserMenu } from './user-menu'
 import { WorkspaceSwitcher } from './workspace-switcher'
 
 /** Sidebar, header and toast wrapped around every `/[space]/*` page. */
 export function WorkspaceShell({ children }: { children: ReactNode }) {
-  const { workspace } = useWorkspace()
+  const { workspace, projects, error, reload } = useWorkspace()
   const { toast } = useToast()
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [desktopSidebarVisible, setDesktopSidebarVisible] = useState(true)
+  // Computed after mount: pages are prerendered, so the server cannot know today's date.
+  const [homeTitle, setHomeTitle] = useState('')
+
+  useEffect(() => {
+    setHomeTitle(greeting())
+    // Keeps the clock in the greeting current.
+    const interval = window.setInterval(() => setHomeTitle(greeting()), 15_000)
+    return () => window.clearInterval(interval)
+  }, [])
 
   const toggleSidebar = () => {
     if (window.matchMedia('(min-width: 1024px)').matches) {
@@ -29,6 +41,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     <div className="workbench-scale flex min-h-screen bg-[#f7f7f8] text-[#17171a]">
       <Sidebar
         workspace={workspace}
+        projects={projects}
         open={sidebarOpen}
         desktopVisible={desktopSidebarVisible}
         onClose={() => setSidebarOpen(false)}
@@ -44,34 +57,32 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             >
               <Menu size={18} />
             </button>
-            <h2 className="mr-auto text-[22px] font-semibold tracking-[-0.025em]">
-              {pageTitle(workspace, pathname)}
+            <h2 className="mr-auto min-w-0 truncate text-[20px] font-semibold tracking-[-0.025em] sm:text-[22px]">
+              {pageTitle(workspace, projects, pathname, homeTitle || workspace.name)}
             </h2>
-            <label className="relative hidden w-[180px] md:block xl:w-[228px]">
-              <input
-                className="h-10 w-full rounded-lg border border-[#d8d8dc] bg-white px-3 text-[14px] outline-none focus:border-[#675ee0]"
-                placeholder="Search..."
-              />
-            </label>
+            <SearchBox className="hidden w-[200px] md:block xl:w-[240px]" />
             <WorkspaceSwitcher active={workspace.key} />
             <NotificationCenter />
-            <span className="grid size-8 place-items-center rounded-full bg-[#eef0ff] text-[11px] font-semibold text-[#2721a6]">
-              ME
-            </span>
+            <UserMenu />
           </header>
 
-          <div className="mt-2 flex md:hidden">
-            <label className="relative w-full">
-              <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#96969c]"
-                size={15}
-              />
-              <input
-                className="h-10 w-full rounded-lg border border-[#d8d8dc] bg-white pl-9 pr-3 text-[14px] outline-none"
-                placeholder="Search..."
-              />
-            </label>
-          </div>
+          <SearchBox className="mt-2 md:hidden" />
+
+          {error && (
+            <div
+              className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-[#f3c2c2] bg-[#fdf0f0] px-4 py-2.5 text-sm text-[#a52828]"
+              role="alert"
+            >
+              <span className="mr-auto min-w-0 break-words">Could not load data: {error}</span>
+              <button
+                type="button"
+                onClick={() => void reload()}
+                className="rounded-lg border border-[#e7b3b3] bg-white px-3 py-1 text-xs font-medium"
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
           {/* Keyed so per-page state (notes, forms, dismissed alert) resets when switching workspace. */}
           <Fragment key={workspace.key}>{children}</Fragment>
@@ -79,7 +90,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
       </main>
       {toast && (
         <div
-          className="neo-card fixed bottom-4 right-4 z-[70] max-w-sm rounded-xl px-4 py-3 text-[13px] font-medium text-[#303038]"
+          className="neo-card fixed bottom-4 right-4 z-[70] max-w-[min(24rem,calc(100vw-2rem))] rounded-xl px-4 py-3 text-[13px] font-medium text-[#303038] [overflow-wrap:anywhere]"
           role="status"
         >
           {toast}

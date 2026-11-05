@@ -1,0 +1,162 @@
+'use client'
+
+import { ArrowRight, Lock, Mail, User } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, type FormEvent } from 'react'
+import { createClient } from '@/lib/supabase/client'
+
+type Mode = 'signin' | 'signup'
+
+/** Email/password sign-in and account creation against Supabase Auth. */
+export function AuthForm() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [mode, setMode] = useState<Mode>('signin')
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Only follow same-site relative paths after login.
+  const nextParam = searchParams.get('next')
+  const next = nextParam?.startsWith('/') && !nextParam.startsWith('//') ? nextParam : '/office'
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setBusy(true)
+    setError(null)
+    try {
+      if (mode === 'signup') {
+        const response = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password }),
+        })
+        const result = (await response.json().catch(() => ({}))) as { error?: string }
+        if (!response.ok) throw new Error(result.error || 'Could not create the account.')
+      }
+      const { error: signInError } = await createClient().auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      })
+      if (signInError) {
+        throw new Error(
+          /invalid login/i.test(signInError.message)
+            ? 'Wrong email or password.'
+            : signInError.message,
+        )
+      }
+      router.replace(next)
+      router.refresh()
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Something went wrong.')
+      setBusy(false)
+    }
+  }
+
+  const switchMode = (value: Mode) => {
+    setMode(value)
+    setError(null)
+  }
+
+  const field =
+    'flex h-11 items-center gap-2 rounded-lg border border-slate-200 px-3 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100'
+  const input =
+    'min-w-0 flex-1 border-0 bg-transparent text-sm outline-none placeholder:text-slate-400'
+
+  return (
+    <div className="w-full max-w-md">
+      <p className="text-sm font-medium text-indigo-600">
+        {mode === 'signin' ? 'Welcome back' : 'Get started'}
+      </p>
+      <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+        {mode === 'signin' ? 'Sign in to your workspace' : 'Create your account'}
+      </h2>
+      <div className="mt-6 grid grid-cols-2 rounded-lg bg-slate-100 p-1 text-sm font-medium">
+        {(['signin', 'signup'] as const).map((value) => (
+          <button
+            type="button"
+            key={value}
+            onClick={() => switchMode(value)}
+            className={`h-9 rounded-md transition ${mode === value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+          >
+            {value === 'signin' ? 'Sign in' : 'Create account'}
+          </button>
+        ))}
+      </div>
+      <form onSubmit={submit} className="mt-6 space-y-4">
+        {mode === 'signup' && (
+          <label className="block">
+            <span className="text-xs font-medium text-slate-700">Full name</span>
+            <span className={`mt-2 ${field}`}>
+              <User size={16} className="text-slate-400" />
+              <input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                autoComplete="name"
+                placeholder="Your name"
+                className={input}
+                required
+              />
+            </span>
+          </label>
+        )}
+        <label className="block">
+          <span className="text-xs font-medium text-slate-700">Email address</span>
+          <span className={`mt-2 ${field}`}>
+            <Mail size={16} className="text-slate-400" />
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="email"
+              placeholder="you@company.com"
+              className={input}
+              required
+            />
+          </span>
+        </label>
+        <label className="block">
+          <span className="text-xs font-medium text-slate-700">Password</span>
+          <span className={`mt-2 ${field}`}>
+            <Lock size={16} className="text-slate-400" />
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+              placeholder={mode === 'signin' ? 'Enter your password' : 'At least 8 characters'}
+              minLength={mode === 'signup' ? 8 : undefined}
+              className={input}
+              required
+            />
+          </span>
+        </label>
+        {error && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+            {error}
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={busy}
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60"
+        >
+          {busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
+          {!busy && <ArrowRight size={16} />}
+        </button>
+      </form>
+      <p className="mt-8 text-center text-sm text-slate-500">
+        {mode === 'signin' ? 'New to Workbench? ' : 'Already have an account? '}
+        <button
+          type="button"
+          onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
+          className="font-medium text-indigo-600"
+        >
+          {mode === 'signin' ? 'Create an account' : 'Sign in'}
+        </button>
+      </p>
+    </div>
+  )
+}

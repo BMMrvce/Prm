@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url'
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const nextConfig: NextConfig = {
+  // Node-only mail libraries; load them from node_modules at runtime instead of bundling.
+  serverExternalPackages: ['imapflow', 'mailparser', 'nodemailer'],
   turbopack: {
     root: path.resolve(dirname),
   },

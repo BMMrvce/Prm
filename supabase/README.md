@@ -6,22 +6,35 @@ These scripts are ready to apply when you connect a Supabase project.
 
 1. Install the Supabase CLI and authenticate.
 2. Link the repository: `supabase link --project-ref <project-ref>`.
-3. Apply migrations: `supabase db push`.
-4. Create a test user in **Authentication → Users**.
-5. Replace the placeholder UUID in `seed.sql`, then run `supabase db reset`
-   locally or paste the seed into the SQL editor for a hosted development project.
+3. Apply migrations: `supabase db push`, or paste each file in `migrations/` into the
+   SQL editor in order.
+4. Create an account from the app's `/login` page. There is no seed data; each user's
+   Office, Studio and Personal workspaces are created on first visit.
 
 The migrations create:
 
 - workspace-scoped projects, columns, tasks, labels, comments, meetings, plans,
   notes, reminders, notifications, activity, attachments, integrations,
-  reimbursements, and personal/studio expenses;
+  reimbursements, and personal/studio income and expenses;
 - RLS on every application table with Owner/Admin/Member/Guest boundaries;
 - a transactional `create_workspace` RPC;
 - sequential workspace task IDs such as `WR-24`;
 - a database constraint allowing one active timer per user;
 - Realtime publication for collaborative records;
-- a private `workbench-attachments` Storage bucket and path-based policies.
+- a private `workbench-attachments` Storage bucket and path-based policies;
+- `project_members` and tagging rules: people tagged on a project or task can read and
+  update it, add tasks to shared projects and log time on them, and are notified;
+- a `search_people` function to find someone to tag by name or email prefix;
+- income entries (`expense_entries.kind = 'income'`) for Studio and Personal;
+- `projects.shared_domain`: share a project with every account on the creator's email
+  domain (never a free mail domain), with a notification to each of them;
+- `user_connections`: each user's connected mailboxes and YouTube sign-in, encrypted by the
+  app and readable only with the service-role key.
+
+Run `202611050002_collaboration_time_income.sql`, `202611050003_domain_sharing.sql` and
+`202611050004_user_connections.sql` after the earlier files, in that order. Until it is
+applied the app still works, but tagging, domain sharing and income entries show a message
+asking for them.
 
 ## Application environment
 
