@@ -41,7 +41,7 @@ export function TimeDashboard() {
   }, [])
 
   if (!ready || now === null) {
-    return <p className="text-sm text-[#88888e]">Loading time entries…</p>
+    return <p className="text-sm text-ink-3">Loading time entries…</p>
   }
 
   const today = startOfDay(new Date(now))
@@ -141,7 +141,7 @@ export function TimeDashboard() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <div
-          className="flex rounded-lg bg-[#ebebef] p-0.5 text-xs font-medium"
+          className="flex rounded-lg bg-surface-3 p-0.5 text-xs font-medium"
           role="group"
           aria-label="Range"
         >
@@ -151,13 +151,13 @@ export function TimeDashboard() {
               key={option.days}
               onClick={() => setRange(option.days)}
               aria-pressed={range === option.days}
-              className={`rounded-md px-3 py-1.5 ${range === option.days ? 'bg-white shadow-sm' : 'text-[#66666c]'}`}
+              className={`rounded-md px-3 py-1.5 ${range === option.days ? 'bg-surface shadow-sm' : 'text-ink-2'}`}
             >
               {option.label}
             </button>
           ))}
         </div>
-        <p className="text-xs text-[#73737a]">Your own tracked time in this workspace.</p>
+        <p className="text-xs text-ink-2">Your own tracked time in this workspace.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -183,7 +183,7 @@ export function TimeDashboard() {
 
       <section className={card}>
         <h3 className="font-semibold">{range === 90 ? 'Hours per week' : 'Hours per day'}</h3>
-        <p className="mb-4 text-xs text-[#73737a]">Hover a column for the exact time.</p>
+        <p className="mb-4 text-xs text-ink-2">Hover a column for the exact time.</p>
         <ColumnChart
           data={buckets}
           series={[{ name: 'Tracked', color: SERIES[0] }]}
@@ -196,7 +196,7 @@ export function TimeDashboard() {
       <div className="grid gap-4 xl:grid-cols-2">
         <section className={card}>
           <h3 className="font-semibold">Time by project</h3>
-          <p className="mb-4 text-xs text-[#73737a]">Last {range} days</p>
+          <p className="mb-4 text-xs text-ink-2">Last {range} days</p>
           {projectRows.length ? (
             <BarRows
               rows={projectRows}
@@ -204,14 +204,14 @@ export function TimeDashboard() {
               format={duration}
             />
           ) : (
-            <p className="text-sm text-[#88888e]">No time tracked in this period.</p>
+            <p className="text-sm text-ink-3">No time tracked in this period.</p>
           )}
         </section>
         <section className={card}>
           <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
             <div>
               <h3 className="font-semibold">Estimate vs time taken</h3>
-              <p className="text-xs text-[#73737a]">Tasks with an estimate, time from everyone</p>
+              <p className="text-xs text-ink-2">Tasks with an estimate, time from everyone</p>
             </div>
             <Legend
               series={[
@@ -230,7 +230,7 @@ export function TimeDashboard() {
               format={duration}
             />
           ) : (
-            <p className="text-sm text-[#88888e]">
+            <p className="text-sm text-ink-3">
               Add an estimate to a task (open it from My Tasks) to compare it here.
             </p>
           )}
@@ -275,36 +275,36 @@ export function TimeDashboard() {
           <button
             type="submit"
             disabled={!minutes}
-            className="h-10 w-full rounded-lg bg-[#493bd0] text-sm font-medium text-white disabled:opacity-50"
+            className="h-10 w-full rounded-lg bg-primary text-sm font-medium text-white disabled:opacity-50 hover:bg-primary-hover active:bg-primary-active"
           >
             Log time
           </button>
         </form>
 
         <section className="neo-card min-w-0 overflow-hidden rounded-xl">
-          <div className="border-b border-[#e4e4e7] px-5 py-4">
+          <div className="border-b border-line px-5 py-4">
             <h3 className="font-semibold">Time entries</h3>
-            <p className="text-xs text-[#73737a]">Last {range} days</p>
+            <p className="text-xs text-ink-2">Last {range} days</p>
           </div>
           {!recent.length && (
-            <p className="px-5 py-8 text-center text-sm text-[#88888e]">
+            <p className="px-5 py-8 text-center text-sm text-ink-3">
               No time yet. Start a timer on a task or log time here.
             </p>
           )}
           <table className="w-full table-fixed text-sm">
-            <tbody className="divide-y divide-[#eeeeef]">
+            <tbody className="divide-y divide-line-soft">
               {recent.map((entry) => {
                 const task = entry.taskId ? taskById.get(entry.taskId) : undefined
                 return (
                   <tr key={entry.id}>
-                    <td className="hidden w-28 px-5 py-3 text-xs text-[#77777d] sm:table-cell">
+                    <td className="hidden w-28 px-5 py-3 text-xs text-ink-2 sm:table-cell">
                       {shortDate(entry.startedAt)}
                     </td>
                     <td className="px-5 py-3 sm:px-0">
                       <p className="truncate font-medium">
                         {task?.title ?? entry.taskTitle ?? 'No task'}
                       </p>
-                      <p className="truncate text-xs text-[#77777d]">
+                      <p className="truncate text-xs text-ink-2">
                         <span className="sm:hidden">{shortDate(entry.startedAt)} · </span>
                         {task?.projectName ?? ''}
                         {entry.description && ` · ${entry.description}`}
@@ -318,7 +318,7 @@ export function TimeDashboard() {
                         <button
                           type="button"
                           onClick={() => void deleteTimeEntry(entry.id)}
-                          className="text-[#99999f] hover:text-[#a52828]"
+                          className="text-ink-3 hover:text-error-ink"
                           aria-label="Delete time entry"
                         >
                           <Trash2 size={14} />

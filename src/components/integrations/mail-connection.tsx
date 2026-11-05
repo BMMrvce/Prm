@@ -87,12 +87,12 @@ export function MailConnection({ space }: { space: SpaceKey }) {
   }
 
   const field =
-    'h-9 w-full rounded-lg border border-[#d8d8dc] bg-white px-3 text-xs outline-none focus:border-[#493bd0]'
+    'h-9 w-full rounded-lg border border-line-strong bg-field px-3 text-xs outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15'
 
   return (
     <div className="neo-card min-w-0 rounded-xl p-5">
       <div className="flex flex-wrap items-center gap-4">
-        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[#eeedff] text-[#493bd0]">
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-light text-secondary">
           <Inbox size={19} />
         </span>
         <div className="min-w-0 flex-1">
@@ -104,15 +104,15 @@ export function MailConnection({ space }: { space: SpaceKey }) {
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                   status.state === 'connected'
-                    ? 'bg-[#e6f7ea] text-[#2f7045]'
-                    : 'bg-[#eeeeef] text-[#66666c]'
+                    ? 'bg-success-light text-success-ink'
+                    : 'bg-surface-2 text-ink-2'
                 }`}
               >
                 {status.state === 'connected' ? 'Connected' : 'Not connected'}
               </span>
             )}
           </div>
-          <p className="mt-1 truncate text-xs text-[#77777d]">
+          <p className="mt-1 truncate text-xs text-ink-2">
             {!status
               ? 'Checking…'
               : status.state === 'connected'
@@ -124,7 +124,7 @@ export function MailConnection({ space }: { space: SpaceKey }) {
           <div className="flex gap-2">
             <Link
               href={workspacePath(space, 'inbox')}
-              className="rounded-lg border border-[#d8d8dc] bg-white px-3 py-2 text-xs font-medium"
+              className="rounded-lg border border-line-strong bg-surface px-3 py-2 text-xs font-medium"
             >
               Open inbox
             </Link>
@@ -132,7 +132,7 @@ export function MailConnection({ space }: { space: SpaceKey }) {
               type="button"
               onClick={() => void disconnect()}
               disabled={busy}
-              className="rounded-lg border border-[#d8d8dc] bg-white px-3 py-2 text-xs font-medium text-[#a52828] disabled:opacity-60"
+              className="rounded-lg border border-line-strong bg-surface px-3 py-2 text-xs font-medium text-error-ink disabled:opacity-60"
             >
               Disconnect
             </button>
@@ -142,7 +142,7 @@ export function MailConnection({ space }: { space: SpaceKey }) {
 
       {status?.state === 'disconnected' && (
         <div className="mt-4 space-y-3">
-          {status.note && <p className="text-xs text-[#8a6100]">{status.note}</p>}
+          {status.note && <p className="text-xs text-warning-ink">{status.note}</p>}
           <div className="flex flex-wrap gap-2">
             {status.options.map((option) =>
               option.provider === 'hostinger' ? (
@@ -151,7 +151,7 @@ export function MailConnection({ space }: { space: SpaceKey }) {
                   key={option.provider}
                   onClick={() => setHostingerOpen((open) => !open)}
                   aria-expanded={hostingerOpen}
-                  className="rounded-lg bg-[#493bd0] px-3 py-2 text-xs font-medium text-white"
+                  className="rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white hover:bg-primary-hover active:bg-primary-active"
                 >
                   Connect {option.label}
                 </button>
@@ -159,7 +159,7 @@ export function MailConnection({ space }: { space: SpaceKey }) {
                 <a
                   key={option.provider}
                   href={connectUrl(option.provider, space)}
-                  className="rounded-lg bg-[#493bd0] px-3 py-2 text-xs font-medium text-white"
+                  className="rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white hover:bg-primary-hover active:bg-primary-active"
                 >
                   Connect {option.label}
                 </a>
@@ -167,7 +167,7 @@ export function MailConnection({ space }: { space: SpaceKey }) {
                 <span
                   key={option.provider}
                   title={option.note}
-                  className="cursor-not-allowed rounded-lg bg-[#eeeeef] px-3 py-2 text-xs font-medium text-[#88888e]"
+                  className="cursor-not-allowed rounded-lg bg-surface-2 px-3 py-2 text-xs font-medium text-ink-3"
                 >
                   {option.label} · not set up on the server
                 </span>
@@ -196,14 +196,14 @@ export function MailConnection({ space }: { space: SpaceKey }) {
                 autoComplete="current-password"
                 required
               />
-              <p className="text-[11px] text-[#77777d]">
+              <p className="text-[11px] text-ink-2">
                 Use the full mailbox address and that mailbox&rsquo;s own password (the one for
                 webmail), not your Hostinger account login. It is checked by signing in to
                 Hostinger, then stored encrypted. Only you can use it.
               </p>
               {formError && (
                 <p
-                  className="rounded-lg bg-[#fde8e8] px-3 py-2 text-xs text-[#a52828]"
+                  className="rounded-lg bg-error-light px-3 py-2 text-xs text-error-ink"
                   role="alert"
                 >
                   {formError}
@@ -212,7 +212,7 @@ export function MailConnection({ space }: { space: SpaceKey }) {
               <button
                 type="submit"
                 disabled={busy}
-                className="h-9 rounded-lg bg-[#493bd0] text-xs font-medium text-white disabled:opacity-60"
+                className="h-9 rounded-lg bg-primary text-xs font-medium text-white disabled:opacity-60 hover:bg-primary-hover active:bg-primary-active"
               >
                 {busy ? 'Checking…' : 'Connect Hostinger Mail'}
               </button>

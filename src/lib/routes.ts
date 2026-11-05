@@ -5,7 +5,20 @@ import type { Project, SpaceKey, WorkspaceData } from '@/types/workbench'
  * derived from here, so adding a route means editing this file plus creating the
  * matching `page.tsx` under `src/app/(workspace)/[space]/`.
  */
-export type NavItem = { label: string; href: string }
+/** Icon names the sidebar maps to Lucide icons (kept as strings so this file stays data-only). */
+export type NavIcon =
+  | 'home'
+  | 'tasks'
+  | 'inbox'
+  | 'calendar'
+  | 'time'
+  | 'money'
+  | 'projects'
+  | 'integrations'
+  | 'settings'
+  | 'project'
+
+export type NavItem = { label: string; href: string; icon: NavIcon; color?: string }
 
 export function workspacePath(space: SpaceKey, ...segments: string[]) {
   return ['', space, ...segments].join('/')
@@ -30,12 +43,12 @@ export function expensesLabel(workspace: Pick<WorkspaceData, 'key'>) {
 export function mainNav(workspace: WorkspaceData): NavItem[] {
   const path = (...segments: string[]) => workspacePath(workspace.key, ...segments)
   return [
-    { label: 'Home', href: path() },
-    { label: 'My Tasks', href: path('tasks') },
-    { label: 'Inbox', href: path('inbox') },
-    { label: 'Calendar', href: path('calendar') },
-    { label: 'Time Management', href: path('time') },
-    { label: expensesLabel(workspace), href: path('expenses') },
+    { label: 'Home', href: path(), icon: 'home' },
+    { label: 'My Tasks', href: path('tasks'), icon: 'tasks' },
+    { label: 'Inbox', href: path('inbox'), icon: 'inbox' },
+    { label: 'Calendar', href: path('calendar'), icon: 'calendar' },
+    { label: 'Time Management', href: path('time'), icon: 'time' },
+    { label: expensesLabel(workspace), href: path('expenses'), icon: 'money' },
   ]
 }
 
@@ -43,15 +56,17 @@ export function projectNav(workspace: WorkspaceData, projects: Project[]): NavIt
   return projects.map((project) => ({
     label: project.name,
     href: projectPath(workspace.key, project),
+    icon: 'project' as const,
+    color: project.color,
   }))
 }
 
 export function manageNav(workspace: WorkspaceData): NavItem[] {
   const path = (...segments: string[]) => workspacePath(workspace.key, ...segments)
   return [
-    { label: 'All Projects', href: path('projects') },
-    { label: 'Integrations', href: path('integrations') },
-    { label: 'Settings', href: path('settings') },
+    { label: 'All Projects', href: path('projects'), icon: 'projects' },
+    { label: 'Integrations', href: path('integrations'), icon: 'integrations' },
+    { label: 'Settings', href: path('settings'), icon: 'settings' },
   ]
 }
 

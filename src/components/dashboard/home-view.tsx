@@ -46,8 +46,8 @@ export function HomeView() {
   return (
     <>
       {visible && meeting && (
-        <section className="mt-[15px] flex flex-wrap items-center gap-2 rounded-lg border border-[#f1d969] bg-[#fff8cf] px-4 py-[7px]">
-          <p className="mr-auto min-w-0 text-[14px] text-[#684a00]">
+        <section className="mt-[15px] flex flex-wrap items-center gap-2 rounded-lg border border-accent/40 bg-accent-light px-4 py-[7px]">
+          <p className="mr-auto min-w-0 text-[14px] text-accent-ink">
             <strong className="font-medium">
               {meeting.title} {minutes > 0 ? `starts in ${minutes} min` : 'is happening now'}
             </strong>{' '}
@@ -60,14 +60,14 @@ export function HomeView() {
               setHidden((current) => ({ ...current, [meeting.id]: Date.now() + 10 * 60 * 1000 }))
               showToast('Reminder snoozed for 10 minutes.')
             }}
-            className="h-8 rounded-lg border border-[#d9d9dc] bg-white px-3 text-[13px] text-[#45454a]"
+            className="h-8 rounded-lg border border-line-strong bg-surface px-3 text-[13px] text-ink-2"
           >
             Snooze 10 min
           </button>
           <button
             type="button"
             onClick={() => setHidden((current) => ({ ...current, [meeting.id]: Infinity }))}
-            className="h-8 rounded-lg border border-[#d9d9dc] bg-white px-3 text-[13px] text-[#45454a]"
+            className="h-8 rounded-lg border border-line-strong bg-surface px-3 text-[13px] text-ink-2"
           >
             Dismiss
           </button>
@@ -78,7 +78,7 @@ export function HomeView() {
                 ? window.open(meeting.meetingUrl, '_blank', 'noopener')
                 : router.push(workspacePath(workspace.key, 'calendar'))
             }
-            className="h-8 rounded-lg bg-[#493bd0] px-4 text-[13px] font-medium text-white"
+            className="h-8 rounded-lg bg-primary px-4 text-[13px] font-medium text-white hover:bg-primary-hover active:bg-primary-active"
           >
             {meeting.meetingUrl ? 'Join' : 'Open calendar'}
           </button>

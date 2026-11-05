@@ -1,34 +1,59 @@
-import type { Metadata } from 'next'
-import { Bricolage_Grotesque, Shantell_Sans } from 'next/font/google'
+import type { Metadata, Viewport } from 'next'
+import { Comic_Neue, Inter } from 'next/font/google'
 import type { ReactNode } from 'react'
 import { PwaRegister } from '@/components/pwa-register'
+import { THEME_SCRIPT } from '@/lib/theme'
 import './globals.css'
 
-// App-wide typeface, plus a playful hand-drawn one for to-do lists.
-const appFont = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-app' })
-const funkyFont = Shantell_Sans({ subsets: ['latin'], variable: '--font-shantell' })
+// One UI typeface everywhere (Inter); tabular numbers keep timers and money aligned.
+const appFont = Inter({ subsets: ['latin'], variable: '--font-app' })
+// Friendly handwritten face, only for the dashboard To Do list (`font-handwritten`).
+const handwrittenFont = Comic_Neue({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-comic',
+})
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
   title: {
-    default: 'Workbench — Calm, focused project management',
-    template: '%s · Workbench',
+    default: 'ಆyaama — Clarity. Focus. Structure. Progress.',
+    template: '%s · ಆyaama',
   },
-  description: 'A productive workbench for projects, tasks, time, and team collaboration.',
-  applicationName: 'Workbench',
-  icons: { icon: '/icons/workbench-192.png', apple: '/icons/workbench-192.png' },
+  description: 'Designed for teams who value clarity over complexity.',
+  applicationName: 'ಆyaama',
+  // Latin spelling, so searches for the name in English letters find it too.
+  keywords: ['Aayaama', 'ಆyaama', 'productivity', 'project management'],
+  icons: {
+    icon: [
+      { url: '/brand/icon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/brand/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: '/brand/icon-180.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Workbench',
+    title: 'ಆyaama',
   },
+}
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f8f9fc' },
+    { media: '(prefers-color-scheme: dark)', color: '#0d1020' },
+  ],
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    // The theme script adds `dark` to <html> before hydration, hence suppressHydrationWarning.
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body
-        className={`${appFont.variable} ${funkyFont.variable} min-h-screen bg-white text-zinc-950 antialiased`}
+        className={`${appFont.variable} ${handwrittenFont.variable} min-h-screen bg-canvas text-ink antialiased`}
       >
         {children}
         <PwaRegister />

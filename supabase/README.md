@@ -29,10 +29,13 @@ The migrations create:
 - `projects.shared_domain`: share a project with every account on the creator's email
   domain (never a free mail domain), with a notification to each of them;
 - `user_connections`: each user's connected mailboxes and YouTube sign-in, encrypted by the
-  app and readable only with the service-role key.
+  app and readable only with the service-role key;
+- `push_subscriptions` and `reminder_deliveries`: devices that receive reminders and the
+  reminders already sent (server-only).
 
 Run `202611050002_collaboration_time_income.sql`, `202611050003_domain_sharing.sql` and
-`202611050004_user_connections.sql` after the earlier files, in that order. Until it is
+`202611050004_user_connections.sql` and `202611050005_push_reminders.sql` after the earlier
+files, in that order. Then fill in and run `reminders-cron.sql` to schedule reminders. Until it is
 applied the app still works, but tagging, domain sharing and income entries show a message
 asking for them.
 

@@ -1,6 +1,6 @@
-const CACHE_NAME = 'workbench-shell-v4'
+const CACHE_NAME = 'aayaama-shell-v7'
 // Pages require a session (the proxy redirects to /login), so only static assets are precached.
-const APP_SHELL = ['/manifest.webmanifest', '/icons/workbench-192.png', '/icons/workbench-512.png']
+const APP_SHELL = ['/manifest.webmanifest', '/brand/icon-192.png', '/brand/icon-512.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)))
@@ -36,12 +36,40 @@ self.addEventListener('fetch', (event) => {
   )
 })
 
+// Reminders from the server (meetings, deadlines, morning digest). See src/lib/push.ts.
+self.addEventListener('push', (event) => {
+  let payload = {}
+  try {
+    payload = event.data ? event.data.json() : {}
+  } catch {
+    payload = { title: 'ಆyaama', body: event.data ? event.data.text() : '' }
+  }
+  event.waitUntil(
+    self.registration.showNotification(payload.title || 'ಆyaama', {
+      body: payload.body || '',
+      icon: '/brand/icon-192.png',
+      badge: '/brand/icon-192.png',
+      tag: payload.tag,
+      renotify: Boolean(payload.tag),
+      data: { url: payload.url || '/' },
+    }),
+  )
+})
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
+  const target = new URL(event.notification.data?.url || '/', self.location.origin)
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      const existing = clients.find((client) => 'focus' in client)
-      return existing ? existing.focus() : self.clients.openWindow('/')
-    }),
+    (async () => {
+      // Meeting links open in a new window; app pages reuse an open ಆyaama window.
+      if (target.origin !== self.location.origin) return self.clients.openWindow(target.href)
+      const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      const existing = windows.find((client) => 'focus' in client)
+      if (existing) {
+        await existing.focus()
+        return existing.navigate(target.href).catch(() => undefined)
+      }
+      return self.clients.openWindow(target.href)
+    })(),
   )
 })

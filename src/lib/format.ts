@@ -1,9 +1,11 @@
 import type { Currency, Priority, TimeEntry } from '@/types/workbench'
 
+/** Badge colors for a task priority; urgent → error, high → warning, medium → info. */
 export function priorityStyle(priority: Priority) {
-  if (priority === 'urgent' || priority === 'high') return 'bg-[#fde8e8] text-[#a52828]'
-  if (priority === 'medium') return 'bg-[#fff5cf] text-[#8b5e00]'
-  return 'bg-[#e4f8ea] text-[#317a4b]'
+  if (priority === 'urgent') return 'bg-error-light text-error-ink'
+  if (priority === 'high') return 'bg-warning-light text-warning-ink'
+  if (priority === 'medium') return 'bg-info-light text-info-ink'
+  return 'bg-surface-2 text-ink-2'
 }
 
 export function capitalize(value: string) {

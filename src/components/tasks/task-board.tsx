@@ -55,22 +55,22 @@ export function TaskBoard({ projectId }: { projectId?: string }) {
   }
 
   const control =
-    'h-10 min-w-0 rounded-lg border border-[#d8d8dc] bg-white px-3 text-sm outline-none focus:border-[#493bd0]'
+    'h-10 min-w-0 rounded-lg border border-line-strong bg-field px-3 text-sm outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15'
 
   return (
     <section className="neo-card min-w-0 overflow-hidden rounded-xl">
-      <div className="flex flex-wrap items-center gap-3 border-b border-[#e4e4e7] px-5 py-4">
+      <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-4">
         <div className="mr-auto">
           <h3 className="font-semibold">{projectId ? 'Project tasks' : 'All tasks'}</h3>
-          <p className="text-xs text-[#73737a]">{openCount} open tasks</p>
+          <p className="text-xs text-ink-2">{openCount} open tasks</p>
         </div>
-        <div className="flex rounded-lg bg-[#f2f2f4] p-0.5 text-xs font-medium">
+        <div className="flex rounded-lg bg-surface-2 p-0.5 text-xs font-medium">
           {(['open', 'completed'] as const).map((value) => (
             <button
               type="button"
               key={value}
               onClick={() => setFilter(value)}
-              className={`rounded-md px-3 py-1.5 capitalize ${filter === value ? 'bg-white shadow-sm' : 'text-[#66666c]'}`}
+              className={`rounded-md px-3 py-1.5 capitalize ${filter === value ? 'bg-surface shadow-sm' : 'text-ink-2'}`}
             >
               {value}
             </button>
@@ -79,7 +79,7 @@ export function TaskBoard({ projectId }: { projectId?: string }) {
       </div>
       <form
         onSubmit={submit}
-        className="grid gap-2 border-b border-[#eeeeef] p-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_auto_auto_190px_auto]"
+        className="grid gap-2 border-b border-line-soft p-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_auto_auto_190px_auto]"
       >
         <input
           value={title}
@@ -127,23 +127,23 @@ export function TaskBoard({ projectId }: { projectId?: string }) {
         />
         <DurationInput value={estimate} onChange={setEstimate} label="Estimate" />
         <button
-          className="h-10 rounded-lg bg-[#493bd0] px-4 text-sm font-medium text-white disabled:opacity-60"
+          className="h-10 rounded-lg bg-primary px-4 text-sm font-medium text-white disabled:opacity-60 hover:bg-primary-hover active:bg-primary-active"
           type="submit"
           disabled={!ready}
         >
           Add task
         </button>
       </form>
-      {!ready && <p className="px-5 py-8 text-center text-sm text-[#88888e]">Loading tasks…</p>}
+      {!ready && <p className="px-5 py-8 text-center text-sm text-ink-3">Loading tasks…</p>}
       {ready && !tasks.length && (
-        <p className="px-5 py-8 text-center text-sm text-[#88888e]">
+        <p className="px-5 py-8 text-center text-sm text-ink-3">
           {filter === 'open' ? 'No open tasks.' : 'No completed tasks yet.'}
         </p>
       )}
-      <div className="divide-y divide-[#eeeeef]">
+      <div className="divide-y divide-line-soft">
         {tasks.map((task) => (
           <div
-            className="flex w-full items-center gap-3 px-5 py-4 hover:bg-[#fafaff]"
+            className="flex w-full items-center gap-3 px-5 py-4 hover:bg-primary-subtle"
             key={task.id}
           >
             <SquareCheck
@@ -157,11 +157,11 @@ export function TaskBoard({ projectId }: { projectId?: string }) {
               className="min-w-0 flex-1 text-left"
             >
               <p
-                className={`break-words text-sm font-medium ${task.state === 'completed' ? 'text-[#88888e] line-through' : ''}`}
+                className={`break-words text-sm font-medium ${task.state === 'completed' ? 'text-ink-3 line-through' : ''}`}
               >
                 {task.title}
               </p>
-              <p className="mt-1 truncate text-xs text-[#77777d]">
+              <p className="mt-1 truncate text-xs text-ink-2">
                 {task.code}
                 {!projectId && task.projectName && ` · ${task.projectName}`}
                 {task.dueAt && ` · Due ${shortDate(task.dueAt)}`}
@@ -173,7 +173,7 @@ export function TaskBoard({ projectId }: { projectId?: string }) {
             </button>
             {task.assignees.length > 0 && (
               <span
-                className="flex shrink-0 items-center gap-1 text-[11px] text-[#66666c]"
+                className="flex shrink-0 items-center gap-1 text-[11px] text-ink-2"
                 title={`${task.assignees.length} tagged`}
               >
                 <Users size={13} /> {task.assignees.length}
@@ -181,7 +181,7 @@ export function TaskBoard({ projectId }: { projectId?: string }) {
             )}
             {task.priority !== 'none' && (
               <span
-                className={`shrink-0 rounded-full px-2 py-1 text-[10px] ${priorityStyle(task.priority)}`}
+                className={`shrink-0 rounded-full px-2 py-1 text-[11px] ${priorityStyle(task.priority)}`}
               >
                 {capitalize(task.priority)}
               </span>

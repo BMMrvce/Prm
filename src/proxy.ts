@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 /** Paths reachable without a session. Everything else needs a signed-in user. */
-const PUBLIC_PATHS = ['/login', '/api/auth/', '/api/health']
+const PUBLIC_PATHS = ['/login', '/api/auth/', '/api/health', '/api/cron/']
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(path))

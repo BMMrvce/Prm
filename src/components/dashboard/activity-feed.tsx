@@ -23,16 +23,25 @@ export function ActivityFeed() {
     <section className="neo-card min-h-[330px] min-w-0 rounded-xl p-4">
       <h2 className="text-[15px] font-semibold">What’s Cooking</h2>
       {ready && !events.length && (
-        <p className="mt-4 text-[13px] text-[#88888e]">Activity will show up as you work.</p>
+        <p className="mt-4 text-[13px] text-ink-3">Activity will show up as you work.</p>
       )}
-      <div className="mt-4 space-y-3">
+      <ol className="relative mt-4 space-y-4 before:absolute before:inset-y-1 before:left-[3px] before:w-px before:bg-line">
         {events.map((event) => (
-          <div className="flex gap-2 text-[13px] leading-5" key={`${event.at}-${event.text}`}>
-            <p className="min-w-0 flex-1 break-words text-[#55555c]">{event.text}</p>
-            <span className="shrink-0 text-[11px] text-[#99999f]">{mailDate(event.at)}</span>
-          </div>
+          <li
+            className="relative flex gap-3 pl-4 text-[13px] leading-5"
+            key={`${event.at}-${event.text}`}
+          >
+            <span
+              className="absolute left-0 top-[7px] size-[7px] rounded-full bg-accent ring-2 ring-surface"
+              aria-hidden
+            />
+            <p className="min-w-0 flex-1 break-words text-ink">{event.text}</p>
+            <time className="shrink-0 text-[11px] tabular-nums text-ink-3">
+              {mailDate(event.at)}
+            </time>
+          </li>
         ))}
-      </div>
+      </ol>
     </section>
   )
 }

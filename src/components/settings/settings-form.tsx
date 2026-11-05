@@ -27,6 +27,8 @@ export function SettingsForm() {
   const [name, setName] = useState('')
   const [fullName, setFullName] = useState('')
   const [currency, setCurrency] = useState<Currency>(settings.currency)
+  // Settings load with the account, after the first render.
+  useEffect(() => setCurrency(settings.currency), [settings.currency])
   const [saving, setSaving] = useState(false)
 
   // Fill the form once the workspace and profile have loaded from Supabase.
@@ -51,26 +53,26 @@ export function SettingsForm() {
         ? updateProfileName(fullName.trim())
         : true,
     ])
-    saveSettings({ currency })
+    results.push(currency === settings.currency ? true : await saveSettings({ currency }))
     setSaving(false)
     if (results.every(Boolean)) showToast('Settings saved.')
   }
 
   const input =
-    'mt-2 h-10 w-full rounded-lg border border-[#d8d8dc] bg-white px-3 text-sm outline-none focus:border-[#493bd0]'
+    'mt-2 h-10 w-full rounded-lg border border-line-strong bg-field px-3 text-sm outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15'
 
   return (
     <div className="max-w-3xl space-y-4">
       <form onSubmit={submit} className="neo-card rounded-xl p-6">
         <div className="flex items-center gap-3">
-          <Settings size={20} className="text-[#493bd0]" />
+          <Settings size={20} className="text-secondary" />
           <div>
             <h3 className="font-semibold">Workspace settings</h3>
-            <p className="text-xs text-[#77777d]">{workspace.switchLabel} workspace</p>
+            <p className="text-xs text-ink-2">{workspace.switchLabel} workspace</p>
           </div>
         </div>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <label className="text-xs font-medium text-[#55555c]">
+          <label className="text-xs font-medium text-ink-2">
             Workspace name
             <input
               value={name}
@@ -80,7 +82,7 @@ export function SettingsForm() {
               className={input}
             />
           </label>
-          <label className="text-xs font-medium text-[#55555c]">
+          <label className="text-xs font-medium text-ink-2">
             Your name
             <input
               value={fullName}
@@ -89,7 +91,7 @@ export function SettingsForm() {
               className={input}
             />
           </label>
-          <label className="text-xs font-medium text-[#55555c]">
+          <label className="text-xs font-medium text-ink-2">
             Currency for new expenses (this device)
             <select
               value={currency}
@@ -107,7 +109,7 @@ export function SettingsForm() {
         <button
           type="submit"
           disabled={!ready || saving}
-          className="mt-6 rounded-lg bg-[#493bd0] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#382bb9] disabled:opacity-60"
+          className="mt-6 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-60"
         >
           {saving ? 'Saving…' : 'Save changes'}
         </button>
@@ -115,12 +117,12 @@ export function SettingsForm() {
       <section className="neo-card flex flex-wrap items-center gap-3 rounded-xl p-6">
         <div className="mr-auto min-w-0">
           <h3 className="font-semibold">Account</h3>
-          <p className="truncate text-xs text-[#77777d]">Signed in as {profile?.email}</p>
+          <p className="truncate text-xs text-ink-2">Signed in as {profile?.email}</p>
         </div>
         <button
           type="button"
           onClick={() => void signOut()}
-          className="rounded-lg border border-[#d8d8dc] bg-white px-4 py-2 text-sm font-medium text-[#a52828]"
+          className="rounded-lg border border-line-strong bg-surface px-4 py-2 text-sm font-medium text-error-ink"
         >
           Sign out
         </button>

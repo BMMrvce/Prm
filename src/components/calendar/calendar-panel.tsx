@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { CalendarClock, CheckSquare, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { TaskDialog } from '@/components/tasks/task-dialog'
 import { localDate, sameDay, timeOfDay, weekRange } from '@/lib/format'
@@ -43,9 +43,10 @@ function rangeTitle(days: Date[]) {
  * previous / next / today navigation. Click an item to edit it.
  */
 export function CalendarPanel() {
-  const { ready, meetings, meetingWeeks, tasks, addMeeting, loadWeek } = useWorkspace()
+  const { ready, meetings, meetingWeeks, tasks, addMeeting, addTask, loadWeek } = useWorkspace()
   const [range, setRange] = useState<'Day' | 'Week'>('Week')
-  const [showAdd, setShowAdd] = useState(false)
+  /** The + menu, or which kind of item is being added. */
+  const [adding, setAdding] = useState<'menu' | 'meeting' | 'todo' | null>(null)
   const [title, setTitle] = useState('')
   const [date, setDate] = useState('')
   const [time, setTime] = useState('09:00')
@@ -85,15 +86,28 @@ export function CalendarPanel() {
   const showsToday = today ? days.some((day) => sameDay(day, today)) : false
   const step = range === 'Day' ? 1 : 7
 
-  const openForm = () => {
+  const openForm = (kind: 'meeting' | 'todo') => {
     setDate(localDate(showsToday || !days.length ? new Date() : days[0]))
-    setTime(nextHour())
-    setShowAdd((visible) => !visible)
+    setTime(kind === 'meeting' ? nextHour() : '')
+    setAdding(kind)
   }
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!title.trim() || !date || !time) return
+    if (!title.trim() || !date) return
+    if (adding === 'todo') {
+      // Without a time the to-do is due at the end of the day.
+      const ok = await addTask({
+        title: title.trim(),
+        dueAt: new Date(`${date}T${time || '23:59'}`).toISOString(),
+      })
+      if (ok) {
+        setTitle('')
+        setAdding(null)
+      }
+      return
+    }
+    if (!time) return
     const starts = new Date(`${date}T${time}`)
     const ends = new Date(starts.getTime() + duration * 60_000)
     const ok = await addMeeting({
@@ -105,12 +119,12 @@ export function CalendarPanel() {
     if (ok) {
       setTitle('')
       setLink('')
-      setShowAdd(false)
+      setAdding(null)
     }
   }
 
   const field =
-    'h-9 min-w-0 rounded-lg border border-[#d8d8dc] bg-white px-2 text-xs outline-none focus:border-[#493bd0]'
+    'h-9 min-w-0 rounded-lg border border-line-strong bg-field px-2 text-xs outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15'
 
   return (
     <section className="neo-card min-h-[437px] min-w-0 overflow-hidden rounded-xl p-[18px]">
@@ -121,7 +135,7 @@ export function CalendarPanel() {
             type="button"
             onClick={() => today && setCursor(today)}
             disabled={!cursor || showsToday}
-            className="h-9 rounded-lg border border-[#d8d8dc] bg-white px-3 text-[13px] text-[#333338] disabled:opacity-50"
+            className="h-9 rounded-lg border border-line-strong bg-surface px-3 text-[13px] text-ink disabled:opacity-50"
           >
             Today
           </button>
@@ -130,7 +144,7 @@ export function CalendarPanel() {
               type="button"
               onClick={() => cursor && setCursor(addDays(cursor, -step))}
               disabled={!cursor}
-              className="grid size-9 place-items-center rounded-full text-[#45454a] hover:bg-[#f0f0f3]"
+              className="grid size-9 place-items-center rounded-full text-ink-2 hover:bg-surface-2"
               aria-label={range === 'Day' ? 'Previous day' : 'Previous week'}
             >
               <ChevronLeft size={18} />
@@ -139,31 +153,52 @@ export function CalendarPanel() {
               type="button"
               onClick={() => cursor && setCursor(addDays(cursor, step))}
               disabled={!cursor}
-              className="grid size-9 place-items-center rounded-full text-[#45454a] hover:bg-[#f0f0f3]"
+              className="grid size-9 place-items-center rounded-full text-ink-2 hover:bg-surface-2"
               aria-label={range === 'Day' ? 'Next day' : 'Next week'}
             >
               <ChevronRight size={18} />
             </button>
           </div>
           {days.length > 0 && (
-            <p className="text-[14px] font-medium text-[#333338]" aria-live="polite">
+            <p className="text-[14px] font-medium text-ink" aria-live="polite">
               {rangeTitle(days)}
               {ready && !weekLoaded && (
-                <span className="ml-2 text-[12px] font-normal text-[#99999f]">Loading…</span>
+                <span className="ml-2 text-[12px] font-normal text-ink-3">Loading…</span>
               )}
             </p>
           )}
         </div>
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={openForm}
-            disabled={!ready}
-            className="grid size-9 place-items-center rounded-lg border border-[#d8d8dc] bg-white text-[#493bd0] disabled:opacity-50"
-            aria-label="Add calendar item"
-          >
-            <Plus size={15} />
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setAdding((current) => (current ? null : 'menu'))}
+              disabled={!ready}
+              className="grid size-9 place-items-center rounded-lg border border-line-strong bg-surface text-secondary disabled:opacity-50"
+              aria-label="Add calendar item"
+              aria-expanded={adding === 'menu'}
+            >
+              <Plus size={15} className={`transition-transform ${adding ? 'rotate-45' : ''}`} />
+            </button>
+            {adding === 'menu' && (
+              <div className="animate-pop absolute right-0 top-11 z-20 w-44 overflow-hidden rounded-xl border border-line bg-surface py-1 shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => openForm('meeting')}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-[13px] hover:bg-primary-subtle"
+                >
+                  <CalendarClock size={15} className="text-accent-ink" /> Meeting
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openForm('todo')}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-[13px] hover:bg-primary-subtle"
+                >
+                  <CheckSquare size={15} className="text-primary-ink" /> To-do
+                </button>
+              </div>
+            )}
+          </div>
           {(['Day', 'Week'] as const).map((item) => (
             <button
               type="button"
@@ -171,8 +206,8 @@ export function CalendarPanel() {
               key={item}
               className={`h-9 rounded-lg border px-4 text-[14px] ${
                 range === item
-                  ? 'border-[#4638ca] bg-[#4638ca] text-white'
-                  : 'border-[#d8d8dc] bg-white text-[#333338]'
+                  ? 'border-primary bg-primary text-white hover:bg-primary-hover active:bg-primary-active'
+                  : 'border-line-strong bg-surface text-ink'
               }`}
             >
               {item}
@@ -180,10 +215,48 @@ export function CalendarPanel() {
           ))}
         </div>
       </div>
-      {showAdd && (
+      {adding === 'todo' && (
         <form
           onSubmit={submit}
-          className="mb-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]"
+          className="animate-pop mb-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]"
+        >
+          <input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            className={`${field} px-3`}
+            placeholder="To-do title"
+            aria-label="To-do title"
+            autoFocus
+            required
+          />
+          <input
+            type="date"
+            value={date}
+            onChange={(event) => setDate(event.target.value)}
+            className={field}
+            aria-label="Due date"
+            required
+          />
+          <input
+            type="time"
+            value={time}
+            onChange={(event) => setTime(event.target.value)}
+            className={field}
+            aria-label="Due time (optional)"
+            title="Optional: leave empty for end of day"
+          />
+          <button
+            className="h-9 rounded-lg bg-primary px-3 text-xs font-medium text-white hover:bg-primary-hover active:bg-primary-active"
+            type="submit"
+          >
+            Add to-do
+          </button>
+        </form>
+      )}
+      {adding === 'meeting' && (
+        <form
+          onSubmit={submit}
+          className="animate-pop mb-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]"
         >
           <input
             value={title}
@@ -191,6 +264,7 @@ export function CalendarPanel() {
             className={`${field} px-3 sm:col-span-4`}
             placeholder="Meeting or event title"
             aria-label="Event title"
+            autoFocus
             required
           />
           <input
@@ -231,7 +305,7 @@ export function CalendarPanel() {
               ))}
             </select>
             <button
-              className="h-9 rounded-lg bg-[#493bd0] px-3 text-xs font-medium text-white"
+              className="h-9 rounded-lg bg-primary px-3 text-xs font-medium text-white hover:bg-primary-hover active:bg-primary-active"
               type="submit"
             >
               Add
@@ -252,20 +326,32 @@ export function CalendarPanel() {
           const isToday = today ? sameDay(day, today) : false
           return (
             <div
-              className={`neo-inset min-w-0 rounded-lg p-2.5 ${isToday ? 'border-[#a9a4ec]' : ''}`}
+              className={`min-w-0 rounded-lg border p-2.5 ${
+                isToday ? 'border-secondary/40 bg-secondary-subtle' : 'border-line-soft bg-surface'
+              }`}
               key={day.toISOString()}
             >
-              <p
-                className={`text-[13px] ${isToday ? 'font-semibold text-[#3e34ad]' : 'text-[#616168]'}`}
-              >
-                {day.toLocaleDateString([], { weekday: 'short' })} {day.getDate()}
+              <p className="flex items-center gap-1.5">
+                <span
+                  className={`text-[11px] font-medium uppercase tracking-[0.06em] ${isToday ? 'text-secondary' : 'text-ink-3'}`}
+                >
+                  {day.toLocaleDateString([], { weekday: 'short' })}
+                </span>
+                <span
+                  className={`grid size-6 place-items-center rounded-full text-[13px] font-semibold ${
+                    isToday ? 'bg-secondary text-on-primary' : 'text-ink'
+                  }`}
+                  aria-current={isToday ? 'date' : undefined}
+                >
+                  {day.getDate()}
+                </span>
               </p>
               {dayMeetings.map((meeting) => (
                 <button
                   type="button"
                   key={meeting.id}
                   onClick={() => setEditingMeeting(meeting)}
-                  className="mt-2 block w-full break-words rounded-md bg-[#fff4c8] px-2 py-1 text-left text-[11px] leading-4 text-[#7d5b00] hover:ring-1 hover:ring-[#e5c75a]"
+                  className="mt-2 block w-full break-words rounded-md border-l-2 border-accent bg-accent-light px-2 py-1 text-left text-[12px] leading-4 text-accent-ink hover:brightness-95"
                   aria-label={`Edit ${meeting.title}`}
                 >
                   {timeOfDay(meeting.startsAt)} · {meeting.title}
@@ -276,14 +362,14 @@ export function CalendarPanel() {
                   type="button"
                   key={task.id}
                   onClick={() => setEditingTask(task.id)}
-                  className="mt-2 block w-full break-words rounded-md bg-[#eeedff] px-2 py-1 text-left text-[11px] leading-4 text-[#3e34ad] hover:ring-1 hover:ring-[#a9a4ec]"
+                  className="mt-2 block w-full break-words rounded-md border-l-2 border-secondary bg-secondary-subtle px-2 py-1 text-left text-[12px] leading-4 text-secondary hover:brightness-95"
                   aria-label={`Edit task ${task.title}`}
                 >
                   Due · {task.title}
                 </button>
               ))}
               {!dayMeetings.length && !dueTasks.length && range === 'Day' && (
-                <p className="mt-3 text-[12px] text-[#99999f]">Nothing scheduled.</p>
+                <p className="mt-3 text-[12px] text-ink-3">Nothing scheduled.</p>
               )}
             </div>
           )

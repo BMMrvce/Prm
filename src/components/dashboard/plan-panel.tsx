@@ -1,7 +1,8 @@
 'use client'
 
-import { Plus, X } from 'lucide-react'
+import { Plus, Route, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
+import { EmptyState } from '@/components/ui/empty-state'
 import { SquareCheck } from '@/components/ui/square-check'
 import { useWorkspace } from '@/state/workbench-store'
 
@@ -21,7 +22,7 @@ export function PlanPanel() {
     <section className="neo-card flex min-h-[330px] min-w-0 flex-col rounded-xl p-4">
       <h2 className="text-[15px] font-semibold">Plan of Action</h2>
       {ready && !plan.length && (
-        <p className="mt-3 text-[13px] text-[#88888e]">Plan your day: add the steps below.</p>
+        <EmptyState icon={Route} title="No plan for today" hint="Add the steps below." />
       )}
       <div className="mt-4 flex-1 space-y-4">
         {plan.map((item, index) => (
@@ -32,14 +33,14 @@ export function PlanPanel() {
               label={`Complete ${item.title}`}
             />
             <span
-              className={`min-w-0 flex-1 break-words text-[14px] ${item.completedAt ? 'text-[#77777d] line-through' : ''}`}
+              className={`min-w-0 flex-1 break-words text-[14px] ${item.completedAt ? 'text-ink-2 line-through' : ''}`}
             >
               {index + 1}. {item.title}
             </span>
             <button
               type="button"
               onClick={() => void removePlanItem(item.id)}
-              className="shrink-0 text-[#a0a0a6] opacity-0 group-hover:opacity-100 focus:opacity-100"
+              className="shrink-0 text-ink-3 opacity-0 group-hover:opacity-100 focus:opacity-100"
               aria-label={`Remove ${item.title}`}
             >
               <X size={13} />
@@ -52,14 +53,14 @@ export function PlanPanel() {
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           disabled={!ready}
-          className="h-9 min-w-0 flex-1 rounded-lg border border-[#d8d8dc] px-3 text-xs outline-none focus:border-[#493bd0]"
+          className="h-9 min-w-0 flex-1 rounded-lg border border-line-strong px-3 text-xs outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
           placeholder="Add a step"
           aria-label="New plan step"
         />
         <button
           type="submit"
           disabled={!ready}
-          className="grid size-9 shrink-0 place-items-center rounded-lg bg-[#493bd0] text-white disabled:opacity-60"
+          className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-white disabled:opacity-60 hover:bg-primary-hover active:bg-primary-active"
           aria-label="Add plan step"
         >
           <Plus size={14} />

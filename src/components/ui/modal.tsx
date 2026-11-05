@@ -8,10 +8,12 @@ export function Modal({
   title,
   onClose,
   children,
+  wide = false,
 }: {
   title: string
   onClose: () => void
   children: ReactNode
+  wide?: boolean
 }) {
   const ref = useRef<HTMLDialogElement>(null)
 
@@ -27,14 +29,16 @@ export function Modal({
       onClick={(event) => {
         if (event.target === ref.current) onClose()
       }}
-      className="m-auto max-h-[calc(100dvh-2rem)] w-[min(560px,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-[#dedee2] bg-white p-0 text-[#222226] shadow-xl backdrop:bg-black/30"
+      className={`modal-dialog m-auto max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-xl border border-line bg-surface p-0 text-ink shadow-xl backdrop:bg-black/30 ${
+        wide ? 'w-[min(720px,calc(100vw-2rem))]' : 'w-[min(560px,calc(100vw-2rem))]'
+      }`}
     >
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-[#eeeeef] bg-white px-5 py-3.5">
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line-soft bg-surface px-5 py-3.5">
         <h2 className="min-w-0 truncate text-[15px] font-semibold">{title}</h2>
         <button
           type="button"
           onClick={onClose}
-          className="grid size-8 shrink-0 place-items-center rounded-lg text-[#66666c] hover:bg-[#f2f2f4]"
+          className="grid size-8 shrink-0 place-items-center rounded-lg text-ink-2 hover:bg-surface-2"
           aria-label="Close"
         >
           <X size={16} />
@@ -46,6 +50,6 @@ export function Modal({
 }
 
 export const fieldClass =
-  'h-10 w-full min-w-0 rounded-lg border border-[#d8d8dc] bg-white px-3 text-sm outline-none focus:border-[#493bd0] disabled:bg-[#f6f6f7] disabled:text-[#88888e]'
+  'h-10 w-full min-w-0 rounded-lg border border-line-strong bg-field px-3 text-sm outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15 disabled:bg-surface-2 disabled:text-ink-3'
 
-export const labelClass = 'block text-xs font-medium text-[#55555c]'
+export const labelClass = 'block text-xs font-medium text-ink-2'

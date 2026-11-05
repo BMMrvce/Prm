@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { ComposeForm } from '@/components/mail/compose-form'
+import { ComposeDialog } from '@/components/mail/compose-dialog'
 import { MailNotice } from '@/components/mail/mail-notice'
 import { useMailbox } from '@/components/mail/use-mailbox'
 import { mailDate } from '@/lib/format'
@@ -21,7 +21,7 @@ export function MailPanel({ workspace }: { workspace: WorkspaceData }) {
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-[15px] font-semibold">Mail</h2>
-          <p className="truncate text-[10px] text-[#77777d]">
+          <p className="truncate text-[11px] text-ink-2">
             {status?.state === 'connected'
               ? `${status.label} · ${status.account}`
               : status
@@ -32,78 +32,79 @@ export function MailPanel({ workspace }: { workspace: WorkspaceData }) {
         {connected && (
           <button
             type="button"
-            onClick={() => setComposing((value) => !value)}
-            className="shrink-0 rounded-lg bg-[#493bd0] px-2.5 py-1.5 text-[10px] font-medium text-white"
+            onClick={() => setComposing(true)}
+            className="shrink-0 rounded-lg bg-primary px-2.5 py-1.5 text-[11px] font-medium text-white hover:bg-primary-hover active:bg-primary-active"
           >
-            {composing ? 'Close' : 'Compose'}
+            Compose
           </button>
         )}
       </div>
-      {composing ? (
-        <div className="mt-3 flex flex-1 flex-col">
-          <ComposeForm compact space={workspace.key} onSent={() => setComposing(false)} />
-        </div>
-      ) : (
-        <>
-          <div className="mt-3 flex items-center gap-1 border-b border-[#e8e8eb]">
-            {(['inbox', 'sent'] as const).map((tab) => (
-              <button
-                type="button"
-                onClick={() => setMailTab(tab)}
-                className={`border-b-2 px-2 py-2 text-xs font-medium capitalize ${mailTab === tab ? 'border-[#493bd0] text-[#493bd0]' : 'border-transparent text-[#77777d]'}`}
-                key={tab}
-              >
-                {tab}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => void refresh()}
-              disabled={loading}
-              className="ml-auto text-[10px] font-medium text-[#493bd0]"
-            >
-              {loading ? 'Syncing…' : 'Refresh'}
-            </button>
-          </div>
-          <div className="mt-2 empty:hidden">
-            <MailNotice compact space={workspace.key} status={status} error={error} />
-          </div>
-          <div className="divide-y divide-[#eeeeef]">
-            {loading && !messages.length ? (
-              <p className="py-5 text-center text-xs text-[#88888e]">Fetching {mailTab}…</p>
-            ) : (
-              messages.slice(0, 4).map((message) => (
-                <Link
-                  href={workspacePath(workspace.key, 'inbox')}
-                  className="block py-2.5"
-                  key={message.id}
-                >
-                  <div className="flex items-baseline gap-2">
-                    <p
-                      className={`min-w-0 flex-1 truncate text-xs ${message.unread ? 'font-semibold' : 'font-medium'}`}
-                    >
-                      {message.subject}
-                    </p>
-                    <span className="shrink-0 text-[10px] text-[#99999f]">
-                      {mailDate(message.date)}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 truncate text-[10px] text-[#77777d]">
-                    {mailTab === 'sent' ? `To ${message.to}` : `From ${message.from}`}
-                  </p>
-                </Link>
-              ))
-            )}
-          </div>
-          {connected && (
+      {composing && (
+        <ComposeDialog
+          space={workspace.key}
+          from={status?.state === 'connected' ? status.account : undefined}
+          draft={{}}
+          onClose={() => setComposing(false)}
+          onSent={() => {
+            if (mailTab === 'sent') void refresh()
+          }}
+        />
+      )}
+      <div className="mt-3 flex items-center gap-1 border-b border-line">
+        {(['inbox', 'sent'] as const).map((tab) => (
+          <button
+            type="button"
+            onClick={() => setMailTab(tab)}
+            className={`border-b-2 px-2 py-2 text-xs font-medium capitalize ${mailTab === tab ? 'border-primary text-secondary' : 'border-transparent text-ink-2'}`}
+            key={tab}
+          >
+            {tab}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          disabled={loading}
+          className="ml-auto text-[11px] font-medium text-secondary"
+        >
+          {loading ? 'Syncing…' : 'Refresh'}
+        </button>
+      </div>
+      <div className="mt-2 empty:hidden">
+        <MailNotice compact space={workspace.key} status={status} error={error} />
+      </div>
+      <div className="divide-y divide-line-soft">
+        {loading && !messages.length ? (
+          <p className="py-5 text-center text-xs text-ink-3">Fetching {mailTab}…</p>
+        ) : (
+          messages.slice(0, 4).map((message) => (
             <Link
               href={workspacePath(workspace.key, 'inbox')}
-              className="mt-auto pt-2 text-[11px] font-medium text-[#493bd0]"
+              className="block py-2.5"
+              key={message.id}
             >
-              Open inbox →
+              <div className="flex items-baseline gap-2">
+                <p
+                  className={`min-w-0 flex-1 truncate text-xs ${message.unread ? 'font-semibold' : 'font-medium'}`}
+                >
+                  {message.subject}
+                </p>
+                <span className="shrink-0 text-[11px] text-ink-3">{mailDate(message.date)}</span>
+              </div>
+              <p className="mt-0.5 truncate text-[11px] text-ink-2">
+                {mailTab === 'sent' ? `To ${message.to}` : `From ${message.from}`}
+              </p>
             </Link>
-          )}
-        </>
+          ))
+        )}
+      </div>
+      {connected && (
+        <Link
+          href={workspacePath(workspace.key, 'inbox')}
+          className="mt-auto pt-2 text-[11px] font-medium text-secondary"
+        >
+          Open inbox →
+        </Link>
       )}
     </section>
   )

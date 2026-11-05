@@ -1,4 +1,4 @@
-# Workbench
+# ಆyaama — Aayaama (formerly Workbench)
 
 Standalone Next.js 16 (App Router) + React 19 + Tailwind CSS v4 app, run with Node.js and
 pnpm. See `README.md` for routes, file structure and scripts.
@@ -14,10 +14,12 @@ pnpm. See `README.md` for routes, file structure and scripts.
 - Items shared with a user (tagged on a project or task) load into the same space as the
   owner's workspace, matched by workspace slug prefix (`office-…`). Tasks carry their own
   `workspaceId`; write them, and their time entries, to that workspace, not the viewer's.
-- `src/proxy.ts` requires a session for every route except `/login`, `/api/auth/*` and
-  `/api/health`. New public routes must be added to its `PUBLIC_PATHS`.
-- Use Tailwind utilities in JSX. Keep `globals.css` for the Tailwind import and the
-  shared `neo-*` / `workbench-scale` classes.
+- `src/proxy.ts` requires a session for every route except `/login`, `/api/auth/*`,
+  `/api/health` and `/api/cron/*` (which checks `CRON_SECRET` itself). New public routes must be added to its `PUBLIC_PATHS`.
+- Use Tailwind utilities in JSX. Keep `globals.css` for the Tailwind import, the design
+  tokens and the shared `neo-*` / `workbench-scale` classes.
+- Colors come only from the design tokens (`bg-primary`, `text-ink-2`, `border-line`, …).
+  Never write hex values in components; dark mode depends on it.
 - Server-only secrets (see `.env.example`) must never use the `NEXT_PUBLIC_` prefix.
 - Connected accounts (mailboxes, YouTube) are per user: read and write them only through
   `src/lib/connections.ts` from route handlers, after `currentUserId()`.

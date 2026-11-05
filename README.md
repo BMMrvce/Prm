@@ -1,4 +1,4 @@
-# Workbench
+# ಆyaama
 
 Project-management workbench with three workspaces (Office, Studio, Personal), built as a
 standalone Node.js app on Next.js 16 (App Router), React 19 and Tailwind CSS v4.
@@ -77,6 +77,35 @@ Deployed, also set `SITE_URL=https://<your-domain>` so the redirect URIs match.
 The Personal dashboard shows the videos of a YouTube playlist each user picks. YouTube does
 not let apps read its built-in "Watch later" list, so save videos to a normal playlist
 (for example "Later") instead. Only the read-only `youtube.readonly` scope is requested.
+
+## Reminders (push notifications)
+
+Reminders reach the browser or installed app even when Workbench is closed:
+
+- 10 minutes before a meeting (everyone in the workspace),
+- 1 hour before a task's deadline (workspace members and people tagged on it),
+- at 10:15 in each user's time zone, the tasks due that day.
+
+Each device opts in from the bell → **Turn on reminders** (on iPhone/iPad, add Workbench to
+the Home Screen first). Every reminder also appears in the bell.
+
+Setup once:
+
+1. Set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` and `CRON_SECRET`.
+2. Run migration `202611050005_push_reminders.sql`.
+3. Put your domain and `CRON_SECRET` into `supabase/reminders-cron.sql` and run it in the
+   Supabase SQL editor. It calls `/api/cron/reminders` every minute with pg_cron (Vercel's
+   Hobby plan only allows daily crons).
+
+## Appearance
+
+ಆyaama brand tokens (deep indigo, electric violet, cyan, neutrals and state colors) live as
+CSS variables in `src/app/globals.css` and are exposed to Tailwind as `bg-primary`,
+`text-ink-2`, `border-line` and so on. Use those, never hex values, in components: dark mode
+swaps the variable values under `html.dark`. Light, dark or system theme is chosen in the
+account menu (stored per browser). The UI uses one typeface, Inter. On desktop the sidebar
+collapses to an icon rail (remembered per browser). Logo and icons are in `public/brand/`, made from the
+originals in `src/assets/`. Motion respects `prefers-reduced-motion`.
 
 ## Routes
 

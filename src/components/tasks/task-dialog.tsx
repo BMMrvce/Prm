@@ -100,7 +100,7 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
   return (
     <Modal title={`${task.code} · Edit task`} onClose={onClose}>
       {task.sharedBy && (
-        <p className="mb-4 rounded-lg bg-[#f5f5ff] px-3 py-2 text-xs text-[#3e34ad]">
+        <p className="mb-4 rounded-lg bg-primary-subtle px-3 py-2 text-xs text-primary-ink">
           Shared by {task.sharedBy}
           {task.projectName && ` · ${task.projectName}`}
         </p>
@@ -179,7 +179,7 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="submit"
-            className="h-10 rounded-lg bg-[#493bd0] px-5 text-sm font-medium text-white"
+            className="h-10 rounded-lg bg-primary px-5 text-sm font-medium text-white hover:bg-primary-hover active:bg-primary-active"
           >
             Save changes
           </button>
@@ -187,7 +187,7 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
             <button
               type="button"
               onClick={() => void remove()}
-              className="ml-auto flex h-10 items-center gap-1.5 rounded-lg px-3 text-sm text-[#a52828] hover:bg-[#fdf0f0]"
+              className="ml-auto flex h-10 items-center gap-1.5 rounded-lg px-3 text-sm text-error-ink hover:bg-error-light"
             >
               <Trash2 size={14} /> Delete
             </button>
@@ -195,11 +195,11 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
         </div>
       </form>
 
-      <section className="mt-6 border-t border-[#eeeeef] pt-5">
+      <section className="mt-6 border-t border-line-soft pt-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="text-sm font-semibold">Time taken</h3>
-            <p className="text-xs text-[#73737a]">
+            <p className="text-xs text-ink-2">
               {duration(loggedMinutes)} logged
               {estimate ? ` of ${duration(estimate)} estimated` : ' · no estimate set'}
             </p>
@@ -209,8 +209,8 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
             onClick={() => void (tracking ? stopTimer() : startTimer(task.id))}
             className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium ${
               tracking
-                ? 'bg-[#fdf0f0] text-[#a52828]'
-                : 'border border-[#d8d8dc] bg-white text-[#493bd0]'
+                ? 'bg-error-light text-error-ink'
+                : 'border border-line-strong bg-surface text-secondary'
             }`}
           >
             {tracking ? <Square size={12} /> : <Play size={12} />}
@@ -219,7 +219,7 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
         </div>
         {estimate ? (
           <div
-            className="mt-3 h-2 overflow-hidden rounded-full bg-[#cde2fb]"
+            className="mt-3 h-2 overflow-hidden rounded-full bg-accent-light"
             role="meter"
             aria-valuemin={0}
             aria-valuemax={100}
@@ -227,13 +227,13 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
             aria-label="Time used of estimate"
           >
             <div
-              className={`h-full rounded-full ${ratio > 1 ? 'bg-[#e34948]' : 'bg-[#2a78d6]'}`}
+              className={`h-full rounded-full ${ratio > 1 ? 'bg-error' : 'bg-accent'}`}
               style={{ width: `${Math.min(100, ratio * 100)}%` }}
             />
           </div>
         ) : null}
         {ratio > 1 && (
-          <p className="mt-1.5 text-xs text-[#a52828]">
+          <p className="mt-1.5 text-xs text-error-ink">
             Over the estimate by {duration(loggedMinutes - (estimate ?? 0))}.
           </p>
         )}
@@ -258,16 +258,16 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
           <button
             type="submit"
             disabled={!logMinutes}
-            className="h-10 rounded-lg border border-[#493bd0] px-4 text-sm font-medium text-[#493bd0] disabled:opacity-50 sm:col-span-2"
+            className="h-10 rounded-lg border border-primary px-4 text-sm font-medium text-secondary disabled:opacity-50 sm:col-span-2"
           >
             Log time
           </button>
         </form>
         {entries.length > 0 && (
-          <ul className="mt-3 divide-y divide-[#eeeeef] text-xs">
+          <ul className="mt-3 divide-y divide-line-soft text-xs">
             {entries.map((entry) => (
               <li key={entry.id} className="flex items-center gap-2 py-2">
-                <span className="min-w-0 flex-1 truncate text-[#55555c]">
+                <span className="min-w-0 flex-1 truncate text-ink-2">
                   {shortDate(entry.startedAt)} · {personName(entry.userId)}
                   {entry.description && ` · ${entry.description}`}
                 </span>
@@ -279,7 +279,7 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
                   <button
                     type="button"
                     onClick={() => void deleteTimeEntry(entry.id)}
-                    className="shrink-0 text-[#99999f] hover:text-[#a52828]"
+                    className="shrink-0 text-ink-3 hover:text-error-ink"
                     aria-label="Delete time entry"
                   >
                     <Trash2 size={13} />
@@ -291,9 +291,9 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
         )}
       </section>
 
-      <section className="mt-6 border-t border-[#eeeeef] pt-5">
+      <section className="mt-6 border-t border-line-soft pt-5">
         <h3 className="text-sm font-semibold">People</h3>
-        <p className="mb-3 text-xs text-[#73737a]">
+        <p className="mb-3 text-xs text-ink-2">
           {own
             ? 'Tagged people see this task on their dashboard and can update it and log time.'
             : 'People working on this task.'}

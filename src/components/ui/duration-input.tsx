@@ -20,7 +20,7 @@ export function DurationInput({
     onChange(Number.isFinite(total) ? Math.round(total) : null)
   }
   const box =
-    'h-10 w-full min-w-0 rounded-lg border border-[#d8d8dc] bg-white pl-3 pr-7 text-sm outline-none focus:border-[#493bd0] disabled:bg-[#f6f6f7]'
+    'h-10 w-full min-w-0 rounded-lg border border-line-strong bg-field pl-3 pr-7 text-sm outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15 disabled:bg-surface-2'
 
   return (
     <div className="grid grid-cols-2 gap-2" role="group" aria-label={label}>
@@ -36,7 +36,7 @@ export function DurationInput({
           aria-label={`${label} hours`}
           disabled={disabled}
         />
-        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[#88888e]">
+        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-3">
           h
         </span>
       </div>
@@ -53,7 +53,7 @@ export function DurationInput({
           aria-label={`${label} minutes`}
           disabled={disabled}
         />
-        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[#88888e]">
+        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-3">
           m
         </span>
       </div>

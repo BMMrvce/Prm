@@ -3,18 +3,22 @@ import { SPACE_KEYS, spaces } from '@/data/workspaces'
 import { workspacePath } from '@/lib/routes'
 import type { SpaceKey } from '@/types/workbench'
 
+/** Segmented control for Office / Studio / Personal; the active workspace is filled indigo. */
 export function WorkspaceSwitcher({ active }: { active: SpaceKey }) {
   return (
-    <nav className="flex flex-wrap items-center gap-1.5" aria-label="Switch dashboard">
+    <nav
+      className="grid grid-cols-3 rounded-lg border border-line bg-surface-2 p-1 sm:flex"
+      aria-label="Switch workspace"
+    >
       {SPACE_KEYS.map((key) => (
         <Link
           key={key}
           href={workspacePath(key)}
           aria-current={active === key ? 'page' : undefined}
-          className={`flex h-9 items-center rounded-lg border px-3 text-[14px] sm:px-3.5 sm:text-[15px] font-medium transition ${
+          className={`flex h-8 items-center justify-center rounded-md px-3.5 text-[13px] font-medium ${
             active === key
-              ? 'border-[#4638ca] bg-[#4638ca] text-white'
-              : 'border-[#d8d8dc] bg-white text-[#2f2f33] hover:bg-[#f4f4f6]'
+              ? 'bg-primary text-on-primary shadow-sm hover:bg-primary-hover active:bg-primary-active'
+              : 'text-ink-2 hover:bg-surface hover:text-ink'
           }`}
         >
           {spaces[key].switchLabel}

@@ -4,6 +4,7 @@ import { Send } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useToast } from '@/state/workbench-store'
 import type { SpaceKey } from '@/types/workbench'
+import { RecipientInput } from './recipient-input'
 import { sendMessage } from './use-mailbox'
 
 /** Plain-text compose form that sends through the workspace's mailbox. */
@@ -34,7 +35,8 @@ export function ComposeForm({
     setSending(true)
     setError(null)
     try {
-      await sendMessage(space, { to, subject, body })
+      // Suggestions leave a trailing ", " after the last address.
+      await sendMessage(space, { to: to.trim().replace(/,$/, ''), subject, body })
       showToast('Email sent.', 2500)
       setTo('')
       setSubject('')
@@ -48,21 +50,17 @@ export function ComposeForm({
   }
 
   const field =
-    'w-full min-w-0 rounded-lg border border-[#d8d8dc] bg-white px-3 outline-none focus:border-[#493bd0]'
+    'w-full min-w-0 rounded-lg border border-line-strong bg-field px-3 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15'
   const text = compact ? 'text-xs' : 'text-sm'
 
   return (
     <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col gap-2">
-      {from && <p className="truncate text-[11px] text-[#77777d]">From {from}</p>}
-      <input
+      {from && <p className="truncate text-[11px] text-ink-2">From {from}</p>}
+      <RecipientInput
+        space={space}
         value={to}
-        onChange={(event) => setTo(event.target.value)}
+        onChange={setTo}
         className={`${field} ${text} h-9`}
-        placeholder="To (comma-separate several)"
-        aria-label="Recipients"
-        type="text"
-        inputMode="email"
-        required
       />
       <input
         value={subject}
@@ -78,11 +76,11 @@ export function ComposeForm({
         placeholder="Write your message"
         aria-label="Message"
       />
-      {error && <p className="text-[11px] text-[#a52828]">{error}</p>}
+      {error && <p className="text-[11px] text-error-ink">{error}</p>}
       <button
         type="submit"
         disabled={sending}
-        className={`flex h-9 items-center justify-center gap-2 rounded-lg bg-[#493bd0] px-4 font-medium text-white hover:bg-[#382bb9] disabled:opacity-60 ${text}`}
+        className={`flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 font-medium text-white hover:bg-primary-hover disabled:opacity-60 ${text}`}
       >
         <Send size={13} />
         {sending ? 'Sending…' : 'Send'}
