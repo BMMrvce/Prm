@@ -35,6 +35,19 @@ export function normalizeBlocks(root: HTMLElement) {
       paragraph.appendChild(node)
     }
   }
+  // Ghost paragraphs (no text, not even a line break; maybe an empty text node) can't hold
+  // the caret and take no space; browsers leave them behind after list commands.
+  for (const block of [...root.children]) {
+    if (
+      root.children.length > 1 &&
+      (block.tagName === 'P' || block.tagName === 'DIV') &&
+      !block.textContent &&
+      !block.querySelector('br, img, hr') &&
+      !(caret && block.contains(caret))
+    ) {
+      block.remove()
+    }
+  }
   const seen = new Set<string>()
   for (const block of root.children) {
     let id = block.getAttribute('data-b')

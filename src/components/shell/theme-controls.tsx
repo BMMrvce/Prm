@@ -1,7 +1,13 @@
 'use client'
 
 import { Monitor, Moon, Sun } from 'lucide-react'
-import { useTheme, type ThemePreference } from '@/lib/theme'
+import { useTheme, type ThemeOrigin, type ThemePreference } from '@/lib/theme'
+
+/** The center of the pressed control, where the new theme's reveal starts. */
+const centerOf = (element: Element): ThemeOrigin => {
+  const rect = element.getBoundingClientRect()
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+}
 
 const OPTIONS: [ThemePreference, string, typeof Sun][] = [
   ['light', 'Light', Sun],
@@ -16,7 +22,7 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      onClick={theme.toggle}
+      onClick={(event) => theme.toggle(centerOf(event.currentTarget))}
       className="neo-control grid size-9 shrink-0 place-items-center rounded-lg text-ink-2 hover:text-ink"
       aria-label={`Switch to ${next} mode`}
       title={`Switch to ${next} mode`}
@@ -46,7 +52,7 @@ export function ThemePicker({ size = 'sm' }: { size?: 'sm' | 'md' }) {
             key={value}
             role="radio"
             aria-checked={selected}
-            onClick={() => theme.choose(value)}
+            onClick={(event) => theme.choose(value, centerOf(event.currentTarget))}
             className={`flex items-center justify-center gap-1.5 rounded-md ${
               md ? 'h-9 text-ui' : 'flex-col gap-1 py-1.5 text-2xs'
             } ${selected ? 'bg-segment font-medium text-ink shadow-sm' : 'text-ink-2 hover:text-ink'}`}

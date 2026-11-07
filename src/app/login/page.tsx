@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { AuthForm } from '@/components/auth/auth-form'
 import { Logo } from '@/components/brand/logo'
+import { ThemeToggle } from '@/components/shell/theme-controls'
 
 export const metadata: Metadata = { title: 'Sign in' }
 
@@ -37,7 +38,11 @@ export default function LoginPage() {
           Designed for teams who value clarity over complexity.
         </p>
       </section>
-      <section className="flex items-center justify-center px-5 py-12">
+      <section className="relative flex items-center justify-center px-5 py-12">
+        {/* Light / dark switch, remembered for the app after signing in. */}
+        <div className="absolute right-4 top-4 sm:right-6 sm:top-6">
+          <ThemeToggle />
+        </div>
         <div className="w-full max-w-md">
           <div className="mb-12 lg:hidden">
             <Logo className="h-8" />

@@ -299,6 +299,30 @@ const SHORTCUTS: [RegExp, (root: HTMLElement) => void][] = [
   [/^>$/, () => format('blockquote')],
 ]
 
+/**
+ * True only for a note with nothing in it: no text and nothing but one empty paragraph. An
+ * empty to-do list, heading or divider counts as content (the placeholder would cover it).
+ */
+function isBlank(root: HTMLElement) {
+  if ((root.innerText ?? '').trim()) return false
+  if (root.children.length > 1) return false
+  const first = root.firstElementChild
+  return !first || (first.tagName === 'P' && !first.classList.length)
+}
+
+/** Puts the caret at the end of the note's last block and types `text` there. */
+function typeAtEnd(root: HTMLElement, text: string) {
+  root.focus()
+  const last = root.lastElementChild ?? root
+  const range = document.createRange()
+  range.selectNodeContents(last)
+  range.collapse(false)
+  const selection = document.getSelection()
+  selection?.removeAllRanges()
+  selection?.addRange(range)
+  document.execCommand('insertText', false, text)
+}
+
 /* ---------------------------------------------------------------- component */
 
 type Menu = { query: string; top: number; left: number; node: Text; start: number }
@@ -370,7 +394,7 @@ export function NoteEditor({ note, onDeleted }: { note: Note; onDeleted: () => v
         ? (caretBlock(editor)?.getAttribute('data-b') ?? null)
         : null
     mergeBlocks(editor, blocks, keep)
-    setEmpty(!(editor.innerText ?? '').trim())
+    setEmpty(isBlank(editor))
     // Keep the list preview current; the author saves it.
     patchNoteLocal(note.id, { content: sanitizeHtml(editor.innerHTML) })
     setLayout((value) => value + 1)
@@ -394,9 +418,32 @@ export function NoteEditor({ note, onDeleted }: { note: Note; onDeleted: () => v
     if (!root.current) return
     root.current.innerHTML = sanitizeHtml(note.content) || '<p><br></p>'
     normalizeBlocks(root.current)
-    setEmpty(!(root.current.innerText ?? '').trim())
+    setEmpty(isBlank(root.current))
+    // A brand-new note starts with the cursor in its title.
+    if (!note.title && !note.content) titleInput.current?.focus()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note.id])
+
+  // "/" pressed outside any field (e.g. right after clicking New) goes to the note: the
+  // cursor moves into the body and the command menu opens.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return
+      const target = event.target as HTMLElement | null
+      if (
+        target?.isContentEditable ||
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName ?? '') ||
+        document.querySelector('dialog[open]') ||
+        !root.current
+      ) {
+        return
+      }
+      event.preventDefault()
+      typeAtEnd(root.current, '/')
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   const flush = async () => {
     window.clearTimeout(contentTimer.current)
@@ -420,7 +467,7 @@ export function NoteEditor({ note, onDeleted }: { note: Note; onDeleted: () => v
     if (!root.current) return
     normalizeBlocks(root.current)
     pending.current.content = sanitizeHtml(root.current.innerHTML)
-    setEmpty(!(root.current.innerText ?? '').trim())
+    setEmpty(isBlank(root.current))
     live.sendBlocks()
     reportCaret()
     setSaveState('pending')
@@ -703,6 +750,12 @@ export function NoteEditor({ note, onDeleted }: { note: Note; onDeleted: () => v
           value={title}
           onChange={(event) => queueTitle(event.target.value)}
           onKeyDown={(event) => {
+            // "/" in an empty title means a command: continue in the body with the menu open.
+            if (event.key === '/' && !title && root.current) {
+              event.preventDefault()
+              typeAtEnd(root.current, '/')
+              return
+            }
             if (event.key === 'Enter' || event.key === 'ArrowDown') {
               event.preventDefault()
               root.current?.focus()
@@ -739,6 +792,7 @@ export function NoteEditor({ note, onDeleted }: { note: Note; onDeleted: () => v
             contentEditable
             suppressContentEditableWarning
             role="textbox"
+            data-note-editor
             aria-multiline="true"
             aria-label="Note"
             onFocus={() => document.execCommand('defaultParagraphSeparator', false, 'p')}

@@ -4,6 +4,7 @@ import { Menu } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState, ViewTransition, type ReactNode } from 'react'
 import { MeetingDialog } from '@/components/calendar/meeting-dialog'
+import { useNewMailAlerts } from '@/components/mail/use-new-mail-alerts'
 import { NewTaskDialog } from '@/components/tasks/new-task-dialog'
 import { TaskDialog } from '@/components/tasks/task-dialog'
 import { greetingName, greetingParts } from '@/lib/format'
@@ -36,6 +37,8 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
   const [creating, setCreating] = useState(false)
   const [searching, setSearching] = useState(false)
+  // A toast when new mail arrives in this workspace's inbox.
+  useNewMailAlerts(workspace.key)
   /** A task or meeting opened from search, edited in place. */
   const [openTask, setOpenTask] = useState<string | null>(null)
   const [openMeeting, setOpenMeeting] = useState<Meeting | null>(null)
@@ -85,7 +88,13 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
       const altS = event.altKey && !event.ctrlKey && !event.metaKey && event.code === 'KeyS'
       const modK =
         (event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'k'
-      const slash = event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey
+      // On a page with a note open, "/" belongs to the note's command menu instead.
+      const slash =
+        event.key === '/' &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        !document.querySelector('[data-note-editor]')
       if (!altS && !modK && !(slash && !typing(event.target))) return
       // Another dialog (or the palette itself) is open: leave it be.
       if (document.querySelector('dialog[open]')) return

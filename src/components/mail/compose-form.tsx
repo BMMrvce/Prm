@@ -86,7 +86,17 @@ export function ComposeForm({
         },
         files,
       )
-      showToast('Email sent.', 2500)
+      const recipients = to
+        .trim()
+        .replace(/,$/, '')
+        .split(',')
+        .map((item) => item.trim())
+      showToast(
+        recipients.length > 1
+          ? `Email sent to ${recipients[0]} and ${recipients.length - 1} more.`
+          : `Email sent to ${recipients[0]}.`,
+        3500,
+      )
       setTo('')
       setCc('')
       setSubject('')

@@ -32,11 +32,42 @@ function servers() {
 }
 
 /**
- * Open IMAP sessions, reused for a short while: every request logging in afresh (list,
- * open, contacts…) quickly trips Hostinger's login limits. Keyed by a hash of the login so
- * a changed password never reuses a session.
+ * Open IMAP sessions, reused across requests: every request logging in afresh (list, open,
+ * the once-a-minute new-mail check…) quickly trips Hostinger's connection limits, which
+ * shows up as "Unexpected close" while connecting. A session stays open for a few minutes
+ * after its last use (imapflow keeps it alive with IMAP IDLE), so periodic checks reuse one
+ * login. Keyed by a hash of the login so a changed password never reuses a session.
  */
-const IDLE_MS = 45_000
+const IDLE_MS = 5 * 60_000
+/** After the server refuses a connection, wait this long before trying again. */
+const COOLDOWN_MS = 2_000
+const cooldowns = new Map<string, number>()
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/** imapflow's codes for a connection that went away (or was refused while connecting). */
+const GONE_CODES = new Set([
+  'NoConnection',
+  'EConnectionClosed',
+  'StateLogout',
+  'ClosedAfterConnectTLS',
+  'ClosedAfterConnectText',
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'ETIMEDOUT',
+  'EPIPE',
+])
+
+/** True for dropped or refused connections, which are worth retrying on a fresh session. */
+export function isConnectionGone(error: unknown) {
+  const details = (error && typeof error === 'object' ? error : {}) as {
+    code?: string
+    message?: string
+  }
+  return (
+    GONE_CODES.has(details.code ?? '') ||
+    /unexpected close|connection closed|socket (hang up|closed)/i.test(details.message ?? '')
+  )
+}
 type PooledSession = {
   client: ImapFlow
   ready: Promise<void>
@@ -57,10 +88,17 @@ function drop(key: string, session: PooledSession) {
 async function acquire(login: HostingerLogin) {
   const key = poolKey(login)
   let session = pool.get(key)
-  if (session && !session.client.usable && session.users === 0) {
-    drop(key, session)
+  // Never hand out a dead connection. One still in use by another request is only taken
+  // out of the pool (that request fails and retries); an unused one is closed.
+  if (session && !session.client.usable) {
+    if (session.users === 0) drop(key, session)
+    else if (pool.get(key) === session) pool.delete(key)
     session = undefined
   }
+  // The server just refused us: give it a moment instead of reconnecting straight away.
+  const wait = (cooldowns.get(key) ?? 0) - Date.now()
+  if (!session && wait > 0) await sleep(wait)
+  if (!session) session = pool.get(key)
   if (!session) {
     const { imapHost, imapPort } = servers()
     const client = new ImapFlow({
@@ -84,8 +122,10 @@ async function acquire(login: HostingerLogin) {
     await current.ready
   } catch (error) {
     drop(key, current)
+    if (isConnectionGone(error)) cooldowns.set(key, Date.now() + COOLDOWN_MS)
     throw error
   }
+  cooldowns.delete(key)
   clearTimeout(current.idle)
   current.users++
   return {
@@ -104,9 +144,16 @@ async function acquire(login: HostingerLogin) {
 const isAuthFailure = (error: unknown) =>
   Boolean(error && typeof error === 'object' && 'authenticationFailed' in error)
 
-/** Runs `run` on a pooled session, retrying once on a fresh one if the connection broke. */
+/** Waits before each retry of a dropped connection. */
+const RETRY_DELAYS = [600, 1800]
+
+/**
+ * Runs `run` on a pooled session. If the connection dropped or was refused, it retries on a
+ * fresh session (up to twice, waiting a little longer each time); wrong passwords and
+ * ordinary command errors are reported straight away.
+ */
 async function withImap<T>(login: HostingerLogin, run: (client: ImapFlow) => Promise<T>) {
-  for (let attempt = 1; ; attempt++) {
+  for (let attempt = 0; ; attempt++) {
     let lease: Awaited<ReturnType<typeof acquire>> | undefined
     try {
       lease = await acquire(login)
@@ -114,10 +161,10 @@ async function withImap<T>(login: HostingerLogin, run: (client: ImapFlow) => Pro
       lease.release(false)
       return result
     } catch (error) {
-      const broken = !lease || !lease.client.usable
-      lease?.release(broken)
-      if (!broken || isAuthFailure(error) || attempt >= 2) throw error
-      await new Promise((resolve) => setTimeout(resolve, 800))
+      const gone = !lease || !lease.client.usable || isConnectionGone(error)
+      lease?.release(gone)
+      if (!gone || isAuthFailure(error) || attempt >= RETRY_DELAYS.length) throw error
+      await sleep(RETRY_DELAYS[attempt])
     }
   }
 }

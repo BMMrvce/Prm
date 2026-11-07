@@ -38,6 +38,15 @@ type CachedPage = {
   error: string | null
 }
 const pages = new Map<string, CachedPage>()
+
+/** Fired when a workspace's mailbox changed (new mail); open views refresh. */
+const MAIL_CHANGED = 'aayama-mail-changed'
+
+/** Drops cached views of `space` and tells open mail views to refresh. */
+export function mailboxChanged(space: SpaceKey) {
+  for (const key of pages.keys()) if (key.startsWith(`["${space}",`)) pages.delete(key)
+  window.dispatchEvent(new CustomEvent(MAIL_CHANGED, { detail: space }))
+}
 /** Cached results newer than this skip the background refresh entirely. */
 const FRESH_MS = 30_000
 
@@ -66,6 +75,8 @@ export function useMailbox(
   const [error, setError] = useState<string | null>(cached?.error ?? null)
   // Ignores responses for filters that have since changed.
   const generation = useRef(0)
+  /** One quiet retry after a failed load before the error is left showing. */
+  const retried = useRef(false)
 
   const remember = (page: Omit<CachedPage, 'at'>) => pages.set(key, { ...page, at: Date.now() })
 
@@ -73,6 +84,8 @@ export function useMailbox(
     async (force = true) => {
       const run = ++generation.current
       const hit = pages.get(key)
+      /** Set when a quiet retry is pending: keep the current state until it lands. */
+      let retrying = false
       if (hit) {
         // Show the cached view immediately; refresh it unless it is brand new.
         setStatus(hit.status)
@@ -101,6 +114,17 @@ export function useMailbox(
           nextCursor: result.nextCursor ?? null,
           error: result.error ?? null,
         }
+        // A failed load (e.g. the mail server dropped the connection) is retried once,
+        // quietly, a few seconds later; anything already on screen stays meanwhile.
+        if (page.error && !retried.current) {
+          retried.current = true
+          retrying = true
+          window.setTimeout(() => {
+            if (run === generation.current) void refresh(true)
+          }, 3000)
+          return
+        }
+        if (!page.error) retried.current = false
         remember(page)
         setStatus(page.status)
         setMessages(page.messages)
@@ -110,7 +134,7 @@ export function useMailbox(
         if (run !== generation.current) return
         setError(caught instanceof Error ? caught.message : 'Could not load mail.')
       } finally {
-        if (run === generation.current) {
+        if (run === generation.current && !retrying) {
           setLoading(false)
           setSyncing(false)
         }
@@ -123,6 +147,15 @@ export function useMailbox(
   useEffect(() => {
     void refresh(false)
   }, [refresh])
+
+  // New mail arrived (seen by the new-mail watcher): refresh this view in the background.
+  useEffect(() => {
+    const onChanged = (event: Event) => {
+      if ((event as CustomEvent<SpaceKey>).detail === space) void refresh(true)
+    }
+    window.addEventListener(MAIL_CHANGED, onChanged)
+    return () => window.removeEventListener(MAIL_CHANGED, onChanged)
+  }, [refresh, space])
 
   const loadMore = useCallback(async () => {
     if (!nextCursor || loadingMore || loading) return

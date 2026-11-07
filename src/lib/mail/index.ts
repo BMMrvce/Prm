@@ -21,6 +21,7 @@ import {
   listHostinger,
   markReadHostinger,
   readHostinger,
+  isConnectionGone,
   sendHostinger,
   verifyHostinger,
   type HostingerLogin,
@@ -270,9 +271,17 @@ export function errorMessage(error: unknown) {
     responseText?: string
     code?: string
     message?: string
+    /** The server's BYE reason when it hung up, e.g. "Too many connections". */
+    reason?: string
   }
   if (details.authenticationFailed) {
     return 'The mail server rejected the email address or password.'
+  }
+  // The server hung up (often a connection limit); the app already retried a few times.
+  if (isConnectionGone(error)) {
+    return /too many|limit|exceed/i.test(details.reason ?? '')
+      ? 'The mail server is limiting connections right now. It will refresh in a moment.'
+      : 'Lost the connection to the mail server. It will refresh in a moment.'
   }
   // IMAP errors often say only "Command failed"; the server's own text is more useful.
   const text = [details.responseText, details.message].find(
