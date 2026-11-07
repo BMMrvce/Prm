@@ -6,18 +6,30 @@ import {
 } from '@/lib/connections'
 import { googleMissing } from '@/lib/google'
 import type { SpaceKey } from '@/types/workbench'
-import { contactsGmail, gmailToken, listGmail, readGmail, sendGmail } from './gmail'
 import {
+  attachmentGmail,
+  contactsGmail,
+  gmailToken,
+  listGmail,
+  markReadGmail,
+  readGmail,
+  sendGmail,
+} from './gmail'
+import {
+  attachmentHostinger,
   contactsHostinger,
   listHostinger,
+  markReadHostinger,
   readHostinger,
   sendHostinger,
   verifyHostinger,
   type HostingerLogin,
 } from './hostinger'
 import {
+  attachmentOutlook,
   contactsOutlook,
   listOutlook,
+  markReadOutlook,
   outlookMissing,
   outlookToken,
   readOutlook,
@@ -25,12 +37,14 @@ import {
 } from './outlook'
 import { mailOptions, PROVIDER_LABEL } from './providers'
 import type {
+  MailAttachmentFile,
   MailContact,
   MailFolder,
   MailListResponse,
   MailMessage,
   MailOption,
   MailProviderKey,
+  MailQuery,
   MailStatus,
   MailSummary,
   SendMailInput,
@@ -41,8 +55,17 @@ import type {
  * Office → Hostinger, Gmail or Outlook; Studio → Outlook or Gmail; Personal → Gmail.
  */
 type Mailbox = {
-  list: (folder: MailFolder) => Promise<MailSummary[]>
-  read: (folder: MailFolder, id: string) => Promise<MailMessage | null>
+  list: (
+    folder: MailFolder,
+    query: MailQuery,
+  ) => Promise<{ messages: MailSummary[]; nextCursor: string | null }>
+  read: (folder: MailFolder, id: string, markRead: boolean) => Promise<MailMessage | null>
+  markRead: (folder: MailFolder, id: string) => Promise<void>
+  attachment: (
+    folder: MailFolder,
+    id: string,
+    attachmentId: string,
+  ) => Promise<MailAttachmentFile | null>
   send: (input: SendMailInput) => Promise<void>
   contacts: () => Promise<MailContact[]>
 }
@@ -77,14 +100,24 @@ export async function mailStatus(userId: string, space: SpaceKey): Promise<MailS
   return { state: 'connected', provider, label: PROVIDER_LABEL[provider], account: row.account }
 }
 
-async function openMailbox(userId: string, space: SpaceKey): Promise<Mailbox> {
-  const row = await connection(userId, space)
+type ConnectionRow = NonNullable<Awaited<ReturnType<typeof connection>>>
+
+/** The provider client for `space`; pass the connection row when it is already loaded. */
+async function openMailbox(
+  userId: string,
+  space: SpaceKey,
+  known?: ConnectionRow,
+): Promise<Mailbox> {
+  const row = known ?? (await connection(userId, space))
   if (!row) throw new ReconnectRequired()
   if (row.provider === 'hostinger') {
     const login = row.secret as HostingerLogin
     return {
-      list: (folder) => listHostinger(login, folder),
-      read: (folder, id) => readHostinger(login, folder, id),
+      list: (folder, query) => listHostinger(login, folder, query),
+      read: (folder, id, markRead) => readHostinger(login, folder, id, markRead),
+      markRead: (folder, id) => markReadHostinger(login, folder, id),
+      attachment: (folder, id, attachmentId) =>
+        attachmentHostinger(login, folder, id, attachmentId),
       send: (input) => sendHostinger(login, input),
       contacts: () => contactsHostinger(login),
     }
@@ -92,16 +125,20 @@ async function openMailbox(userId: string, space: SpaceKey): Promise<Mailbox> {
   if (row.provider === 'gmail') {
     const token = await gmailToken(userId, space)
     return {
-      list: (folder) => listGmail(token, folder),
-      read: (_folder, id) => readGmail(token, id),
+      list: (folder, query) => listGmail(token, folder, query),
+      read: (_folder, id, markRead) => readGmail(token, id, markRead),
+      markRead: (_folder, id) => markReadGmail(token, id),
+      attachment: (_folder, id, attachmentId) => attachmentGmail(token, id, attachmentId),
       send: (input) => sendGmail(token, row.account, input),
       contacts: () => contactsGmail(token),
     }
   }
   const token = await outlookToken(userId, space)
   return {
-    list: (folder) => listOutlook(token, folder),
-    read: (_folder, id) => readOutlook(token, id),
+    list: (folder, query) => listOutlook(token, folder, query),
+    read: (_folder, id, markRead) => readOutlook(token, id, markRead),
+    markRead: (_folder, id) => markReadOutlook(token, id),
+    attachment: (_folder, id, attachmentId) => attachmentOutlook(token, id, attachmentId),
     send: (input) => sendOutlook(token, input),
     contacts: () => contactsOutlook(token),
   }
@@ -109,17 +146,30 @@ async function openMailbox(userId: string, space: SpaceKey): Promise<Mailbox> {
 
 const EXPIRED = 'The mailbox sign-in expired or was revoked. Connect it again in Integrations.'
 
-/** Lists a folder, folding provider failures into the response instead of throwing. */
+/**
+ * One page of a folder (optionally searched and date-filtered), folding provider failures
+ * into the response instead of throwing.
+ */
 export async function listMail(
   userId: string,
   space: SpaceKey,
   folder: MailFolder,
+  query: MailQuery = {},
 ): Promise<MailListResponse> {
-  const status = await mailStatus(userId, space)
-  if (status.state !== 'connected') return { status, messages: [] }
+  // One connection lookup serves both the status and the mailbox.
+  const row = await connection(userId, space)
+  if (!row) return { status: disconnected(space), messages: [] }
+  const provider = row.provider as MailProviderKey
+  const status: MailStatus = {
+    state: 'connected',
+    provider,
+    label: PROVIDER_LABEL[provider],
+    account: row.account,
+  }
   try {
-    const mailbox = await openMailbox(userId, space)
-    return { status, messages: await mailbox.list(folder) }
+    const mailbox = await openMailbox(userId, space, row)
+    const page = await mailbox.list(folder, query)
+    return { status, messages: page.messages, nextCursor: page.nextCursor }
   } catch (error) {
     if (error instanceof ReconnectRequired) {
       return { status: disconnected(space, EXPIRED), messages: [] }
@@ -128,8 +178,35 @@ export async function listMail(
   }
 }
 
-export async function readMail(userId: string, space: SpaceKey, folder: MailFolder, id: string) {
-  return (await openMailbox(userId, space)).read(folder, id)
+/** One message; `markRead: false` peeks without changing its unread state. */
+export async function readMail(
+  userId: string,
+  space: SpaceKey,
+  folder: MailFolder,
+  id: string,
+  markRead = true,
+) {
+  return (await openMailbox(userId, space)).read(folder, id, markRead)
+}
+
+/** One attachment of a received message, for download. */
+export async function mailAttachment(
+  userId: string,
+  space: SpaceKey,
+  folder: MailFolder,
+  id: string,
+  attachmentId: string,
+) {
+  return (await openMailbox(userId, space)).attachment(folder, id, attachmentId)
+}
+
+export async function markMailRead(
+  userId: string,
+  space: SpaceKey,
+  folder: MailFolder,
+  id: string,
+) {
+  await (await openMailbox(userId, space)).markRead(folder, id)
 }
 
 export async function sendMail(userId: string, space: SpaceKey, input: SendMailInput) {

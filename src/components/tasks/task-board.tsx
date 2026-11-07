@@ -2,10 +2,14 @@
 
 import { CheckCheck, ListChecks, Search, X } from 'lucide-react'
 import { useState } from 'react'
+import { MeetingDialog } from '@/components/calendar/meeting-dialog'
+import { useMeetingsAhead } from '@/components/calendar/use-meetings-ahead'
 import { groupByDue } from '@/lib/tasks'
 import { useWorkspace } from '@/state/workbench-store'
 import { TaskComposer } from './task-composer'
 import { TaskDialog } from './task-dialog'
+import type { Meeting } from '@/types/workbench'
+import { MeetingRow } from './meeting-row'
 import { TaskRow, TaskRowSkeleton } from './task-row'
 import { useNow, useTaskTime } from './use-task-time'
 
@@ -15,7 +19,9 @@ import { useNow, useTaskTime } from './use-task-time'
  * filter. Pass `projectId` to scope it to one project.
  */
 export function TaskBoard({ projectId }: { projectId?: string }) {
-  const { ready, tasks: allTasks } = useWorkspace()
+  const { ready, tasks: allTasks, meetings: allMeetings } = useWorkspace()
+  useMeetingsAhead()
+  const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null)
   const { secondsFor } = useTaskTime()
   const now = useNow()
   const [filter, setFilter] = useState<'open' | 'completed'>('open')
@@ -34,10 +40,15 @@ export function TaskBoard({ projectId }: { projectId?: string }) {
         task.code.toLowerCase().includes(term) ||
         (task.projectName ?? '').toLowerCase().includes(term)),
   )
+  // Open view (not inside a project): the day's meetings appear with its tasks.
+  const meetings =
+    filter === 'open' && !projectId
+      ? allMeetings.filter((meeting) => !term || meeting.title.toLowerCase().includes(term))
+      : []
   const groups =
     filter === 'open'
       ? now
-        ? groupByDue(tasks, now)
+        ? groupByDue(tasks, now, undefined, meetings)
         : []
       : [
           {
@@ -47,6 +58,7 @@ export function TaskBoard({ projectId }: { projectId?: string }) {
             tasks: [...tasks].sort((a, b) =>
               (b.completedAt ?? '').localeCompare(a.completedAt ?? ''),
             ),
+            meetings: [] as Meeting[],
           },
         ]
 
@@ -108,7 +120,7 @@ export function TaskBoard({ projectId }: { projectId?: string }) {
 
         <div className="p-2 sm:p-3">
           {(!ready || !now) && <TaskRowSkeleton rows={5} />}
-          {ready && now && !tasks.length && (
+          {ready && now && !tasks.length && !groups.some((group) => group.meetings.length) && (
             <p className="px-3 py-10 text-center text-sm text-ink-3">
               {term
                 ? 'No tasks match that filter.'
@@ -118,14 +130,25 @@ export function TaskBoard({ projectId }: { projectId?: string }) {
             </p>
           )}
           {groups
-            .filter((group) => group.tasks.length)
+            .filter((group) => group.tasks.length || group.meetings.length)
             .map((group) => (
               <div key={group.key} className="mt-3 first:mt-0">
                 <h3 className="flex items-center gap-2 px-2.5 pb-1 pt-1 text-2xs font-semibold uppercase tracking-[0.08em] text-ink-2">
                   <span className={`size-1.5 rounded-full ${group.tone}`} aria-hidden />
                   {group.label}
-                  <span className="font-medium tabular-nums text-ink-3">{group.tasks.length}</span>
+                  <span className="font-medium tabular-nums text-ink-3">
+                    {group.tasks.length + group.meetings.length}
+                  </span>
                 </h3>
+                {now &&
+                  group.meetings.map((meeting) => (
+                    <MeetingRow
+                      key={`meeting-${meeting.id}`}
+                      meeting={meeting}
+                      now={now}
+                      onOpen={setEditingMeeting}
+                    />
+                  ))}
                 {group.tasks.map((task) => (
                   <TaskRow
                     key={task.id}
@@ -141,6 +164,9 @@ export function TaskBoard({ projectId }: { projectId?: string }) {
         </div>
       </div>
       {editing && <TaskDialog taskId={editing} onClose={() => setEditing(null)} />}
+      {editingMeeting && (
+        <MeetingDialog meeting={editingMeeting} onClose={() => setEditingMeeting(null)} />
+      )}
     </section>
   )
 }

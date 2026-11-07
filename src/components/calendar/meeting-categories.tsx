@@ -1,6 +1,7 @@
 'use client'
 
-import { ExternalLink, MapPin, Users } from 'lucide-react'
+import { ExternalLink, MapPin, NotebookPen, Users } from 'lucide-react'
+import { useOpenMeetingNote } from '@/components/notes/use-meeting-note'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useNow } from '@/components/tasks/use-task-time'
@@ -22,6 +23,10 @@ const WEEKS_AHEAD = 4
  */
 export function MeetingCategories() {
   const { workspace, ready, meetings, loadWeek } = useWorkspace()
+  const { notes } = useWorkspace()
+  const notesLink = useOpenMeetingNote()
+  // Meetings that already have notes show the notes icon highlighted.
+  const noteFor = new Set(notes.map((note) => note.meetingId).filter(Boolean))
   const categories = useMeetingCategories() ?? []
   const now = useNow()
   const [selected, setSelected] = useState('')
@@ -118,7 +123,7 @@ export function MeetingCategories() {
             {!now || !ready ? (
               <div className="space-y-2" aria-hidden>
                 {[0, 1].map((row) => (
-                  <div key={row} className="h-14 animate-pulse rounded-lg bg-surface-2" />
+                  <div key={row} className="skeleton h-14 rounded-lg" />
                 ))}
               </div>
             ) : list.length ? (
@@ -158,6 +163,20 @@ export function MeetingCategories() {
                               </span>
                             )}
                           </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void notesLink.open(meeting)}
+                          disabled={notesLink.opening === meeting.id}
+                          className={`grid size-7 shrink-0 place-items-center self-center rounded-md hover:bg-surface-3 hover:text-ink disabled:opacity-50 ${
+                            noteFor.has(meeting.id) ? 'text-primary-ink' : 'text-ink-2'
+                          }`}
+                          aria-label={`Notes for ${meeting.title}`}
+                          title={
+                            noteFor.has(meeting.id) ? 'Open meeting notes' : 'Take meeting notes'
+                          }
+                        >
+                          <NotebookPen size={14} />
                         </button>
                         {meeting.meetingUrl && (
                           <a

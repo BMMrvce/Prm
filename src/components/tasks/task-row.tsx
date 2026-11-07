@@ -78,7 +78,7 @@ export function TaskRow({
 
   return (
     <div
-      className={`group relative flex items-start gap-3 rounded-lg px-2.5 py-2.5 hover:bg-surface-2 focus-within:bg-surface-2 ${
+      className={`animate-row group relative flex items-start gap-3 rounded-lg px-2.5 py-2.5 hover:bg-surface-2 focus-within:bg-surface-2 ${
         tracking ? 'bg-accent-light/60' : ''
       }`}
     >
@@ -95,7 +95,7 @@ export function TaskRow({
         title={compact ? `${task.code} · ${task.title}` : undefined}
       >
         <span
-          className={`block break-words text-sm font-medium leading-5 ${
+          className={`block break-words text-sm font-medium leading-5 transition-colors duration-200 ${
             done ? 'text-ink-3 line-through decoration-ink-3' : 'text-ink'
           }`}
         >
@@ -214,13 +214,13 @@ export function TaskRowSkeleton({ rows = 3 }: { rows?: number }) {
     <div className="space-y-1" aria-hidden>
       {Array.from({ length: rows }, (_, index) => (
         <div className="flex items-start gap-3 px-2.5 py-2.5" key={index}>
-          <span className="size-5 shrink-0 animate-pulse rounded-full bg-surface-3" />
+          <span className="skeleton size-5 shrink-0 rounded-full" />
           <span className="flex-1 space-y-2">
             <span
-              className="block h-3.5 animate-pulse rounded bg-surface-3"
+              className="skeleton block h-3.5 rounded"
               style={{ width: `${70 - index * 12}%` }}
             />
-            <span className="block h-2.5 w-1/3 animate-pulse rounded bg-surface-2" />
+            <span className="skeleton block h-2.5 w-1/3 rounded" />
           </span>
         </div>
       ))}

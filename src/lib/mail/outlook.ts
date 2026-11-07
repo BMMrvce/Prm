@@ -7,7 +7,17 @@ import {
   type TokenGrant,
 } from '@/lib/connections'
 import type { SpaceKey } from '@/types/workbench'
-import type { MailContact, MailFolder, MailMessage, MailSummary, SendMailInput } from './types'
+import {
+  MAIL_PAGE_SIZE,
+  type MailAttachmentFile,
+  type MailAttachmentInfo,
+  type MailContact,
+  type MailFolder,
+  type MailMessage,
+  type MailQuery,
+  type MailSummary,
+  type SendMailInput,
+} from './types'
 
 /** Outlook mailboxes via OAuth 2.0 (authorization code) and Microsoft Graph, per user. */
 const REQUIRED = [
@@ -29,7 +39,18 @@ type GraphMessage = {
   receivedDateTime?: string
   sentDateTime?: string
   isRead?: boolean
+  hasAttachments?: boolean
   body?: { contentType: 'html' | 'text'; content: string }
+}
+
+type GraphAttachment = {
+  id: string
+  name?: string
+  contentType?: string
+  size?: number
+  isInline?: boolean
+  contentId?: string
+  contentBytes?: string
 }
 
 export function outlookMissing() {
@@ -158,56 +179,175 @@ function toSummary(message: GraphMessage): MailSummary {
 
 const SUMMARY_FIELDS = 'id,subject,from,toRecipients,receivedDateTime,sentDateTime,isRead'
 
+const validDate = (value?: string) => (value && !Number.isNaN(Date.parse(value)) ? value : '')
+
+/**
+ * One page of a folder, newest first. Dates use `$filter`; words use `$search`, which Graph
+ * cannot combine with `$filter`, so a search with dates trims each page to the range.
+ * The cursor is Graph's own next-page link, accepted only for this mailbox's folders.
+ */
 export async function listOutlook(
   token: string,
   folder: MailFolder,
-  limit = 30,
-): Promise<MailSummary[]> {
+  query: MailQuery = {},
+  limit = query.limit ?? MAIL_PAGE_SIZE,
+): Promise<{ messages: MailSummary[]; nextCursor: string | null }> {
   const folderName = folder === 'inbox' ? 'inbox' : 'sentitems'
-  const query = new URLSearchParams({
-    $top: String(limit),
-    $select: SUMMARY_FIELDS,
-    $orderby: 'receivedDateTime desc',
-  })
-  const data = await graph<{ value: GraphMessage[] }>(
-    token,
-    `/me/mailFolders/${folderName}/messages?${query}`,
-  )
-  return data.value.map(toSummary)
+  const after = validDate(query.after)
+  const before = validDate(query.before)
+  const search = query.search?.replace(/["\\]/g, ' ').trim()
+  let path: string
+  if (query.cursor) {
+    if (!query.cursor.startsWith(`${GRAPH}/me/mailFolders/${folderName}/messages`)) {
+      throw new Error('Invalid page token.')
+    }
+    path = query.cursor.slice(GRAPH.length)
+  } else {
+    const params = new URLSearchParams({ $top: String(limit), $select: SUMMARY_FIELDS })
+    if (search) {
+      params.set('$search', `"${search}"`)
+    } else {
+      params.set('$orderby', 'receivedDateTime desc')
+      const range = [
+        after && `receivedDateTime ge ${new Date(after).toISOString()}`,
+        before && `receivedDateTime lt ${new Date(before).toISOString()}`,
+      ].filter(Boolean)
+      if (range.length) params.set('$filter', range.join(' and '))
+    }
+    path = `/me/mailFolders/${folderName}/messages?${params}`
+  }
+  const data = await graph<{ value: GraphMessage[]; '@odata.nextLink'?: string }>(token, path)
+  let messages = data.value.map(toSummary)
+  if (search && (after || before)) {
+    messages = messages.filter(
+      (message) =>
+        (!after || message.date >= new Date(after).toISOString()) &&
+        (!before || message.date < new Date(before).toISOString()),
+    )
+  }
+  return { messages, nextCursor: data['@odata.nextLink'] ?? null }
 }
 
-export async function readOutlook(token: string, id: string): Promise<MailMessage | null> {
+export async function markReadOutlook(token: string, id: string) {
+  await graph(token, `/me/messages/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ isRead: true }),
+  })
+}
+
+/** One message with its body; `markRead: false` only peeks (for prefetching). */
+export async function readOutlook(
+  token: string,
+  id: string,
+  markRead = true,
+): Promise<MailMessage | null> {
   const message = await graph<GraphMessage>(
     token,
-    `/me/messages/${encodeURIComponent(id)}?$select=${SUMMARY_FIELDS},body`,
+    `/me/messages/${encodeURIComponent(id)}?$select=${SUMMARY_FIELDS},body,hasAttachments`,
   )
-  if (!message.isRead) {
-    await graph(token, `/me/messages/${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ isRead: true }),
-    }).catch(() => {})
-  }
+  if (markRead && !message.isRead) await markReadOutlook(token, id).catch(() => {})
   const isHtml = message.body?.contentType === 'html'
+  let html = isHtml ? (message.body?.content ?? '') : null
+  const attachments: MailAttachmentInfo[] = []
+  if (message.hasAttachments || (html && html.includes('cid:'))) {
+    // Details only (no file contents), so big attachments do not slow the message down.
+    const list = await graph<{ value: GraphAttachment[] }>(
+      token,
+      `/me/messages/${encodeURIComponent(id)}/attachments?$select=id,name,contentType,size,isInline`,
+    ).catch(() => ({ value: [] as GraphAttachment[] }))
+    let embedded = 0
+    for (const item of list.value) {
+      // Small inline images used by the body are embedded so they display.
+      if (
+        html &&
+        item.isInline &&
+        item.contentType?.startsWith('image/') &&
+        (item.size ?? 0) <= 2 * 1024 * 1024 &&
+        embedded + (item.size ?? 0) <= 6 * 1024 * 1024
+      ) {
+        const full = await graph<GraphAttachment>(
+          token,
+          `/me/messages/${encodeURIComponent(id)}/attachments/${encodeURIComponent(item.id)}`,
+        ).catch(() => null)
+        const cid = full?.contentId?.replace(/^<|>$/g, '')
+        if (full?.contentBytes && cid && html.includes(`cid:${cid}`)) {
+          html = html
+            .split(`cid:${cid}`)
+            .join(`data:${item.contentType};base64,${full.contentBytes}`)
+          embedded += item.size ?? 0
+          continue
+        }
+      }
+      attachments.push({
+        id: item.id,
+        filename: item.name || 'attachment',
+        contentType: item.contentType || 'application/octet-stream',
+        size: item.size ?? 0,
+      })
+    }
+  }
   return {
     ...toSummary(message),
     unread: false,
-    html: isHtml ? (message.body?.content ?? '') : null,
+    html,
     text: isHtml ? '' : (message.body?.content ?? ''),
+    attachments,
   }
 }
 
-export async function sendOutlook(token: string, { to, subject, body }: SendMailInput) {
+/** One attachment's bytes, via Graph's raw `$value` stream. */
+export async function attachmentOutlook(
+  token: string,
+  id: string,
+  attachmentId: string,
+): Promise<MailAttachmentFile | null> {
+  const base = `/me/messages/${encodeURIComponent(id)}/attachments/${encodeURIComponent(attachmentId)}`
+  const meta = await graph<GraphAttachment>(token, `${base}?$select=name,contentType,size`)
+  const response = await microsoftFetch(`${GRAPH}${base}/$value`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (response.status === 401) throw new ReconnectRequired()
+  if (response.status === 404) return null
+  if (!response.ok) throw new Error(`Microsoft Graph returned ${response.status}`)
+  return {
+    filename: meta.name || 'attachment',
+    contentType: meta.contentType || 'application/octet-stream',
+    content: Buffer.from(await response.arrayBuffer()),
+  }
+}
+
+/** Graph's single-request sendMail tops out near 4 MB including base64 attachments. */
+const OUTLOOK_ATTACHMENT_BYTES = 3 * 1024 * 1024
+
+const recipients = (list?: string) =>
+  (list ?? '')
+    .split(',')
+    .map((address) => address.trim())
+    .filter(Boolean)
+    .map((address) => ({ emailAddress: { address } }))
+
+export async function sendOutlook(token: string, input: SendMailInput) {
+  const attachments = input.attachments ?? []
+  const size = attachments.reduce((sum, file) => sum + file.content.length, 0)
+  if (size > OUTLOOK_ATTACHMENT_BYTES) {
+    throw new Error('Outlook can send up to 3 MB of attachments per message from here.')
+  }
   await graph(token, '/me/sendMail', {
     method: 'POST',
     body: JSON.stringify({
       message: {
-        subject,
-        body: { contentType: 'Text', content: body },
-        toRecipients: to
-          .split(',')
-          .map((address) => address.trim())
-          .filter(Boolean)
-          .map((address) => ({ emailAddress: { address } })),
+        subject: input.subject,
+        body: input.html
+          ? { contentType: 'HTML', content: input.html }
+          : { contentType: 'Text', content: input.body },
+        toRecipients: recipients(input.to),
+        ccRecipients: recipients(input.cc),
+        attachments: attachments.map((file) => ({
+          '@odata.type': '#microsoft.graph.fileAttachment',
+          name: file.filename,
+          contentType: file.contentType,
+          contentBytes: file.content.toString('base64'),
+        })),
       },
       saveToSentItems: true,
     }),

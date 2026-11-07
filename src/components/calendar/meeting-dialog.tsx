@@ -1,6 +1,7 @@
 'use client'
 
-import { Trash2 } from 'lucide-react'
+import { NotebookPen, Trash2 } from 'lucide-react'
+import { useOpenMeetingNote } from '@/components/notes/use-meeting-note'
 import { useState, type FormEvent } from 'react'
 import { Modal, fieldClass, labelClass } from '@/components/ui/modal'
 import { localDate } from '@/lib/format'
@@ -17,7 +18,9 @@ const clock = (date: Date) =>
 
 /** Edit or delete a calendar item. */
 export function MeetingDialog({ meeting, onClose }: { meeting: Meeting; onClose: () => void }) {
-  const { updateMeeting, deleteMeeting } = useWorkspace()
+  const { updateMeeting, deleteMeeting, notes } = useWorkspace()
+  const notesLink = useOpenMeetingNote()
+  const hasNote = notes.some((note) => note.meetingId === meeting.id)
   const starts = new Date(meeting.startsAt)
   const length = Math.round((new Date(meeting.endsAt).getTime() - starts.getTime()) / 60_000)
   const [title, setTitle] = useState(meeting.title)
@@ -49,6 +52,31 @@ export function MeetingDialog({ meeting, onClose }: { meeting: Meeting; onClose:
 
   return (
     <Modal title="Edit calendar item" onClose={onClose}>
+      <button
+        type="button"
+        onClick={async () => {
+          if (await notesLink.open(meeting)) onClose()
+        }}
+        disabled={notesLink.opening === meeting.id}
+        className="mb-4 flex w-full items-center gap-3 rounded-lg border border-line-strong bg-surface-2 px-3 py-2.5 text-left hover:border-primary/50 disabled:opacity-60"
+      >
+        <span className="grid size-8 shrink-0 place-items-center rounded-md bg-primary-light text-primary-ink">
+          <NotebookPen size={16} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-ui font-semibold text-ink">
+            {hasNote ? 'Open meeting notes' : 'Take meeting notes'}
+          </span>
+          <span className="block text-2xs text-ink-2">
+            {hasNote
+              ? 'Linked to this meeting, also listed in Notes'
+              : 'Creates a linked note with Agenda and Action items'}
+          </span>
+        </span>
+        <span className="text-xs font-semibold text-primary-ink">
+          {notesLink.opening === meeting.id ? 'Opening…' : 'Notes →'}
+        </span>
+      </button>
       <form onSubmit={save} className="space-y-4">
         <label className={labelClass}>
           Title

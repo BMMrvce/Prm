@@ -34,7 +34,10 @@ export function DayNote() {
       {notes.length > 0 && (
         <ul className="mt-4 flex-1 space-y-1 rounded-lg bg-warning-light/40 p-3 font-handwritten text-sm leading-6 text-ink">
           {notes.map((item, index) => (
-            <li className="group flex items-start gap-2 break-words" key={`${item}-${index}`}>
+            <li
+              className="animate-row group flex items-start gap-2 break-words"
+              key={`${item}-${index}`}
+            >
               <span className="mt-[11px] size-1 shrink-0 rounded-full bg-ink-3" aria-hidden />
               <span className="min-w-0 flex-1">{item}</span>
               <button

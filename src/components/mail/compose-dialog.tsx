@@ -21,8 +21,9 @@ export function ComposeDialog({
   onSent?: () => void
 }) {
   return (
-    <Modal title={draft.subject ? draft.subject : 'New message'} onClose={onClose} wide>
-      <div className="flex min-h-[360px] flex-col">
+    <Modal title={draft.subject ? draft.subject : 'New message'} onClose={onClose} size="xl">
+      {/* A large writing surface: most of the screen's height, the editor taking the rest. */}
+      <div className="flex h-[min(78dvh,860px)] min-h-[420px] flex-col">
         <ComposeForm
           space={space}
           from={from}

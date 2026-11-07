@@ -9,6 +9,7 @@ import type { Project, SpaceKey, WorkspaceData } from '@/types/workbench'
 export type NavIcon =
   | 'home'
   | 'tasks'
+  | 'notes'
   | 'inbox'
   | 'calendar'
   | 'time'
@@ -45,6 +46,7 @@ export function mainNav(workspace: WorkspaceData): NavItem[] {
   return [
     { label: 'Home', href: path(), icon: 'home' },
     { label: 'My Tasks', href: path('tasks'), icon: 'tasks' },
+    { label: 'Notes', href: path('notes'), icon: 'notes' },
     { label: 'Inbox', href: path('inbox'), icon: 'inbox' },
     { label: 'Calendar', href: path('calendar'), icon: 'calendar' },
     { label: 'Time Management', href: path('time'), icon: 'time' },
@@ -85,6 +87,7 @@ export function pageTitle(
 /** One-line description under the page heading, by the first path segment after the space. */
 const SUBTITLES: Record<string, string> = {
   tasks: 'Everything on your plate, grouped by when it is due',
+  notes: 'Your pages and meeting notes · type / for commands',
   inbox: 'Mail from the mailbox connected to this workspace',
   calendar: 'Meetings and task due dates',
   time: 'Where your hours go',

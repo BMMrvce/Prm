@@ -2,8 +2,15 @@
 
 import { Mail } from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ComposeDialog } from '@/components/mail/compose-dialog'
+import {
+  EMPTY_MAIL_FILTERS,
+  filtersActive,
+  MailFilters,
+  toMailQuery,
+  type MailFilterState,
+} from '@/components/mail/mail-filters'
 import { MailNotice } from '@/components/mail/mail-notice'
 import { PanelHeader } from '@/components/ui/panel'
 import { useMailbox } from '@/components/mail/use-mailbox'
@@ -15,7 +22,11 @@ import type { WorkspaceData } from '@/types/workbench'
 export function MailPanel({ workspace }: { workspace: WorkspaceData }) {
   const [mailTab, setMailTab] = useState<MailFolder>('inbox')
   const [composing, setComposing] = useState(false)
-  const { status, messages, loading, error, refresh } = useMailbox(workspace.key, mailTab)
+  const [filters, setFilters] = useState<MailFilterState>(EMPTY_MAIL_FILTERS)
+  const query = useMemo(() => toMailQuery(filters), [filters])
+  // The card shows a dozen at first, which arrive faster than a full page.
+  const { status, messages, loading, syncing, loadingMore, hasMore, error, refresh, loadMore } =
+    useMailbox(workspace.key, mailTab, query, 12)
   const connected = status?.state === 'connected'
 
   return (
@@ -69,20 +80,32 @@ export function MailPanel({ workspace }: { workspace: WorkspaceData }) {
           disabled={loading}
           className="ml-auto text-2xs font-medium text-primary-ink"
         >
-          {loading ? 'Syncing…' : 'Refresh'}
+          {loading || syncing ? 'Syncing…' : 'Refresh'}
         </button>
       </div>
+      {connected && (
+        <div className="mt-2.5">
+          <MailFilters compact value={filters} onChange={setFilters} />
+        </div>
+      )}
       <div className="mt-2 empty:hidden">
         <MailNotice compact space={workspace.key} status={status} error={error} />
       </div>
-      <div className="divide-y divide-line-soft">
+      {/* Scrolls inside the card; the next page loads on demand. */}
+      <div className="max-h-[360px] min-h-0 flex-1 divide-y divide-line-soft overflow-y-auto">
         {loading && !messages.length ? (
           <p className="py-5 text-center text-xs text-ink-3">Fetching {mailTab}…</p>
+        ) : !messages.length && connected && !error ? (
+          <p className="py-5 text-center text-xs text-ink-3">
+            {filtersActive(filters)
+              ? 'No mail matches these filters.'
+              : `No messages in ${mailTab}.`}
+          </p>
         ) : (
-          messages.slice(0, 4).map((message) => (
+          messages.map((message) => (
             <Link
               href={workspacePath(workspace.key, 'inbox')}
-              className="block py-2.5"
+              className="animate-row block py-2.5"
               key={message.id}
             >
               <div className="flex items-baseline gap-2">
@@ -98,6 +121,16 @@ export function MailPanel({ workspace }: { workspace: WorkspaceData }) {
               </p>
             </Link>
           ))
+        )}
+        {messages.length > 0 && hasMore && (
+          <button
+            type="button"
+            onClick={() => void loadMore()}
+            disabled={loadingMore}
+            className="block w-full py-2.5 text-center text-2xs font-semibold text-primary-ink hover:underline disabled:opacity-60"
+          >
+            {loadingMore ? 'Loading more…' : 'Load more'}
+          </button>
         )}
       </div>
       {connected && (

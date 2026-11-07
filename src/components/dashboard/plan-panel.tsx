@@ -53,7 +53,7 @@ export function PlanPanel() {
       <div className="mt-3 flex-1 space-y-0.5">
         {plan.map((item, index) => (
           <div
-            className="group flex items-center gap-3 rounded-lg px-1.5 py-1.5 hover:bg-surface-2"
+            className="animate-row group flex items-center gap-3 rounded-lg px-1.5 py-1.5 hover:bg-surface-2"
             key={item.id}
           >
             <SquareCheck

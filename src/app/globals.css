@@ -10,16 +10,16 @@
  *
  * Two intentional identities, not an inversion of one another:
  *   Light: lavender-grey sidebar, white cards, deep indigo signature, turquoise support.
- *   Dark:  near-black canvas, charcoal cards, deep gold signature, vivid semantic colors.
+ *   Dark:  near-black canvas, charcoal cards, bright yellow signature, bright colors.
  * The spec palette values are the source of truth (marked "spec"); everything else is a
  * tint or shade of them. `*-ink` tokens are the text-safe shade of a color (≥ 4.5:1 on
  * cards) for places where the raw brand color would be too low-contrast to read.
  *
  * Roles:
  *   primary    signature fills (buttons, today, checkboxes), links via primary-ink
- *   secondary  the second brand color (turquoise / gold)
+ *   secondary  the second brand color (turquoise / yellow)
  *   accent     the complementary highlight: meetings, live timers, progress
- *              (turquoise in light, accent blue in dark so it differs from gold)
+ *              (turquoise in light, bright blue in dark so it differs from yellow)
  *   accent-blue the spec's accent blue, available in both themes
  */
 :root {
@@ -118,13 +118,17 @@
   --nav-active: #423a8e;
   --nav-active-text: #ffffff;
   --nav-active-icon: #ffffff;
-  --nav-active-bar: #00cccd;
+  /* No edge marker in light mode: the indigo pill already marks the active page. */
+  --nav-active-bar: transparent;
   --field: #ffffff;
   --elevated: #ffffff;
   /* Selected option in a segmented control (sits on surface-2). */
   --segment: #ffffff;
   --scrim: rgb(32 34 56 / 0.4);
   --focus-ring: #423a8e;
+  /* Notes highlight (/highlight): a true marker yellow in both themes. */
+  --note-highlight: #fff3a3;
+  --note-highlight-ink: #3d3000;
   --logo: #423a8e;
   --card-shadow: 0 1px 2px rgb(32 34 56 / 0.04), 0 1px 3px rgb(32 34 56 / 0.03);
   --popover-shadow: 0 8px 24px rgb(32 34 56 / 0.1), 0 2px 6px rgb(32 34 56 / 0.05);
@@ -132,32 +136,32 @@
 
 :root.dark {
   /*
-   * Brand: deep gold (#D4A20B), darker than the warning yellow so the two stay distinct.
-   * Readable as text on charcoal (7.3:1), so primary-ink is the same color; text ON a
-   * gold fill is near-black (on-primary, 7.8:1).
+   * Brand: bright yellow (#FFC107). Readable as text on charcoal (10.5:1), so primary-ink is
+   * the same color; text ON a yellow fill is near-black (on-primary, 11:1). Dark mode uses
+   * bright, saturated colors throughout; warning moves to orange so it never reads as brand.
    */
-  --brand-primary: #d4a20b;
-  --brand-primary-hover: #e0af1c;
-  --brand-primary-active: #b88c07;
-  --brand-primary-light: #3a3320;
-  --brand-primary-subtle: #2a2820;
-  --brand-primary-deep: #1c1707;
-  --brand-primary-ink: #d4a20b;
-  /* Secondary brand is the same gold in dark mode. */
-  --brand-secondary: #d4a20b;
-  --brand-secondary-hover: #e0af1c;
-  --brand-secondary-light: #3a3320;
-  --brand-secondary-subtle: #2a2820;
-  --brand-secondary-ink: #d4a20b;
+  --brand-primary: #ffc107;
+  --brand-primary-hover: #ffcd39;
+  --brand-primary-active: #e0a800;
+  --brand-primary-light: #3d361f;
+  --brand-primary-subtle: #2b2920;
+  --brand-primary-deep: #1f1a08;
+  --brand-primary-ink: #ffc107;
+  /* Secondary brand is the same yellow in dark mode. */
+  --brand-secondary: #ffc107;
+  --brand-secondary-hover: #ffcd39;
+  --brand-secondary-light: #3d361f;
+  --brand-secondary-subtle: #2b2920;
+  --brand-secondary-ink: #ffc107;
   --on-secondary: #1b1500;
-  /* Accent role: the spec's accent blue, so meetings and timers differ from gold. */
-  --brand-accent: #0d6efd;
-  --brand-accent-hover: #3d8bfd;
-  --brand-accent-light: #172a4a;
-  --brand-accent-ink: #79aefe;
-  --accent-blue: #0d6efd;
-  --accent-blue-light: #172a4a;
-  --accent-blue-ink: #79aefe;
+  /* Accent role: bright blue, so meetings and timers differ from the yellow. */
+  --brand-accent: #3d8bfd;
+  --brand-accent-hover: #6ea8fe;
+  --brand-accent-light: #172b4d;
+  --brand-accent-ink: #8dbbff;
+  --accent-blue: #3d8bfd;
+  --accent-blue-light: #172b4d;
+  --accent-blue-ink: #8dbbff;
 
   /* Neutrals */
   --background: #000000; /* spec */
@@ -171,51 +175,51 @@
   --border-strong: #353a47;
   --divider: #23262f;
   --on-primary: #1b1500;
-  --on-primary-muted: #4a3a00;
+  --on-primary-muted: #5c4a00;
   --on-deep: #ffffff;
-  --on-deep-muted: #e3d6ae;
-  --on-deep-accent: #d4a20b;
+  --on-deep-muted: #e8dcb4;
+  --on-deep-accent: #ffc107;
 
-  --success: #198754; /* spec */
-  --success-light: #15302a;
-  --success-ink: #6fcf9f;
-  --warning: #ffc107; /* spec */
-  --warning-light: #3b3320;
-  --warning-ink: #ffd65c;
-  --error: #ab2e3c; /* spec */
-  --error-light: #361e26;
-  --error-ink: #f08a96;
-  --info: #0dcaf0; /* spec */
-  --info-light: #153a47;
-  --info-ink: #6edff6;
+  --success: #2fd27f;
+  --success-light: #123526;
+  --success-ink: #6ff0a8;
+  --warning: #ff9f1c;
+  --warning-light: #3a2a15;
+  --warning-ink: #ffbf66;
+  --error: #ff5c6c;
+  --error-light: #3d1c24;
+  --error-ink: #ff9aa5;
+  --info: #0dcaf0;
+  --info-light: #123c4a;
+  --info-ink: #6ee6ff;
 
-  --cat-blue: #4d94ff;
+  --cat-blue: #5ea2ff;
   --cat-blue-light: #172a4a;
-  --cat-blue-ink: #8bb9fe;
-  --cat-orange: #f7742b;
+  --cat-blue-ink: #a3c9ff;
+  --cat-orange: #ff8a3d;
   --cat-orange-light: #3a261c;
-  --cat-orange-ink: #fda772;
-  --cat-green: #2eb872;
+  --cat-orange-ink: #ffb27f;
+  --cat-green: #3ddc84;
   --cat-green-light: #16302a;
-  --cat-green-ink: #6fd6a0;
-  --cat-violet: #a57bf2;
+  --cat-green-ink: #8eedb8;
+  --cat-violet: #b38cff;
   --cat-violet-light: #2b2440;
-  --cat-violet-ink: #c7aef7;
-  --cat-pink: #e8649f;
+  --cat-violet-ink: #d3bdff;
+  --cat-pink: #ff6eb4;
   --cat-pink-light: #3a1f2d;
-  --cat-pink-ink: #f2a3c6;
-  --cat-teal: #22c3c4;
+  --cat-pink-ink: #ffa8d2;
+  --cat-teal: #2ee6d6;
   --cat-teal-light: #133537;
-  --cat-teal-ink: #7ee0e0;
-  --cat-amber: #e6b325;
+  --cat-teal-ink: #94f2ea;
+  --cat-amber: #ffd23f;
   --cat-amber-light: #3a3320;
-  --cat-amber-ink: #f2d27a;
-  --cat-slate: #94a3b8;
+  --cat-amber-ink: #ffe38a;
+  --cat-slate: #a9b8cc;
   --cat-slate-light: #262b35;
-  --cat-slate-ink: #c3ccd8;
+  --cat-slate-ink: #d0dae6;
 
-  /* Chart series: gold then cyan. */
-  --series-1: #d4a20b;
+  /* Chart series: yellow then cyan. */
+  --series-1: #ffc107;
   --series-2: #0dcaf0;
 
   /* Shell */
@@ -226,13 +230,15 @@
   --nav-hover: #22252f;
   --nav-active: #0f1116;
   --nav-active-text: #ffffff;
-  --nav-active-icon: #d4a20b;
-  --nav-active-bar: #d4a20b;
+  --nav-active-icon: #ffc107;
+  --nav-active-bar: #ffc107;
   --field: #12141a;
   --elevated: #1d2029;
   --segment: #363b49;
   --scrim: rgb(0 0 0 / 0.65);
-  --focus-ring: #d4a20b;
+  --focus-ring: #ffc107;
+  --note-highlight: #ffc107;
+  --note-highlight-ink: #1b1500;
   --logo: #ffffff;
   --card-shadow: none;
   --popover-shadow: 0 12px 32px rgb(0 0 0 / 0.55);
@@ -475,7 +481,181 @@ dialog::backdrop {
   background: var(--scrim);
 }
 
-/* Motion: short, eased, and off for people who ask for reduced motion. */
+/*
+ * Rich text written in the app: the mail composer and Notes. Tailwind's reset strips list
+ * markers and heading sizes, so they are restored here. `nc-*` classes are the Notes
+ * slash-command styles (to-dos, colored text, highlights, callouts); colors reuse the
+ * theme's category inks so they stay readable in light and dark mode.
+ */
+@layer components {
+  .rich-content {
+    overflow-wrap: anywhere;
+  }
+  .rich-content :where(p, div, ul, ol, blockquote, pre, h1, h2, h3, hr) + :where(*) {
+    margin-top: 0.35em;
+  }
+  .rich-content ul {
+    list-style: disc;
+    padding-left: 1.4em;
+  }
+  .rich-content ol {
+    list-style: decimal;
+    padding-left: 1.4em;
+  }
+  .rich-content h1 {
+    font-size: 1.5em;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-top: 0.6em;
+  }
+  .rich-content h2 {
+    font-size: 1.25em;
+    font-weight: 650;
+    line-height: 1.3;
+    margin-top: 0.5em;
+  }
+  .rich-content h3 {
+    font-size: 1.08em;
+    font-weight: 600;
+    margin-top: 0.4em;
+  }
+  .rich-content blockquote {
+    border-left: 3px solid var(--border-strong);
+    padding-left: 0.85em;
+    color: var(--text-secondary);
+  }
+  .rich-content a {
+    color: var(--brand-primary-ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .rich-content code {
+    border-radius: 4px;
+    background: var(--surface-secondary);
+    padding: 0.1em 0.35em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.9em;
+  }
+  .rich-content pre {
+    border-radius: 8px;
+    background: var(--surface-secondary);
+    padding: 0.75em 1em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.88em;
+    white-space: pre-wrap;
+  }
+  .rich-content hr {
+    border: 0;
+    border-top: 1px solid var(--border-strong);
+    margin: 0.9em 0;
+  }
+
+  /* /todo: a checklist; the box is drawn by CSS and toggled by clicking it. */
+  .rich-content ul[data-type='todo'] {
+    list-style: none;
+    padding-left: 0;
+  }
+  .rich-content ul[data-type='todo'] > li {
+    position: relative;
+    padding-left: 1.75em;
+  }
+  .rich-content ul[data-type='todo'] > li::before {
+    content: '';
+    position: absolute;
+    left: 0.1em;
+    top: 0.3em;
+    width: 1.05em;
+    height: 1.05em;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 4px;
+    background: var(--field);
+    cursor: pointer;
+  }
+  .rich-content ul[data-type='todo'] > li[data-checked='true'] {
+    color: var(--text-muted);
+    text-decoration: line-through;
+  }
+  .rich-content ul[data-type='todo'] > li[data-checked='true']::before {
+    border-color: var(--brand-primary);
+    background: var(--brand-primary)
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E")
+      center / 80% no-repeat;
+  }
+  :root.dark .rich-content ul[data-type='todo'] > li[data-checked='true']::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%231b1500' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+  }
+
+  /* Colored text (/yellowtext, /redtext …) and highlights (/highlight). */
+  .rich-content .nc-yellow {
+    color: var(--cat-amber-ink);
+  }
+  .rich-content .nc-orange {
+    color: var(--cat-orange-ink);
+  }
+  .rich-content .nc-red {
+    color: var(--error-ink);
+  }
+  .rich-content .nc-green {
+    color: var(--cat-green-ink);
+  }
+  .rich-content .nc-blue {
+    color: var(--cat-blue-ink);
+  }
+  .rich-content .nc-purple {
+    color: var(--cat-violet-ink);
+  }
+  .rich-content .nc-pink {
+    color: var(--cat-pink-ink);
+  }
+  .rich-content .nc-hl-yellow {
+    background: var(--note-highlight);
+    color: var(--note-highlight-ink);
+    border-radius: 3px;
+    padding: 0 0.15em;
+  }
+  .rich-content .nc-hl-green {
+    background: var(--cat-green-light);
+    color: var(--cat-green-ink);
+    border-radius: 3px;
+    padding: 0 0.15em;
+  }
+  .rich-content .nc-hl-blue {
+    background: var(--cat-blue-light);
+    color: var(--cat-blue-ink);
+    border-radius: 3px;
+    padding: 0 0.15em;
+  }
+  .rich-content .nc-hl-pink {
+    background: var(--cat-pink-light);
+    color: var(--cat-pink-ink);
+    border-radius: 3px;
+    padding: 0 0.15em;
+  }
+  /* A highlighted line is marked only as wide as its text. */
+  .rich-content :is(p, h1, h2, h3)[class*='nc-hl-'] {
+    width: fit-content;
+    max-width: 100%;
+  }
+  /* /callout: a tinted note block. */
+  .rich-content .nc-callout {
+    border-left: 3px solid var(--brand-primary);
+    border-radius: 8px;
+    background: var(--brand-primary-subtle);
+    padding: 0.6em 0.85em;
+  }
+}
+
+/*
+ * Motion: one family of curves so everything moves alike. `--ease-out` settles softly (most
+ * UI); `--ease-spring` overshoots a touch (presses, check marks). Durations stay short.
+ * All of it is off for people who ask for reduced motion.
+ */
+:root {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html {
     scroll-behavior: smooth;
@@ -490,60 +670,124 @@ dialog::backdrop {
   .neo-popover,
   .neo-control {
     transition-property: color, background-color, border-color, box-shadow, opacity, transform;
-    transition-duration: 160ms;
-    transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition-duration: 180ms, 180ms, 180ms, 180ms, 180ms, 260ms;
+    /* Colors settle softly; only movement (transform) gets the springy overshoot. */
+    transition-timing-function:
+      var(--ease-out), var(--ease-out), var(--ease-out), var(--ease-out), var(--ease-out),
+      var(--ease-spring);
   }
 
+  /* Press: a quick squeeze that springs back on release. */
   button:not(:disabled):active {
     transform: scale(0.97);
+    transition-duration: 90ms;
   }
 
   html.theme-switching * {
     transition-duration: 280ms !important;
+    transition-timing-function: var(--ease-out) !important;
   }
 
   .animate-pop {
-    animation: pop-in 170ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    animation: pop-in 200ms var(--ease-out);
     transform-origin: top right;
   }
 
   /* Page changes: the view transition below; this fade is the fallback without it. */
   @supports not (view-transition-name: none) {
     .animate-page {
-      animation: page-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      animation: page-in 260ms var(--ease-out);
     }
   }
 
   ::view-transition-old(.page-exit) {
-    animation: 110ms ease-in both fade-out;
+    animation: 120ms var(--ease-in) both fade-out;
   }
 
   ::view-transition-new(.page-enter) {
-    animation: 220ms cubic-bezier(0.2, 0.8, 0.2, 1) 40ms both page-in;
+    animation: 280ms var(--ease-out) 40ms both page-in;
   }
 
   .animate-toast {
-    animation: toast-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    animation: toast-in 320ms var(--ease-out);
   }
 
   /* Completing a task: the check mark springs in. */
   .animate-check {
-    animation: check-pop 280ms cubic-bezier(0.3, 1.5, 0.5, 1);
+    animation: check-pop 320ms var(--ease-spring);
+  }
+
+  /* Revealed sections (e.g. "Completed today") slide open. */
+  .animate-reveal {
+    animation: page-in 240ms var(--ease-out);
   }
 
   .modal-dialog[open] {
-    animation: dialog-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    animation: dialog-in 280ms var(--ease-out);
   }
 
   .modal-dialog[open]::backdrop {
-    animation: fade-in 220ms ease-out;
+    animation: fade-in 240ms var(--ease-out);
+  }
+
+  /*
+   * List rows (tasks, meetings, mail, notes) fade and rise in when they appear: on load,
+   * when added, and when switching views. Pure CSS (@starting-style), so it costs nothing.
+   */
+  .animate-row {
+    transition:
+      opacity 280ms var(--ease-out),
+      transform 280ms var(--ease-out),
+      background-color 160ms var(--ease-out);
+  }
+  @starting-style {
+    .animate-row {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+}
+
+/* Modals: a soft blur behind the scrim. */
+dialog::backdrop {
+  backdrop-filter: blur(3px);
+}
+
+/* Long lists (mail) skip rendering rows that are off screen, so scrolling stays smooth. */
+.cv-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 64px;
+}
+
+/* Loading placeholders: a gentle shimmer instead of a blink. */
+.skeleton {
+  background: linear-gradient(
+      100deg,
+      transparent 20%,
+      color-mix(in srgb, var(--surface) 55%, transparent) 50%,
+      transparent 80%
+    )
+    var(--surface-tertiary);
+  background-size: 220% 100%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton {
+    animation: shimmer 1.4s linear infinite;
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
   }
 }
 
 @keyframes pop-in {
   from {
     opacity: 0;
-    transform: translateY(-4px) scale(0.97);
+    transform: translateY(-6px) scale(0.96);
   }
 }
 
@@ -571,7 +815,7 @@ dialog::backdrop {
 @keyframes dialog-in {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.98);
+    transform: translateY(14px) scale(0.96);
   }
 }
 

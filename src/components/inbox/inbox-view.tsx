@@ -1,13 +1,27 @@
 'use client'
 
 import { ArrowLeft, PenSquare, RefreshCw, Reply } from 'lucide-react'
-import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ComposeDialog, type ComposeDraft } from '@/components/mail/compose-dialog'
+import {
+  EMPTY_MAIL_FILTERS,
+  filtersActive,
+  MailFilters,
+  toMailQuery,
+  type MailFilterState,
+} from '@/components/mail/mail-filters'
 import { MailNotice } from '@/components/mail/mail-notice'
-import { fetchMessage, useMailbox } from '@/components/mail/use-mailbox'
+import {
+  fetchMessage,
+  markMessageRead,
+  prefetchMessage,
+  useMailbox,
+} from '@/components/mail/use-mailbox'
 import { mailDate } from '@/lib/format'
 import type { MailFolder, MailMessage } from '@/lib/mail/types'
 import { useWorkspace } from '@/state/workbench-store'
+import { AttachmentList } from './attachment-list'
 import { MailFrame } from './mail-frame'
 
 type Pane = { kind: 'empty' } | { kind: 'message'; id: string }
@@ -15,9 +29,48 @@ type Pane = { kind: 'empty' } | { kind: 'message'; id: string }
 export function InboxView() {
   const { workspace } = useWorkspace()
   const [folder, setFolder] = useState<MailFolder>('inbox')
-  const { status, messages, loading, error, refresh, markRead } = useMailbox(workspace.key, folder)
+  const params = useSearchParams()
+  // Arriving from search (?search=…) prefills the mail search; ?compose=1 opens a new message.
+  const [filters, setFilters] = useState<MailFilterState>(() => ({
+    ...EMPTY_MAIL_FILTERS,
+    search: params.get('search') ?? '',
+  }))
+  const query = useMemo(() => toMailQuery(filters), [filters])
+  const {
+    status,
+    messages,
+    loading,
+    syncing,
+    loadingMore,
+    hasMore,
+    error,
+    refresh,
+    loadMore,
+    markRead,
+  } = useMailbox(workspace.key, folder, query)
+  const list = useRef<HTMLDivElement>(null)
+  const sentinel = useRef<HTMLDivElement>(null)
+
+  // Infinite scroll: load the next page when the end of the list comes into view.
+  useEffect(() => {
+    const target = sentinel.current
+    if (!target || !hasMore) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) void loadMore()
+      },
+      { root: list.current, rootMargin: '240px' },
+    )
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [hasMore, loadMore])
   const [pane, setPane] = useState<Pane>({ kind: 'empty' })
   const [draft, setDraft] = useState<ComposeDraft | null>(null)
+  useEffect(() => {
+    if (params.get('compose') === '1') setDraft({})
+    // Only when arriving.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [message, setMessage] = useState<MailMessage | null>(null)
   const [messageError, setMessageError] = useState<string | null>(null)
   const connected = status?.state === 'connected'
@@ -27,8 +80,12 @@ export function InboxView() {
     setMessage(null)
     setMessageError(null)
     try {
+      // Usually already loaded by the hover prefetch, so this is instant.
       setMessage(await fetchMessage(workspace.key, folder, id))
-      markRead(id)
+      if (messages.find((item) => item.id === id)?.unread) {
+        markRead(id)
+        void markMessageRead(workspace.key, folder, id)
+      }
     } catch (caught) {
       setMessageError(caught instanceof Error ? caught.message : 'Could not open the message.')
     }
@@ -36,6 +93,7 @@ export function InboxView() {
 
   const switchFolder = (next: MailFolder) => {
     setFolder(next)
+    list.current?.scrollTo({ top: 0 })
     setPane({ kind: 'empty' })
   }
 
@@ -66,7 +124,7 @@ export function InboxView() {
             className="neo-control grid size-9 place-items-center rounded-lg text-ink-2 disabled:opacity-60"
             aria-label="Refresh mailbox"
           >
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={15} className={loading || syncing ? 'animate-spin' : ''} />
           </button>
           <button
             type="button"
@@ -91,6 +149,11 @@ export function InboxView() {
             </button>
           ))}
         </div>
+        {connected && (
+          <div className="border-b border-line px-4 py-3">
+            <MailFilters value={filters} onChange={setFilters} />
+          </div>
+        )}
         <div className="p-3 empty:hidden">
           <MailNotice space={workspace.key} status={status} error={error} />
         </div>
@@ -98,16 +161,34 @@ export function InboxView() {
           <p className="px-5 py-8 text-center text-sm text-ink-3">Fetching {folder}…</p>
         )}
         {!loading && connected && !error && !messages.length && (
-          <p className="px-5 py-8 text-center text-sm text-ink-3">No messages in {folder}.</p>
+          <div className="px-5 py-8 text-center text-sm text-ink-3">
+            {filtersActive(filters) ? (
+              <>
+                No messages match these filters.
+                <button
+                  type="button"
+                  onClick={() => setFilters(EMPTY_MAIL_FILTERS)}
+                  className="mt-2 block w-full text-xs font-semibold text-primary-ink hover:underline"
+                >
+                  Clear filters
+                </button>
+              </>
+            ) : (
+              `No messages in ${folder}.`
+            )}
+          </div>
         )}
-        <div className="max-h-[70vh] divide-y divide-line-soft overflow-y-auto">
+        <div ref={list} className="max-h-[70vh] divide-y divide-line-soft overflow-y-auto">
           {messages.map((item) => (
             <button
               type="button"
               key={item.id}
               onClick={() => void open(item.id)}
+              // Start downloading on hover/focus so opening feels instant.
+              onPointerEnter={() => prefetchMessage(workspace.key, folder, item.id)}
+              onFocus={() => prefetchMessage(workspace.key, folder, item.id)}
               aria-current={pane.kind === 'message' && pane.id === item.id ? 'true' : undefined}
-              className="flex w-full min-w-0 gap-3 px-4 py-3 text-left hover:bg-primary-subtle aria-[current]:bg-primary-light"
+              className="animate-row cv-row flex w-full min-w-0 gap-3 px-4 py-3 text-left hover:bg-primary-subtle aria-[current]:bg-primary-light"
             >
               <span
                 className={`mt-1.5 size-2 shrink-0 rounded-full ${item.unread ? 'bg-primary' : 'bg-transparent'}`}
@@ -125,6 +206,23 @@ export function InboxView() {
               </div>
             </button>
           ))}
+          {messages.length > 0 && (
+            <div ref={sentinel} className="px-4 py-3 text-center text-2xs text-ink-3">
+              {loadingMore ? (
+                'Loading more…'
+              ) : hasMore ? (
+                <button
+                  type="button"
+                  onClick={() => void loadMore()}
+                  className="font-semibold text-primary-ink hover:underline"
+                >
+                  Load more
+                </button>
+              ) : (
+                `All ${messages.length} message${messages.length === 1 ? '' : 's'} loaded`
+              )}
+            </div>
+          )}
         </div>
       </section>
 
@@ -192,6 +290,12 @@ export function InboxView() {
                     </button>
                   )}
                 </div>
+                <AttachmentList
+                  space={workspace.key}
+                  folder={folder}
+                  messageId={message.id}
+                  attachments={message.attachments ?? []}
+                />
                 {message.html ? (
                   <MailFrame title={message.subject} html={message.html} />
                 ) : (

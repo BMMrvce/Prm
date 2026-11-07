@@ -21,6 +21,8 @@ import type {
   Currency,
   ExpenseRecord,
   Meeting,
+  Note,
+  NoteChanges,
   NewExpenseInput,
   NewMeetingInput,
   NewTaskInput,
@@ -64,6 +66,12 @@ type SpaceData = {
   people: Record<string, string>
   /** False until the collaboration migration has been applied. */
   collaboration: boolean
+  /** Your notes in this workspace, most recently edited first. */
+  notes: Note[]
+  /** False until the notes migration has been applied. */
+  notesReady: boolean
+  /** False until the notes projects + collaboration migration has been applied. */
+  notesCollab: boolean
 }
 
 // Rows come from untyped PostgREST queries and are mapped to app types below.
@@ -76,6 +84,11 @@ const PROJECT_FIELDS = '*'
 const SHARED_WORKSPACE = 'workspace:workspaces!inner(slug,task_prefix,created_by)'
 const MEETING_FIELDS = 'id,title,starts_at,ends_at,location,meeting_url'
 const PLAN_FIELDS = 'id,title,position,completed_at'
+const NOTE_FIELDS_BASE =
+  'id,user_id,title,content,pinned,meeting_id,created_at,updated_at,meeting:meetings(id,title,starts_at,ends_at)'
+/** With the project link (needs 202611080001_notes_projects_collaboration.sql). */
+const NOTE_FIELDS = `${NOTE_FIELDS_BASE},project_id,project:projects(name,color)`
+const noteFields = (collab: boolean) => (collab ? NOTE_FIELDS : NOTE_FIELDS_BASE)
 const EXPENSE_FIELDS = 'id,kind,expense_date,description,category,amount,currency,status'
 const TIMER_FIELDS =
   'id,workspace_id,task_id,user_id,state,started_at,ended_at,accumulated_seconds,description,task:tasks(title)'
@@ -125,6 +138,53 @@ const toMeeting = (row: Row): Meeting => ({
   location: row.location,
   meetingUrl: row.meeting_url,
 })
+
+const toNote = (row: Row, members: string[] = []): Note => {
+  const meeting = one(row.meeting)
+  const project = one(row.project)
+  return {
+    id: row.id,
+    title: row.title ?? '',
+    content: row.content ?? '',
+    pinned: Boolean(row.pinned),
+    meetingId: row.meeting_id ?? null,
+    meeting: meeting
+      ? {
+          id: meeting.id,
+          title: meeting.title,
+          startsAt: meeting.starts_at,
+          endsAt: meeting.ends_at,
+        }
+      : null,
+    projectId: row.project_id ?? null,
+    project: project ? { name: project.name, color: project.color } : null,
+    ownerId: row.user_id,
+    members,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+/** Note fields from the app's names to database columns. */
+const noteColumns = (changes: NoteChanges) => {
+  const columns: Row = {}
+  if (changes.title !== undefined) columns.title = changes.title
+  if (changes.content !== undefined) columns.content = changes.content
+  if (changes.pinned !== undefined) columns.pinned = changes.pinned
+  if (changes.projectId !== undefined) columns.project_id = changes.projectId
+  return columns
+}
+
+const sortNotes = (list: Note[]) =>
+  [...list].sort(
+    (a, b) => Number(b.pinned) - Number(a.pinned) || b.updatedAt.localeCompare(a.updatedAt),
+  )
+
+const NOTES_COLLAB_HINT =
+  'Sharing notes needs a database update: run supabase/migrations/202611080001_notes_projects_collaboration.sql in the Supabase SQL editor.'
+
+const NOTES_HINT =
+  'Notes need a database update: run supabase/migrations/202611070001_notes.sql in the Supabase SQL editor.'
 
 const toPlanItem = (row: Row): PlanItem => ({
   id: row.id,
@@ -241,6 +301,7 @@ async function loadSpace(
     sharedTasks,
     memberships,
     entries,
+    noteRows,
   ] = await Promise.all([
     supabase
       .from('projects')
@@ -314,7 +375,61 @@ async function loadSpace(
       .gte('started_at', since)
       .order('started_at', { ascending: false })
       .limit(2000),
+    supabase
+      .from('notes')
+      .select(NOTE_FIELDS)
+      .eq('workspace_id', id)
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .limit(500),
   ])
+  // Before the notes migration the table is missing; everything else still loads.
+  const notesReady = !missingFromSchema(noteRows.error)
+  // Before the projects + collaboration migration, fall back to the basic note fields.
+  // Typed loosely: the fallback query returns fewer columns.
+  let ownNotes: { data: Row[] | null; error: { code?: string; message: string } | null } = noteRows
+  let notesCollab = notesReady
+  if (
+    notesReady &&
+    noteRows.error &&
+    (missingColumn(noteRows.error) || noteRows.error.code === 'PGRST200')
+  ) {
+    notesCollab = false
+    ownNotes = await supabase
+      .from('notes')
+      .select(NOTE_FIELDS_BASE)
+      .eq('workspace_id', id)
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .limit(500)
+  }
+  // Collaborators of every note you can see, and notes others shared with you in this space.
+  let noteMemberRows: Row[] = []
+  let sharedNoteRows: Row[] = []
+  if (notesCollab) {
+    const members = await supabase.from('note_members').select('note_id,user_id')
+    if (missingFromSchema(members.error)) {
+      notesCollab = false
+    } else {
+      noteMemberRows = (check(members) ?? []) as Row[]
+      const ownIds = new Set(((check(ownNotes) ?? []) as Row[]).map((row) => row.id as string))
+      const sharedIds = noteMemberRows
+        .filter((row) => row.user_id === userId && !ownIds.has(row.note_id))
+        .map((row) => row.note_id as string)
+      if (sharedIds.length) {
+        sharedNoteRows = (check(
+          await supabase
+            .from('notes')
+            .select(`${NOTE_FIELDS},workspace:workspaces!inner(slug)`)
+            .in('id', sharedIds)
+            .like('workspace.slug', sameSpace)
+            .order('updated_at', { ascending: false }),
+        ) ?? []) as Row[]
+      }
+    }
+  }
+  const membersOfNote = (note: string) =>
+    noteMemberRows.filter((row) => row.note_id === note).map((row) => row.user_id as string)
 
   const collaboration = !missingFromSchema(memberships.error)
   const memberRows = (collaboration ? check(memberships) : []) as Row[]
@@ -346,6 +461,8 @@ async function loadSpace(
       ((row.assignees ?? []) as Row[]).map((item) => item.user_id as string),
     ),
     ...timeEntries.map((entry) => entry.userId),
+    ...noteMemberRows.map((row) => row.user_id as string),
+    ...sharedNoteRows.map((row) => row.user_id as string),
   ])
   personIds.delete(userId)
   const profiles = personIds.size
@@ -398,6 +515,15 @@ async function loadSpace(
     timeEntries,
     people,
     collaboration,
+    notes: notesReady
+      ? sortNotes(
+          [...((check(ownNotes) ?? []) as Row[]), ...sharedNoteRows].map((row) =>
+            toNote(row, membersOfNote(row.id)),
+          ),
+        )
+      : [],
+    notesReady,
+    notesCollab,
   }
 }
 
@@ -1006,6 +1132,163 @@ function useWorkbenchState() {
         )
       }),
 
+    /** Creates a note and returns it (null on failure). */
+    addNote: async (
+      space: SpaceKey,
+      input: {
+        title?: string
+        content?: string
+        meeting?: Meeting
+        projectId?: string | null
+      } = {},
+    ) => {
+      let created: Note | null = null
+      await run(async () => {
+        const { data, userId } = requireData(space)
+        if (!data.notesReady) throw new Error(NOTES_HINT)
+        const row = checkRow(
+          await supabase
+            .from('notes')
+            .insert({
+              workspace_id: data.workspaceId,
+              user_id: userId,
+              title: input.title ?? '',
+              content: input.content ?? '',
+              meeting_id: input.meeting?.id ?? null,
+              ...(data.notesCollab && input.projectId ? { project_id: input.projectId } : {}),
+            })
+            .select(noteFields(data.notesCollab))
+            .single(),
+        )
+        const note = toNote(row)
+        created = note
+        update(space, (current) => ({ ...current, notes: sortNotes([note, ...current.notes]) }))
+      })
+      return created as Note | null
+    },
+
+    /**
+     * The note linked to a meeting, created on first use with the meeting's title and
+     * date. Returns null on failure.
+     */
+    meetingNote: async (space: SpaceKey, meeting: Meeting) => {
+      const existing = dataRef.current[space]?.notes.find((note) => note.meetingId === meeting.id)
+      if (existing) return existing
+      let found: Note | null = null
+      await run(async () => {
+        const { data, userId } = requireData(space)
+        if (!data.notesReady) throw new Error(NOTES_HINT)
+        // Another tab may have created it already.
+        const prior = check(
+          await supabase
+            .from('notes')
+            .select(noteFields(data.notesCollab))
+            .eq('user_id', userId)
+            .eq('meeting_id', meeting.id)
+            .maybeSingle(),
+        ) as Row | null
+        const when = new Date(meeting.startsAt).toLocaleDateString([], {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+        })
+        const row =
+          prior ??
+          checkRow(
+            await supabase
+              .from('notes')
+              .insert({
+                workspace_id: data.workspaceId,
+                user_id: userId,
+                meeting_id: meeting.id,
+                title: `${meeting.title} · ${when}`,
+                content:
+                  '<h3>Agenda</h3><ul><li><br></li></ul><h3>Action items</h3><ul data-type="todo"><li data-checked="false"><br></li></ul>',
+              })
+              .select(noteFields(data.notesCollab))
+              .single(),
+          )
+        const note = toNote(row)
+        found = note
+        update(space, (current) => ({
+          ...current,
+          notes: sortNotes([note, ...current.notes.filter((item) => item.id !== note.id)]),
+        }))
+      })
+      return found as Note | null
+    },
+
+    /** Saves edits (autosave from the editor), quietly unless it fails. */
+    updateNote: (space: SpaceKey, id: string, changes: NoteChanges) =>
+      run(async () => {
+        update(space, (current) => ({
+          ...current,
+          notes: sortNotes(
+            current.notes.map((note) =>
+              note.id === id ? { ...note, ...changes, updatedAt: new Date().toISOString() } : note,
+            ),
+          ),
+        }))
+        check(await supabase.from('notes').update(noteColumns(changes)).eq('id', id))
+      }),
+
+    /** Applies a collaborator's live edit to the local copy (it is saved by them). */
+    patchNoteLocal: (space: SpaceKey, id: string, changes: NoteChanges) =>
+      update(space, (current) => ({
+        ...current,
+        notes: current.notes.map((note) => (note.id === id ? { ...note, ...changes } : note)),
+      })),
+
+    /** Shares a note with someone; they can read and edit it live. */
+    shareNote: (space: SpaceKey, id: string, person: Person) =>
+      run(async () => {
+        const { data, userId } = requireData(space)
+        if (!data.notesCollab) throw new Error(NOTES_COLLAB_HINT)
+        check(
+          await supabase
+            .from('note_members')
+            .insert({ note_id: id, user_id: person.id, added_by: userId }),
+        )
+        update(space, (current) => ({
+          ...current,
+          people: { ...current.people, [person.id]: person.name },
+          notes: current.notes.map((note) =>
+            note.id === id && !note.members.includes(person.id)
+              ? { ...note, members: [...note.members, person.id] }
+              : note,
+          ),
+        }))
+      }, `Shared with ${person.name}.`),
+
+    /** Stops sharing with someone; removing yourself leaves the note. */
+    unshareNote: (space: SpaceKey, id: string, memberId: string) =>
+      run(async () => {
+        const { userId } = requireData(space)
+        check(
+          await supabase.from('note_members').delete().eq('note_id', id).eq('user_id', memberId),
+        )
+        update(space, (current) => ({
+          ...current,
+          notes:
+            memberId === userId
+              ? current.notes.filter((note) => note.id !== id)
+              : current.notes.map((note) =>
+                  note.id === id
+                    ? { ...note, members: note.members.filter((member) => member !== memberId) }
+                    : note,
+                ),
+        }))
+      }),
+
+    deleteNote: (space: SpaceKey, id: string) =>
+      run(async () => {
+        check(await supabase.from('notes').delete().eq('id', id))
+        update(space, (current) => ({
+          ...current,
+          notes: current.notes.filter((note) => note.id !== id),
+        }))
+      }, 'Note deleted.'),
+
     addPlanItem: (space: SpaceKey, title: string) =>
       run(async () => {
         const { data, userId } = requireData(space)
@@ -1352,6 +1635,21 @@ export function useWorkspace() {
     updateMeeting: (id: string, input: NewMeetingInput) => store.updateMeeting(key, id, input),
     deleteMeeting: (id: string) => store.deleteMeeting(key, id),
     saveNote: (content: string) => store.saveNote(key, content),
+    notes: data?.notes ?? [],
+    notesReady: data?.notesReady ?? true,
+    notesCollab: data?.notesCollab ?? false,
+    addNote: (input?: {
+      title?: string
+      content?: string
+      meeting?: Meeting
+      projectId?: string | null
+    }) => store.addNote(key, input),
+    patchNoteLocal: (id: string, changes: NoteChanges) => store.patchNoteLocal(key, id, changes),
+    shareNote: (id: string, person: Person) => store.shareNote(key, id, person),
+    unshareNote: (id: string, userId: string) => store.unshareNote(key, id, userId),
+    meetingNote: (meeting: Meeting) => store.meetingNote(key, meeting),
+    updateNote: (id: string, changes: NoteChanges) => store.updateNote(key, id, changes),
+    deleteNote: (id: string) => store.deleteNote(key, id),
     addPlanItem: (title: string) => store.addPlanItem(key, title),
     togglePlanItem: (id: string) => store.togglePlanItem(key, id),
     removePlanItem: (id: string) => store.removePlanItem(key, id),

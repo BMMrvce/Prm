@@ -97,6 +97,22 @@ Setup once:
    Supabase SQL editor. It calls `/api/cron/reminders` every minute with pg_cron (Vercel's
    Hobby plan only allows daily crons).
 
+## Notes and mail
+
+- **Notes** (`/[space]/notes`, every workspace): private pages with a slash-command editor —
+  type `/` for to-dos, headings, lists, quote, code, callout, divider, today's date, colored
+  text (`/yellowtext`, `/redtext`, …) and highlights (`/highlight`, …); markdown shortcuts
+  (`[] `, `- `, `1. `, `# `, `> `) work too. Each meeting can open its own linked note
+  (calendar → meeting → Notes), listed under Notes → Meetings. Notes can be filed under a
+  project (grouped and filtered by project; each project page lists its notes) and shared
+  with collaborators, who edit together live: changes merge paragraph by paragraph over a
+  private Supabase Realtime channel, with presence (who is here, where they are typing).
+  Needs `202611070001_notes.sql` and `202611080001_notes_projects_collaboration.sql`.
+- **Mail** (Inbox page and the dashboard Mail card): search and date filters (today, last 7 /
+  30 days, custom range) run on the mail server; the list pages through the whole folder as
+  you scroll. Compose has a formatting toolbar, Cc, and attachments up to 4 MB per message
+  (3 MB for Outlook).
+
 ## Appearance
 
 ಆyaama has two intentional themes, both defined as CSS variables in `src/app/globals.css`
@@ -104,8 +120,8 @@ and exposed to Tailwind as `bg-primary`, `text-ink-2`, `border-line` and so on:
 
 - **Light**: lavender-grey sidebar (`#E4E4F1`), white cards on `#F3F4F8`, deep indigo
   signature (`#423A8E`) supported by turquoise (`#00CCCD`).
-- **Dark**: black canvas, charcoal sidebar and cards (`#191C24`), deep gold signature
-  (`#D4A20B`, with near-black text on gold fills) and vivid semantic colors.
+- **Dark**: black canvas, charcoal sidebar and cards (`#191C24`), bright yellow signature
+  (`#FFC107`, with near-black text on yellow fills) and bright accent colors and vivid semantic colors.
 
 `primary` is the signature color (buttons, active states; `text-primary-ink` for links),
 `accent` the complementary highlight (meetings, live timers: turquoise / blue), and every

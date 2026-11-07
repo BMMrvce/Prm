@@ -35,11 +35,13 @@ export function RecipientInput({
   value,
   onChange,
   className,
+  placeholder = 'To: type 3 letters of a name or email',
 }: {
   space: SpaceKey
   value: string
   onChange: (value: string) => void
   className: string
+  placeholder?: string
 }) {
   const { searchPeople } = useWorkspace()
   const [contacts, setContacts] = useState<MailContact[]>([])
@@ -142,8 +144,8 @@ export function RecipientInput({
           }
         }}
         className={className}
-        placeholder="To: type 3 letters of a name or email"
-        aria-label="Recipients"
+        placeholder={placeholder}
+        aria-label={placeholder.startsWith('Cc') ? 'Cc recipients' : 'Recipients'}
         aria-autocomplete="list"
         aria-expanded={showList}
         autoComplete="off"

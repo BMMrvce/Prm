@@ -1,6 +1,7 @@
 'use client'
 
-import { CalendarClock, CalendarRange, CheckSquare, Flag } from 'lucide-react'
+import { CalendarClock, CalendarRange, CheckSquare, Flag, NotebookPen } from 'lucide-react'
+import { useOpenMeetingNote } from '@/components/notes/use-meeting-note'
 import { useState, type FormEvent } from 'react'
 import { Modal, fieldClass, labelClass } from '@/components/ui/modal'
 import { localDate, timeOfDay } from '@/lib/format'
@@ -30,6 +31,7 @@ export function DayDialog({
   tasks,
   categories,
   initialKind = 'meeting',
+  initialTime,
   onClose,
   onEditMeeting,
   onEditTask,
@@ -41,6 +43,8 @@ export function DayDialog({
   tasks: WorkspaceTask[]
   categories: MeetingCategory[] | null
   initialKind?: Kind
+  /** Start time (HH:MM) picked on the day timeline. */
+  initialTime?: string
   onClose: () => void
   onEditMeeting: (meeting: Meeting) => void
   onEditTask: (id: string) => void
@@ -48,10 +52,13 @@ export function DayDialog({
   onOpenDay?: () => void
 }) {
   const { ready, addMeeting, addTask } = useWorkspace()
+  const notesLink = useOpenMeetingNote()
   const [kind, setKind] = useState<Kind>(initialKind)
   const [title, setTitle] = useState('')
   const [date, setDate] = useState(localDate(day))
-  const [time, setTime] = useState(initialKind === 'meeting' ? suggestedTime(day) : '')
+  const [time, setTime] = useState(
+    initialTime ?? (initialKind === 'meeting' ? suggestedTime(day) : ''),
+  )
   const [duration, setDuration] = useState(30)
   const [link, setLink] = useState('')
   const [category, setCategory] = useState('')
@@ -119,14 +126,26 @@ export function DayDialog({
             {meetings.map((meeting) => {
               const style = meetingStyle(meeting, categories)
               return (
-                <li key={meeting.id}>
+                <li key={meeting.id} className="flex gap-1.5">
                   <button
                     type="button"
                     onClick={() => onEditMeeting(meeting)}
-                    className={`flex w-full min-w-0 items-center gap-2 rounded-lg border-l-[3px] px-3 py-2 text-left text-ui hover:brightness-95 ${style.border} ${style.chip}`}
+                    className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg border-l-[3px] px-3 py-2 text-left text-ui hover:brightness-95 ${style.border} ${style.chip}`}
                   >
                     <span className="shrink-0 tabular-nums">{timeOfDay(meeting.startsAt)}</span>
                     <span className="truncate font-medium">{meeting.title}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (await notesLink.open(meeting)) onClose()
+                    }}
+                    disabled={notesLink.opening === meeting.id}
+                    className="grid w-10 shrink-0 place-items-center rounded-lg border border-line-strong text-ink-2 hover:border-primary/50 hover:text-primary-ink disabled:opacity-50"
+                    aria-label={`Notes for ${meeting.title}`}
+                    title="Meeting notes"
+                  >
+                    <NotebookPen size={15} />
                   </button>
                 </li>
               )

@@ -103,7 +103,7 @@ function Stat({
       <div className="min-w-0">
         <p className="truncate text-xs font-medium text-ink-2">{label}</p>
         {loading ? (
-          <span className="mt-1 block h-6 w-10 animate-pulse rounded bg-surface-3" />
+          <span className="skeleton mt-1 block h-6 w-10 rounded" />
         ) : (
           <p className="text-2xl font-semibold tabular-nums leading-7 text-ink">{value}</p>
         )}

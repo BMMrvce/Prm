@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { PeoplePicker } from '@/components/people/people-picker'
-import { ProjectBadge, ProjectColorPicker } from '@/components/projects/project-color'
+import { ProjectColorPicker } from '@/components/projects/project-color'
+import { ProjectNotes } from '@/components/notes/project-notes'
 import { TaskBoard } from '@/components/tasks/task-board'
 import { shareableDomain } from '@/lib/email-domain'
 import { workspacePath } from '@/lib/routes'
@@ -37,7 +38,7 @@ export function ProjectDetail() {
       <section className="neo-card rounded-xl p-5">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="flex min-w-0 items-start gap-3">
-            <ProjectBadge project={project} size="lg" />
+            <ProjectColorPicker project={project} trigger="badge" />
             <div className="min-w-0">
               <h2 className="font-semibold">{project.name}</h2>
               <p className="text-xs text-ink-2">
@@ -47,10 +48,6 @@ export function ProjectDetail() {
               </p>
             </div>
           </div>
-        </div>
-        <div className="mt-4">
-          <p className="mb-2 text-xs font-medium text-ink-2">Color</p>
-          <ProjectColorPicker project={project} />
         </div>
         {own && domain && (
           <label className="mt-4 flex items-start gap-2 text-xs text-ink-2">
@@ -79,6 +76,7 @@ export function ProjectDetail() {
         </div>
       </section>
       <TaskBoard projectId={project.id} />
+      <ProjectNotes projectId={project.id} />
     </div>
   )
 }

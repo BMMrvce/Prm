@@ -58,6 +58,28 @@ export type Meeting = {
   meetingUrl: string | null
 }
 
+/** A page in Notes; `meeting` is set when it holds the notes of a meeting. */
+export type Note = {
+  id: string
+  title: string
+  /** Sanitized HTML from the Notes editor. */
+  content: string
+  pinned: boolean
+  meetingId: string | null
+  meeting: Pick<Meeting, 'id' | 'title' | 'startsAt' | 'endsAt'> | null
+  /** The project it is filed under, if any. */
+  projectId: string | null
+  project: Pick<Project, 'name' | 'color'> | null
+  /** Who wrote it; collaborators see notes owned by someone else. */
+  ownerId: string
+  /** People it is shared with (user ids); they can read and edit it live. */
+  members: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+export type NoteChanges = Partial<Pick<Note, 'title' | 'content' | 'pinned' | 'projectId'>>
+
 export type PlanItem = {
   id: string
   title: string

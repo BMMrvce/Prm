@@ -3,6 +3,9 @@
 import { ChevronDown, ListChecks, PartyPopper } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
+import { MeetingDialog } from '@/components/calendar/meeting-dialog'
+import { useMeetingsAhead } from '@/components/calendar/use-meetings-ahead'
+import { MeetingRow } from '@/components/tasks/meeting-row'
 import { TaskComposer } from '@/components/tasks/task-composer'
 import { TaskDialog } from '@/components/tasks/task-dialog'
 import { TaskRow, TaskRowSkeleton } from '@/components/tasks/task-row'
@@ -11,6 +14,7 @@ import { PanelHeader } from '@/components/ui/panel'
 import { workspacePath } from '@/lib/routes'
 import { dayFromToday, groupByDue, isToday, type DueBucket } from '@/lib/tasks'
 import { useWorkspace } from '@/state/workbench-store'
+import type { Meeting, WorkspaceTask } from '@/types/workbench'
 
 type View = 'today' | 'upcoming' | 'all'
 
@@ -20,12 +24,13 @@ const VIEWS: { key: View; label: string; buckets: DueBucket[] | undefined }[] = 
   { key: 'all', label: 'All open', buckets: undefined },
 ]
 
-/** Rows shown on the dashboard before "View all" links to My Tasks. */
+/** Rows (meetings and tasks) shown on the dashboard before "View all" links to My Tasks. */
 const VISIBLE_TASKS = 8
 
 /**
  * The dashboard's centerpiece: open tasks grouped by when they are due (Today, Upcoming,
- * All), a quick-add line, and today's completed tasks tucked underneath.
+ * All), with that day's meetings listed first in each group, a quick-add line, and today's
+ * completed tasks tucked underneath.
  */
 export function TaskList({
   narrow = false,
@@ -33,7 +38,9 @@ export function TaskList({
   /** Half-width layout: the view tabs always get their own row under the title. */
   narrow?: boolean
 } = {}) {
-  const { workspace, ready, tasks } = useWorkspace()
+  const { workspace, ready, tasks, meetings } = useWorkspace()
+  useMeetingsAhead()
+  const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null)
   const { secondsFor } = useTaskTime()
   const now = useNow()
   const [view, setView] = useState<View>('today')
@@ -45,16 +52,22 @@ export function TaskList({
     ? tasks.filter((task) => task.state === 'completed' && isToday(task.completedAt, now))
     : []
   const active = VIEWS.find((item) => item.key === view)!
-  const groups = now ? groupByDue(open, now, active.buckets) : []
-  const total = groups.reduce((sum, group) => sum + group.tasks.length, 0)
+  const groups = now ? groupByDue(open, now, active.buckets, meetings) : []
+  const total = groups.reduce((sum, group) => sum + group.tasks.length + group.meetings.length, 0)
+  const meetingsToday = groups.find((group) => group.key === 'today')?.meetings.length ?? 0
 
-  // Cap the dashboard list, trimming whole rows from the last groups first.
+  // Cap the dashboard list, trimming whole rows from the last groups first. Meetings lead.
+  type Row = { kind: 'meeting'; meeting: Meeting } | { kind: 'task'; task: WorkspaceTask }
   let budget = VISIBLE_TASKS
   const shown = groups
     .map((group) => {
-      const rows = group.tasks.slice(0, Math.max(0, budget))
+      const all: Row[] = [
+        ...group.meetings.map((meeting) => ({ kind: 'meeting' as const, meeting })),
+        ...group.tasks.map((task) => ({ kind: 'task' as const, task })),
+      ]
+      const rows = all.slice(0, Math.max(0, budget))
       budget -= rows.length
-      return { ...group, rows }
+      return { ...group, count: all.length, rows }
     })
     .filter((group) => group.rows.length)
 
@@ -64,7 +77,13 @@ export function TaskList({
         icon={ListChecks}
         title="My Tasks"
         subtitle={
-          ready ? `${open.length} open · ${doneToday.length} done today` : 'Loading your tasks…'
+          ready
+            ? `${open.length} open · ${doneToday.length} done today${
+                meetingsToday
+                  ? ` · ${meetingsToday} meeting${meetingsToday === 1 ? '' : 's'} today`
+                  : ''
+              }`
+            : 'Loading your tasks…'
         }
       >
         <div
@@ -120,9 +139,9 @@ export function TaskList({
             </span>
             <p className="mt-3 text-sm font-medium text-ink">
               {view === 'today'
-                ? 'Nothing due today'
+                ? 'Nothing due or scheduled today'
                 : view === 'upcoming'
-                  ? 'Nothing scheduled ahead'
+                  ? 'No tasks or meetings ahead'
                   : open.length
                     ? 'All caught up'
                     : 'No open tasks'}
@@ -148,19 +167,29 @@ export function TaskList({
             <h3 className="flex items-center gap-2 px-2.5 pb-1 pt-2 text-2xs font-semibold uppercase tracking-[0.08em] text-ink-2">
               <span className={`size-1.5 rounded-full ${group.tone}`} aria-hidden />
               {group.label}
-              <span className="font-medium tabular-nums text-ink-3">{group.tasks.length}</span>
+              <span className="font-medium tabular-nums text-ink-3">{group.count}</span>
             </h3>
             <div>
-              {group.rows.map((task) => (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  seconds={secondsFor(task.id)}
-                  now={now}
-                  onOpen={setEditing}
-                  compact={narrow}
-                />
-              ))}
+              {group.rows.map((row) =>
+                row.kind === 'meeting' ? (
+                  <MeetingRow
+                    key={`meeting-${row.meeting.id}`}
+                    meeting={row.meeting}
+                    now={now!}
+                    onOpen={setEditingMeeting}
+                    compact={narrow}
+                  />
+                ) : (
+                  <TaskRow
+                    key={row.task.id}
+                    task={row.task}
+                    seconds={secondsFor(row.task.id)}
+                    now={now}
+                    onOpen={setEditing}
+                    compact={narrow}
+                  />
+                ),
+              )}
             </div>
           </div>
         ))}
@@ -191,7 +220,7 @@ export function TaskList({
         </Link>
       </div>
       {showDone && (
-        <div className="animate-page mt-1">
+        <div className="animate-reveal mt-1">
           {doneToday.map((task) => (
             <TaskRow
               key={task.id}
@@ -205,6 +234,9 @@ export function TaskList({
         </div>
       )}
       {editing && <TaskDialog taskId={editing} onClose={() => setEditing(null)} />}
+      {editingMeeting && (
+        <MeetingDialog meeting={editingMeeting} onClose={() => setEditingMeeting(null)} />
+      )}
     </section>
   )
 }

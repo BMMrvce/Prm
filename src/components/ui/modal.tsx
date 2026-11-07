@@ -9,11 +9,14 @@ export function Modal({
   onClose,
   children,
   wide = false,
+  size,
 }: {
   title: string
   onClose: () => void
   children: ReactNode
   wide?: boolean
+  /** `xl`: a large editing surface (the mail composer). */
+  size?: 'xl'
 }) {
   const ref = useRef<HTMLDialogElement>(null)
 
@@ -30,7 +33,11 @@ export function Modal({
         if (event.target === ref.current) onClose()
       }}
       className={`modal-dialog m-auto max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-xl border border-line bg-surface p-0 text-ink shadow-[var(--popover-shadow)] backdrop:bg-scrim ${
-        wide ? 'w-[min(720px,calc(100vw-2rem))]' : 'w-[min(560px,calc(100vw-2rem))]'
+        size === 'xl'
+          ? 'w-[min(1080px,calc(100vw-2rem))]'
+          : wide
+            ? 'w-[min(720px,calc(100vw-2rem))]'
+            : 'w-[min(560px,calc(100vw-2rem))]'
       }`}
     >
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line-soft bg-surface px-5 py-3.5">

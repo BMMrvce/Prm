@@ -8,6 +8,7 @@ import { meetingStyle, type MeetingCategory } from '@/lib/meetings'
 import { useWorkspace } from '@/state/workbench-store'
 import type { Meeting, WorkspaceTask } from '@/types/workbench'
 import { DayDialog } from './day-dialog'
+import { DayTimeline } from './day-timeline'
 import { MeetingDialog } from './meeting-dialog'
 import { useMeetingCategories } from './use-meeting-categories'
 
@@ -69,6 +70,8 @@ export function CalendarPanel({
   const [range, setRange] = useState<Range>(defaultRange)
   /** The day whose add / overview dialog is open. */
   const [dayDialog, setDayDialog] = useState<Date | null>(null)
+  /** Time picked on the day timeline, prefilled in the dialog. */
+  const [dayDialogTime, setDayDialogTime] = useState<string | undefined>(undefined)
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null)
   const [editingTask, setEditingTask] = useState<string | null>(null)
   // Dates depend on the viewer's clock, so they are filled in after mount.
@@ -218,7 +221,22 @@ export function CalendarPanel({
           </div>
         </div>
       </div>
-      {range === 'Month' ? (
+      {range === 'Day' && cursor ? (
+        <DayTimeline
+          day={cursor}
+          meetings={itemsOn(cursor).meetings}
+          tasks={itemsOn(cursor).due}
+          categories={categories}
+          hourHeight={side ? 44 : 52}
+          height={side ? 440 : compact ? 480 : 620}
+          onAdd={(time) => {
+            setDayDialogTime(time)
+            setDayDialog(cursor)
+          }}
+          onEditMeeting={setEditingMeeting}
+          onEditTask={setEditingTask}
+        />
+      ) : range === 'Month' ? (
         <MonthGrid
           days={days}
           today={today}
@@ -314,10 +332,14 @@ export function CalendarPanel({
       {dayDialog && (
         <DayDialog
           day={dayDialog}
+          initialTime={dayDialogTime}
           meetings={itemsOn(dayDialog).meetings}
           tasks={itemsOn(dayDialog).due}
           categories={categories}
-          onClose={() => setDayDialog(null)}
+          onClose={() => {
+            setDayDialog(null)
+            setDayDialogTime(undefined)
+          }}
           onEditMeeting={(meeting) => {
             setDayDialog(null)
             setEditingMeeting(meeting)

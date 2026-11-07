@@ -1,5 +1,5 @@
 import { localDate } from '@/lib/format'
-import type { Priority, WorkspaceTask } from '@/types/workbench'
+import type { Meeting, Priority, WorkspaceTask } from '@/types/workbench'
 
 /** Where an open task sits relative to today, by its due date. */
 export type DueBucket = 'overdue' | 'today' | 'upcoming' | 'later' | 'anytime'
@@ -40,8 +40,24 @@ export function dueLabel(
   return { text: short, tone: days < 0 ? 'error' : 'muted' }
 }
 
-/** Groups tasks by due bucket, each sorted by due date then priority. Empty groups dropped. */
-export function groupByDue(tasks: WorkspaceTask[], now: Date, only?: DueBucket[]) {
+/** Where a meeting sits: today, the next 7 days or later; null for past days. */
+export function meetingBucket(meeting: Pick<Meeting, 'startsAt'>, now: Date): DueBucket | null {
+  const days = daysUntil(meeting.startsAt, now)
+  if (days < 0) return null
+  if (days === 0) return 'today'
+  return days <= 7 ? 'upcoming' : 'later'
+}
+
+/**
+ * Groups tasks by due bucket (sorted by due date then priority) together with the meetings
+ * on those days (by start time). Groups with neither are dropped.
+ */
+export function groupByDue(
+  tasks: WorkspaceTask[],
+  now: Date,
+  only?: DueBucket[],
+  meetings: Meeting[] = [],
+) {
   const rank: Record<Priority, number> = { urgent: 0, high: 1, medium: 2, low: 3, none: 4 }
   const sorted = [...tasks].sort(
     (a, b) =>
@@ -49,12 +65,14 @@ export function groupByDue(tasks: WorkspaceTask[], now: Date, only?: DueBucket[]
       rank[a.priority] - rank[b.priority] ||
       b.createdAt.localeCompare(a.createdAt),
   )
+  const byTime = [...meetings].sort((a, b) => a.startsAt.localeCompare(b.startsAt))
   return BUCKETS.filter((bucket) => !only || only.includes(bucket.key))
     .map((bucket) => ({
       ...bucket,
       tasks: sorted.filter((task) => dueBucket(task, now) === bucket.key),
+      meetings: byTime.filter((meeting) => meetingBucket(meeting, now) === bucket.key),
     }))
-    .filter((group) => group.tasks.length)
+    .filter((group) => group.tasks.length || group.meetings.length)
 }
 
 /** Priority styling: check ring, flag color, and label. `none` has no flag. */

@@ -31,11 +31,21 @@ The migrations create:
 - `user_connections`: each user's connected mailboxes and YouTube sign-in, encrypted by the
   app and readable only with the service-role key;
 - `push_subscriptions` and `reminder_deliveries`: devices that receive reminders and the
-  reminders already sent (server-only).
+  reminders already sent (server-only);
+- `notes` (`202611070001_notes.sql`): private rich-text notes per user and workspace,
+  optionally linked to a meeting (one note per person per meeting; deleting the meeting
+  keeps the note, unlinked). Until it is applied, the Notes page shows how to apply it;
+- notes projects and collaboration (`202611080001_notes_projects_collaboration.sql`):
+  `notes.project_id`, `note_members` (people a note is shared with; they read and edit it,
+  only the owner shares, files or deletes it), a "shared a note with you" notification,
+  `notes` in the Realtime publication, and Realtime Authorization policies so only a note's
+  owner and collaborators can join its live channel `note:<id>`.
 
 Run `202611050002_collaboration_time_income.sql`, `202611050003_domain_sharing.sql` and
-`202611050004_user_connections.sql` and `202611050005_push_reminders.sql` after the earlier
-files, in that order. Then fill in and run `reminders-cron.sql` to schedule reminders. Until it is
+`202611050004_user_connections.sql`, `202611050005_push_reminders.sql`,
+`202611070001_notes.sql` and `202611080001_notes_projects_collaboration.sql` after the
+earlier files, in that order. Live note editing uses private Realtime channels: in the
+Supabase dashboard keep Realtime enabled (Project Settings → Realtime). Then fill in and run `reminders-cron.sql` to schedule reminders. Until it is
 applied the app still works, but tagging, domain sharing and income entries show a message
 asking for them.
 

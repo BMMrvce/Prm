@@ -9,6 +9,7 @@ import {
   FolderKanban,
   Home,
   Inbox,
+  NotebookText,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -43,6 +44,7 @@ import type { Project, WorkspaceData } from '@/types/workbench'
 const ICONS: Record<Exclude<NavIcon, 'project'>, LucideIcon> = {
   home: Home,
   tasks: CheckSquare,
+  notes: NotebookText,
   inbox: Inbox,
   calendar: CalendarDays,
   time: Clock3,
@@ -162,7 +164,7 @@ export function Sidebar({
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col overflow-y-auto border-r [&>*]:shrink-0 border-line bg-sidebar px-3 pb-3 pt-5 transition-[transform,width] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] lg:sticky lg:top-0 lg:h-screen lg:shrink-0 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col overflow-y-auto border-r [&>*]:shrink-0 border-line bg-sidebar px-3 pb-3 pt-5 transition-[transform,width] duration-[320ms] ease-[var(--ease-out)] lg:sticky lg:top-0 lg:h-screen lg:shrink-0 lg:translate-x-0 ${
           collapsed ? 'lg:w-[72px] lg:px-2.5' : ''
         } ${open ? 'translate-x-0' : '-translate-x-full'}`}
       >

@@ -21,11 +21,8 @@ export function ProjectColors() {
       )}
       <ul className="mt-4 divide-y divide-line-soft">
         {projects.map((project) => (
-          <li
-            key={project.id}
-            className="grid gap-3 py-3 first:pt-0 last:pb-0 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] md:items-center"
-          >
-            <span className="flex min-w-0 items-center gap-2.5">
+          <li key={project.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+            <span className="flex min-w-0 flex-1 items-center gap-2.5">
               <ProjectBadge project={project} />
               <span className="truncate text-sm font-medium text-ink">{project.name}</span>
             </span>

@@ -3,10 +3,14 @@
 import { Menu } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState, ViewTransition, type ReactNode } from 'react'
+import { MeetingDialog } from '@/components/calendar/meeting-dialog'
 import { NewTaskDialog } from '@/components/tasks/new-task-dialog'
-import { greetingParts } from '@/lib/format'
+import { TaskDialog } from '@/components/tasks/task-dialog'
+import { greetingName, greetingParts } from '@/lib/format'
 import { pageSubtitle, pageTitle, workspacePath } from '@/lib/routes'
 import { useToast, useWorkspace } from '@/state/workbench-store'
+import type { Meeting } from '@/types/workbench'
+import { CommandPalette } from './command-palette'
 import { NotificationCenter } from './notification-center'
 import { SearchBox } from './search-box'
 import { Sidebar } from './sidebar'
@@ -31,6 +35,10 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   // Desktop only: the sidebar shrinks to an icon rail. Remembered per browser.
   const [collapsed, setCollapsed] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [searching, setSearching] = useState(false)
+  /** A task or meeting opened from search, edited in place. */
+  const [openTask, setOpenTask] = useState<string | null>(null)
+  const [openMeeting, setOpenMeeting] = useState<Meeting | null>(null)
   // Computed after mount: pages are prerendered, so the server cannot know today's date.
   const [greeting, setGreeting] = useState<ReturnType<typeof greetingParts> | null>(null)
 
@@ -71,8 +79,25 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // Search everything: Alt+S (Option+S on a Mac), Ctrl/⌘+K, or / when not typing.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const altS = event.altKey && !event.ctrlKey && !event.metaKey && event.code === 'KeyS'
+      const modK =
+        (event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'k'
+      const slash = event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey
+      if (!altS && !modK && !(slash && !typing(event.target))) return
+      // Another dialog (or the palette itself) is open: leave it be.
+      if (document.querySelector('dialog[open]')) return
+      event.preventDefault()
+      setSearching(true)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   const home = pathname === workspacePath(workspace.key)
-  const firstName = profile?.fullName?.trim().split(/\s+/)[0]
+  const firstName = greetingName(profile?.fullName)
   const title = home
     ? greeting
       ? `${greeting.salutation}${firstName ? `, ${firstName}` : ''}`
@@ -108,7 +133,10 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
               </h1>
               <p className="truncate text-xs text-ink-2 sm:text-ui">{subtitle}</p>
             </div>
-            <SearchBox className="hidden w-[220px] md:block xl:w-[260px]" />
+            <SearchBox
+              className="hidden w-[220px] md:flex xl:w-[260px]"
+              onOpen={() => setSearching(true)}
+            />
             <div className="hidden xl:block">
               <WorkspaceSwitcher active={workspace.key} />
             </div>
@@ -117,7 +145,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             <UserMenu />
           </header>
 
-          <SearchBox className="mt-3 md:hidden" />
+          <SearchBox className="mt-3 md:hidden" onOpen={() => setSearching(true)} />
 
           {error && (
             <div
@@ -151,6 +179,16 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         </div>
       </main>
       {creating && <NewTaskDialog onClose={() => setCreating(false)} />}
+      {searching && (
+        <CommandPalette
+          onClose={() => setSearching(false)}
+          onNewTask={() => setCreating(true)}
+          onOpenTask={setOpenTask}
+          onOpenMeeting={setOpenMeeting}
+        />
+      )}
+      {openTask && <TaskDialog taskId={openTask} onClose={() => setOpenTask(null)} />}
+      {openMeeting && <MeetingDialog meeting={openMeeting} onClose={() => setOpenMeeting(null)} />}
       {toast && (
         <div
           key={toast}

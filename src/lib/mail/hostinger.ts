@@ -3,7 +3,17 @@ import { ImapFlow, type FetchMessageObject } from 'imapflow'
 import { simpleParser, type AddressObject } from 'mailparser'
 import nodemailer from 'nodemailer'
 import MailComposer from 'nodemailer/lib/mail-composer'
-import type { MailContact, MailFolder, MailMessage, MailSummary, SendMailInput } from './types'
+import { attachmentsOf, pickAttachment } from './attachments'
+import {
+  MAIL_PAGE_SIZE,
+  type MailAttachmentFile,
+  type MailContact,
+  type MailFolder,
+  type MailMessage,
+  type MailQuery,
+  type MailSummary,
+  type SendMailInput,
+} from './types'
 
 /**
  * Hostinger mail: IMAP for reading, SMTP for sending, signed in with the user's own
@@ -112,10 +122,17 @@ async function withImap<T>(login: HostingerLogin, run: (client: ImapFlow) => Pro
   }
 }
 
+/** The Sent folder's path per (pooled) session, so it is looked up once, not per request. */
+const sentPaths = new WeakMap<ImapFlow, string>()
+
 async function mailboxPath(client: ImapFlow, folder: MailFolder) {
   if (folder === 'inbox') return 'INBOX'
+  const known = sentPaths.get(client)
+  if (known) return known
   const boxes = await client.list()
-  return boxes.find((box) => box.specialUse === '\\Sent')?.path ?? 'INBOX.Sent'
+  const path = boxes.find((box) => box.specialUse === '\\Sent')?.path ?? 'INBOX.Sent'
+  sentPaths.set(client, path)
+  return path
 }
 
 function addressList(list?: { name?: string; address?: string }[]) {
@@ -142,24 +159,61 @@ export async function verifyHostinger(login: HostingerLogin) {
   await withImap(login, async () => undefined)
 }
 
+const DAY_MS = 86_400_000
+
+/**
+ * One page of a folder, newest first. IMAP searches by whole days (SINCE / BEFORE) and the
+ * words anywhere in the message (TEXT); the day window is padded a day each side for
+ * timezones, then trimmed to the exact instants. The cursor is how many matches to skip.
+ */
 export async function listHostinger(
   login: HostingerLogin,
   folder: MailFolder,
-  limit = 30,
-): Promise<MailSummary[]> {
+  query: MailQuery = {},
+  limit = query.limit ?? MAIL_PAGE_SIZE,
+): Promise<{ messages: MailSummary[]; nextCursor: string | null }> {
+  const after = query.after && !Number.isNaN(Date.parse(query.after)) ? new Date(query.after) : null
+  const before =
+    query.before && !Number.isNaN(Date.parse(query.before)) ? new Date(query.before) : null
+  const search = query.search?.trim()
+  const offset = Math.max(0, Number.parseInt(query.cursor ?? '0', 10) || 0)
   return withImap(login, async (client) => {
     const lock = await client.getMailboxLock(await mailboxPath(client, folder), { readOnly: true })
     try {
       const exists = client.mailbox ? client.mailbox.exists : 0
-      if (!exists) return []
-      const range = `${Math.max(1, exists - limit + 1)}:*`
-      const messages = await client.fetchAll(range, {
-        uid: true,
-        envelope: true,
-        flags: true,
-        internalDate: true,
-      })
-      return messages.map(toSummary).reverse()
+      if (!exists) return { messages: [], nextCursor: null }
+      const fields = { uid: true, envelope: true, flags: true, internalDate: true } as const
+      // No filters: read the newest messages by position, no server-side search needed.
+      if (!after && !before && !search) {
+        const end = exists - offset
+        if (end < 1) return { messages: [], nextCursor: null }
+        const start = Math.max(1, end - limit + 1)
+        const fetched = await client.fetchAll(`${start}:${end}`, fields)
+        return {
+          messages: fetched.map(toSummary).sort((a, b) => b.date.localeCompare(a.date)),
+          nextCursor: start > 1 ? String(offset + limit) : null,
+        }
+      }
+      const criteria = {
+        ...(after ? { since: new Date(after.getTime() - DAY_MS) } : {}),
+        ...(before ? { before: new Date(before.getTime() + DAY_MS) } : {}),
+        ...(search ? { text: search } : {}),
+      }
+      const uids = (await client.search(criteria, { uid: true })) || []
+      // Highest UID = newest arrival.
+      const page = [...uids].sort((a, b) => b - a).slice(offset, offset + limit)
+      if (!page.length) return { messages: [], nextCursor: null }
+      const fetched = await client.fetchAll(page.join(','), fields, { uid: true })
+      const messages = fetched
+        .map(toSummary)
+        .filter(
+          (message) =>
+            (!after || message.date >= after.toISOString()) &&
+            (!before || message.date < before.toISOString()),
+        )
+        .sort((a, b) => b.date.localeCompare(a.date))
+      const next = offset + limit
+      return { messages, nextCursor: next < uids.length ? String(next) : null }
     } finally {
       lock.release()
     }
@@ -171,13 +225,28 @@ function parsedAddresses(value?: AddressObject | AddressObject[]) {
   return list.flatMap((item) => item.value)
 }
 
+export async function markReadHostinger(login: HostingerLogin, folder: MailFolder, id: string) {
+  await withImap(login, async (client) => {
+    const lock = await client.getMailboxLock(await mailboxPath(client, folder))
+    try {
+      await client.messageFlagsAdd(id, ['\\Seen'], { uid: true })
+    } finally {
+      lock.release()
+    }
+  })
+}
+
+/** One message with its body; `markRead: false` only peeks (for prefetching). */
 export async function readHostinger(
   login: HostingerLogin,
   folder: MailFolder,
   id: string,
+  markRead = true,
 ): Promise<MailMessage | null> {
   return withImap(login, async (client) => {
-    const lock = await client.getMailboxLock(await mailboxPath(client, folder))
+    const lock = await client.getMailboxLock(await mailboxPath(client, folder), {
+      readOnly: !markRead,
+    })
     try {
       const message = await client.fetchOne(
         id,
@@ -185,11 +254,12 @@ export async function readHostinger(
         { uid: true },
       )
       if (!message || !message.source) return null
-      if (!message.flags?.has('\\Seen')) {
+      if (markRead && !message.flags?.has('\\Seen')) {
         await client.messageFlagsAdd(id, ['\\Seen'], { uid: true })
       }
       const parsed = await simpleParser(message.source)
       const sender = parsedAddresses(parsed.from)[0]
+      const { html, attachments } = attachmentsOf(parsed)
       return {
         ...toSummary(message),
         from: sender?.name || sender?.address || 'Unknown sender',
@@ -198,8 +268,9 @@ export async function readHostinger(
           .map((item) => item.name || item.address)
           .join(', '),
         unread: false,
-        html: parsed.html || null,
+        html,
         text: parsed.text ?? '',
+        attachments,
       }
     } finally {
       lock.release()
@@ -207,10 +278,49 @@ export async function readHostinger(
   })
 }
 
-export async function sendHostinger(login: HostingerLogin, { to, subject, body }: SendMailInput) {
+/** One attachment of a message, by its index in the parsed message. */
+export async function attachmentHostinger(
+  login: HostingerLogin,
+  folder: MailFolder,
+  id: string,
+  attachmentId: string,
+): Promise<MailAttachmentFile | null> {
+  return withImap(login, async (client) => {
+    const lock = await client.getMailboxLock(await mailboxPath(client, folder), { readOnly: true })
+    try {
+      const message = await client.fetchOne(id, { uid: true, source: true }, { uid: true })
+      if (!message || !message.source) return null
+      return pickAttachment(await simpleParser(message.source), attachmentId)
+    } finally {
+      lock.release()
+    }
+  })
+}
+
+export async function sendHostinger(login: HostingerLogin, input: SendMailInput) {
   const { smtpHost, smtpPort } = servers()
   const { user, pass } = login
-  const raw = await new MailComposer({ from: user, to, subject, text: body }).compile().build()
+  const raw = await new MailComposer({
+    from: user,
+    to: input.to,
+    cc: input.cc || undefined,
+    subject: input.subject,
+    text: input.body,
+    html: input.html || undefined,
+    attachments: input.attachments?.map(({ filename, contentType, content }) => ({
+      filename,
+      contentType,
+      content,
+    })),
+  })
+    .compile()
+    .build()
+  // SMTP envelope: every To and Cc address.
+  const to = [input.to, input.cc ?? '']
+    .join(',')
+    .split(',')
+    .map((address) => address.trim())
+    .filter(Boolean)
   const transport = nodemailer.createTransport({
     host: smtpHost,
     port: smtpPort,

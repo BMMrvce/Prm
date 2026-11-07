@@ -47,6 +47,23 @@ export function shortDate(iso: string) {
   return new Date(iso).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
+/**
+ * The name to greet someone by: skips leading initials ("B M Madhuchandra" → "Madhuchandra")
+ * and tidies all-caps names ("MADHUCHANDRA" → "Madhuchandra"). A name made only of
+ * initials is kept whole ("B M").
+ */
+export function greetingName(fullName: string | undefined | null) {
+  const words = (fullName ?? '').trim().split(/\s+/).filter(Boolean)
+  if (!words.length) return ''
+  const isInitial = (word: string) => /^\p{L}{1,2}\.?$/u.test(word) && word.length <= 3
+  const name = words.find((word) => !isInitial(word))
+  if (name?.includes('@')) return name.split('@')[0]
+  if (!name) return words.map((word) => word.replace(/\.$/, '').toUpperCase()).join(' ')
+  return name === name.toUpperCase() && name.length > 1
+    ? name.charAt(0) + name.slice(1).toLowerCase()
+    : name
+}
+
 /** Home heading parts: "Good afternoon" and "Saturday, 7 November · 4:30 pm". */
 export function greetingParts(now = new Date()) {
   const hour = now.getHours()
