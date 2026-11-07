@@ -174,7 +174,7 @@ export function Sidebar({
           }`}
         >
           <Link href={workspacePath(workspace.key)} className={rail} onClick={onClose}>
-            <Logo className="h-[24px]" />
+            <Logo className="h-[30px]" />
           </Link>
           {collapsed && (
             /* eslint-disable-next-line @next/next/no-img-element -- static brand icon */

@@ -11,7 +11,7 @@ export default function LoginPage() {
   return (
     <main className="workbench-scale grid min-h-screen bg-surface lg:grid-cols-[1.05fr_.95fr]">
       <section className="hidden bg-primary-deep p-12 text-on-deep lg:flex lg:flex-col">
-        <Logo onDark className="h-9" />
+        <Logo onDark className="h-12" />
         <div className="my-auto max-w-lg">
           <p className="text-sm font-medium tracking-[0.08em] text-on-deep-accent">
             CLARITY · FOCUS · STRUCTURE · PROGRESS
@@ -45,7 +45,7 @@ export default function LoginPage() {
         </div>
         <div className="w-full max-w-md">
           <div className="mb-12 lg:hidden">
-            <Logo className="h-8" />
+            <Logo className="h-10" />
           </div>
           <Suspense>
             <AuthForm />
