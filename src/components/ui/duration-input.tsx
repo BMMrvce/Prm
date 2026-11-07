@@ -20,7 +20,7 @@ export function DurationInput({
     onChange(Number.isFinite(total) ? Math.round(total) : null)
   }
   const box =
-    'h-10 w-full min-w-0 rounded-lg border border-line-strong bg-field pl-3 pr-7 text-sm outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15 disabled:bg-surface-2'
+    'h-10 w-full min-w-0 rounded-lg border border-line-strong bg-field pl-3 pr-7 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-2'
 
   return (
     <div className="grid grid-cols-2 gap-2" role="group" aria-label={label}>

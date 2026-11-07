@@ -61,12 +61,12 @@ export function AuthForm() {
   }
 
   const field =
-    'flex h-11 items-center gap-2 rounded-lg border border-line-strong px-3 focus-within:border-secondary focus-within:ring-2 focus-within:ring-secondary-light'
+    'flex h-11 items-center gap-2 rounded-lg border border-line-strong px-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20'
   const input = 'min-w-0 flex-1 border-0 bg-transparent text-sm outline-none placeholder:text-ink-3'
 
   return (
     <div className="w-full max-w-md">
-      <p className="text-sm font-medium text-secondary">
+      <p className="text-sm font-medium text-primary-ink">
         {mode === 'signin' ? 'Welcome back' : 'Get started'}
       </p>
       <h2 className="mt-2 text-3xl font-semibold tracking-tight text-ink">
@@ -78,7 +78,7 @@ export function AuthForm() {
             type="button"
             key={value}
             onClick={() => switchMode(value)}
-            className={`h-9 rounded-md transition ${mode === value ? 'bg-surface text-ink shadow-sm' : 'text-ink-2'}`}
+            className={`h-9 rounded-md transition ${mode === value ? 'bg-segment text-ink shadow-sm' : 'text-ink-2'}`}
           >
             {value === 'signin' ? 'Sign in' : 'Create account'}
           </button>
@@ -140,7 +140,7 @@ export function AuthForm() {
         <button
           type="submit"
           disabled={busy}
-          className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-medium text-white shadow-sm hover:bg-primary-hover disabled:opacity-60"
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-medium text-on-primary shadow-sm hover:bg-primary-hover disabled:opacity-60"
         >
           {busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
           {!busy && <ArrowRight size={16} />}
@@ -151,7 +151,7 @@ export function AuthForm() {
         <button
           type="button"
           onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
-          className="font-medium text-secondary"
+          className="font-medium text-primary-ink"
         >
           {mode === 'signin' ? 'Create an account' : 'Sign in'}
         </button>

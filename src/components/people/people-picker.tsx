@@ -99,12 +99,12 @@ export function PeoplePicker({
           <input
             value={term}
             onChange={(event) => setTerm(event.target.value)}
-            className="h-9 w-full rounded-lg border border-line-strong bg-field pl-8 pr-3 text-xs outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
+            className="h-9 w-full rounded-lg border border-line-strong bg-field pl-8 pr-3 text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             placeholder="Tag someone by name or email"
             aria-label="Search people to tag"
           />
           {(options.length > 0 || message) && (
-            <div className="absolute inset-x-0 top-10 z-20 overflow-hidden rounded-lg border border-line bg-surface shadow-lg">
+            <div className="absolute inset-x-0 top-10 z-20 neo-popover overflow-hidden rounded-lg">
               {message && <p className="px-3 py-2.5 text-xs text-ink-2">{message}</p>}
               {options.map((person) => (
                 <button

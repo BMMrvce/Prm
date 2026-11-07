@@ -7,115 +7,235 @@
  * ಆyaama design tokens. Every color in the UI comes from these variables, exposed to
  * Tailwind as `bg-primary`, `text-ink-2`, `border-line` and so on; `html.dark` swaps the
  * values, so components never need dark-specific classes.
+ *
+ * Two intentional identities, not an inversion of one another:
+ *   Light: lavender-grey sidebar, white cards, deep indigo signature, turquoise support.
+ *   Dark:  near-black canvas, charcoal cards, deep gold signature, vivid semantic colors.
+ * The spec palette values are the source of truth (marked "spec"); everything else is a
+ * tint or shade of them. `*-ink` tokens are the text-safe shade of a color (≥ 4.5:1 on
+ * cards) for places where the raw brand color would be too low-contrast to read.
+ *
+ * Roles:
+ *   primary    signature fills (buttons, today, checkboxes), links via primary-ink
+ *   secondary  the second brand color (turquoise / gold)
+ *   accent     the complementary highlight: meetings, live timers, progress
+ *              (turquoise in light, accent blue in dark so it differs from gold)
+ *   accent-blue the spec's accent blue, available in both themes
  */
 :root {
-  /* Brand: deep indigo (primary), electric violet (secondary), cyan (accent) */
-  --brand-primary: #17175e;
-  --brand-primary-hover: #24247a;
-  --brand-primary-active: #101044;
-  --brand-primary-light: #eeeeff;
-  --brand-primary-subtle: #f5f5ff;
-  --brand-primary-deep: #101044;
-  /* Indigo text: deep on light surfaces, lifted in dark mode so it stays readable. */
-  --brand-primary-ink: #17175e;
-  --brand-secondary: #7047eb;
-  --brand-secondary-hover: #6036d8;
-  --brand-secondary-light: #f1ebff;
-  --brand-secondary-subtle: #f8f5ff;
-  --brand-accent: #06b6d4;
-  --brand-accent-hover: #0891b2;
-  --brand-accent-light: #e6fafe;
-  /* Cyan text that stays readable on light surfaces. */
-  --brand-accent-ink: #0e7490;
+  /* Brand: deep indigo (spec #423A8E) */
+  --brand-primary: #423a8e;
+  --brand-primary-hover: #382f7c;
+  --brand-primary-active: #2e2768;
+  --brand-primary-light: #ebeaf6;
+  --brand-primary-subtle: #f5f4fb;
+  --brand-primary-deep: #26205a;
+  --brand-primary-ink: #423a8e;
+  /* Brand: turquoise (spec #00CCCD) */
+  --brand-secondary: #00cccd;
+  --brand-secondary-hover: #00b4b5;
+  --brand-secondary-light: #dcf7f7;
+  --brand-secondary-subtle: #effcfc;
+  --brand-secondary-ink: #007879;
+  --on-secondary: #06302f;
+  /* Accent role: turquoise in light mode. */
+  --brand-accent: #00cccd;
+  --brand-accent-hover: #00b4b5;
+  --brand-accent-light: #e0f8f8;
+  --brand-accent-ink: #007879;
+  --accent-blue: #0d6efd;
+  --accent-blue-light: #e7f0ff;
+  --accent-blue-ink: #0a58ca;
 
   /* Neutrals */
-  --background: #f6f7fb;
-  --surface: #ffffff;
-  --surface-secondary: #f1f2f8;
-  --surface-tertiary: #e9ebf3;
-  --text-primary: #17172b;
-  --text-secondary: #62677a;
-  --text-muted: #9298aa;
-  --border: #e6e8f0;
-  --border-strong: #d9dce7;
-  --divider: #eceef4;
+  --background: #f3f4f8; /* spec */
+  --surface: #ffffff; /* spec */
+  --surface-secondary: #f6f7fa;
+  --surface-tertiary: #ecedf3;
+  --text-primary: #202238; /* spec */
+  --text-secondary: #727b91; /* spec */
+  --text-muted: #80879b;
+  --border: #e5e7ef; /* spec */
+  --border-strong: #d5d8e3;
+  --divider: #edeef4;
   --on-primary: #ffffff;
-  --on-primary-muted: #c9cbef;
+  --on-primary-muted: #cbc8ec;
+  /* Text on the deep brand panel (login), which stays dark in both themes. */
+  --on-deep: #ffffff;
+  --on-deep-muted: #cbc8ec;
+  --on-deep-accent: #3fe0e0;
 
-  /* Functional states (never brand accents); *-ink is the readable text shade. */
-  --success: #16a36a;
-  --success-light: #e7f6ef;
-  --success-ink: #0f7a4f;
-  --warning: #d97706;
-  --warning-light: #fef3e2;
-  --warning-ink: #b45309;
-  --error: #dc4545;
-  --error-light: #fdecec;
-  --error-ink: #b93333;
-  --info: #2585d8;
-  --info-light: #e8f2fc;
-  --info-ink: #1d6ab0;
+  /* Functional states; *-ink is the readable text shade, *-light the badge background. */
+  --success: #198754; /* spec */
+  --success-light: #e5f3ec;
+  --success-ink: #146c43;
+  --warning: #ffc107; /* spec */
+  --warning-light: #fff5d6;
+  --warning-ink: #7d5a00;
+  --error: #dc3545; /* spec */
+  --error-light: #fbe9eb;
+  --error-ink: #b02a37;
+  --info: #00cccd; /* spec */
+  --info-light: #ddf7f7;
+  --info-ink: #007172;
 
-  /* Chart series: cyan then violet. */
-  --series-1: #0891b2;
-  --series-2: #7047eb;
-  --sidebar: #ffffff;
+  /* Meeting category colors (Settings → Meeting colors): dot, -light chip background, -ink text. */
+  --cat-blue: #0d6efd;
+  --cat-blue-light: #e7f0ff;
+  --cat-blue-ink: #0a58ca;
+  --cat-orange: #e5650a;
+  --cat-orange-light: #fff0e3;
+  --cat-orange-ink: #a14600;
+  --cat-green: #198754;
+  --cat-green-light: #e3f4ea;
+  --cat-green-ink: #136c42;
+  --cat-violet: #7a3fd1;
+  --cat-violet-light: #f1eafb;
+  --cat-violet-ink: #5f2db0;
+  --cat-pink: #d63384;
+  --cat-pink-light: #fce8f2;
+  --cat-pink-ink: #a3255f;
+  --cat-teal: #0f9a9b;
+  --cat-teal-light: #e0f6f6;
+  --cat-teal-ink: #0b6e6f;
+  --cat-amber: #b88a00;
+  --cat-amber-light: #fdf3d6;
+  --cat-amber-ink: #7a5c00;
+  --cat-slate: #64748b;
+  --cat-slate-light: #eef1f5;
+  --cat-slate-ink: #475569;
+
+  /* Chart series: indigo then turquoise. */
+  --series-1: #423a8e;
+  --series-2: #00cccd;
+
+  /* Shell */
+  --sidebar: #e4e4f1; /* spec */
+  --sidebar-text: #4b5068;
+  --sidebar-muted: #5f6680;
+  --sidebar-card: #f1f1f8;
+  --nav-hover: #f0f0f8;
+  --nav-active: #423a8e;
+  --nav-active-text: #ffffff;
+  --nav-active-icon: #ffffff;
+  --nav-active-bar: #00cccd;
   --field: #ffffff;
   --elevated: #ffffff;
-  --nav-active: #eeeeff;
-  --nav-active-text: #7047eb;
+  /* Selected option in a segmented control (sits on surface-2). */
+  --segment: #ffffff;
+  --scrim: rgb(32 34 56 / 0.4);
+  --focus-ring: #423a8e;
+  --logo: #423a8e;
+  --card-shadow: 0 1px 2px rgb(32 34 56 / 0.04), 0 1px 3px rgb(32 34 56 / 0.03);
+  --popover-shadow: 0 8px 24px rgb(32 34 56 / 0.1), 0 2px 6px rgb(32 34 56 / 0.05);
 }
 
 :root.dark {
-  --brand-primary: #4f46c8;
-  --brand-primary-hover: #5b53d6;
-  --brand-primary-active: #433bb0;
-  --brand-primary-light: #232a5c;
-  --brand-primary-subtle: #1a2042;
-  --brand-primary-deep: #0b0e26;
-  --brand-primary-ink: #c3c5ff;
-  --brand-secondary: #9a7bff;
-  --brand-secondary-hover: #ab90ff;
-  --brand-secondary-light: #2b2456;
-  --brand-secondary-subtle: #211c44;
-  --brand-accent: #06b6d4;
-  --brand-accent-hover: #4fd5ea;
-  --brand-accent-light: #0f2f3c;
-  --brand-accent-ink: #67e1f2;
+  /*
+   * Brand: deep gold (#D4A20B), darker than the warning yellow so the two stay distinct.
+   * Readable as text on charcoal (7.3:1), so primary-ink is the same color; text ON a
+   * gold fill is near-black (on-primary, 7.8:1).
+   */
+  --brand-primary: #d4a20b;
+  --brand-primary-hover: #e0af1c;
+  --brand-primary-active: #b88c07;
+  --brand-primary-light: #3a3320;
+  --brand-primary-subtle: #2a2820;
+  --brand-primary-deep: #1c1707;
+  --brand-primary-ink: #d4a20b;
+  /* Secondary brand is the same gold in dark mode. */
+  --brand-secondary: #d4a20b;
+  --brand-secondary-hover: #e0af1c;
+  --brand-secondary-light: #3a3320;
+  --brand-secondary-subtle: #2a2820;
+  --brand-secondary-ink: #d4a20b;
+  --on-secondary: #1b1500;
+  /* Accent role: the spec's accent blue, so meetings and timers differ from gold. */
+  --brand-accent: #0d6efd;
+  --brand-accent-hover: #3d8bfd;
+  --brand-accent-light: #172a4a;
+  --brand-accent-ink: #79aefe;
+  --accent-blue: #0d6efd;
+  --accent-blue-light: #172a4a;
+  --accent-blue-ink: #79aefe;
 
-  --background: #0b0e1b;
-  --surface: #151b30;
-  --surface-secondary: #1c2340;
-  --surface-tertiary: #242c4c;
-  --text-primary: #f5f6ff;
-  --text-secondary: #a5adc5;
-  --text-muted: #77819d;
-  --border: #293250;
-  --border-strong: #343e63;
-  --divider: #212842;
-  --on-primary: #ffffff;
-  --on-primary-muted: #a9add6;
+  /* Neutrals */
+  --background: #000000; /* spec */
+  --surface: #191c24; /* spec */
+  --surface-secondary: #252935;
+  --surface-tertiary: #2f3441;
+  --text-primary: #ffffff; /* spec */
+  --text-secondary: #8490a8; /* spec */
+  --text-muted: #737e97;
+  --border: #292d38; /* spec */
+  --border-strong: #353a47;
+  --divider: #23262f;
+  --on-primary: #1b1500;
+  --on-primary-muted: #4a3a00;
+  --on-deep: #ffffff;
+  --on-deep-muted: #e3d6ae;
+  --on-deep-accent: #d4a20b;
 
-  --success: #2fbf85;
-  --success-light: #12302a;
-  --success-ink: #5fd8a6;
-  --warning: #f59e0b;
-  --warning-light: #33260f;
-  --warning-ink: #fbbf5c;
-  --error: #ef6464;
-  --error-light: #3a1a22;
-  --error-ink: #ff9a9a;
-  --info: #4aa3ee;
-  --info-light: #13283f;
-  --info-ink: #8cc6f7;
+  --success: #198754; /* spec */
+  --success-light: #15302a;
+  --success-ink: #6fcf9f;
+  --warning: #ffc107; /* spec */
+  --warning-light: #3b3320;
+  --warning-ink: #ffd65c;
+  --error: #ab2e3c; /* spec */
+  --error-light: #361e26;
+  --error-ink: #f08a96;
+  --info: #0dcaf0; /* spec */
+  --info-light: #153a47;
+  --info-ink: #6edff6;
 
-  --series-1: #22c5e0;
-  --series-2: #9a7bff;
-  --sidebar: #101428;
-  --field: #11172a;
-  --elevated: #1c2340;
-  --nav-active: #292052;
-  --nav-active-text: #a78bfa;
+  --cat-blue: #4d94ff;
+  --cat-blue-light: #172a4a;
+  --cat-blue-ink: #8bb9fe;
+  --cat-orange: #f7742b;
+  --cat-orange-light: #3a261c;
+  --cat-orange-ink: #fda772;
+  --cat-green: #2eb872;
+  --cat-green-light: #16302a;
+  --cat-green-ink: #6fd6a0;
+  --cat-violet: #a57bf2;
+  --cat-violet-light: #2b2440;
+  --cat-violet-ink: #c7aef7;
+  --cat-pink: #e8649f;
+  --cat-pink-light: #3a1f2d;
+  --cat-pink-ink: #f2a3c6;
+  --cat-teal: #22c3c4;
+  --cat-teal-light: #133537;
+  --cat-teal-ink: #7ee0e0;
+  --cat-amber: #e6b325;
+  --cat-amber-light: #3a3320;
+  --cat-amber-ink: #f2d27a;
+  --cat-slate: #94a3b8;
+  --cat-slate-light: #262b35;
+  --cat-slate-ink: #c3ccd8;
+
+  /* Chart series: gold then cyan. */
+  --series-1: #d4a20b;
+  --series-2: #0dcaf0;
+
+  /* Shell */
+  --sidebar: #191c24; /* spec */
+  --sidebar-text: #8490a8;
+  --sidebar-muted: #737e97;
+  --sidebar-card: #0f1116;
+  --nav-hover: #22252f;
+  --nav-active: #0f1116;
+  --nav-active-text: #ffffff;
+  --nav-active-icon: #d4a20b;
+  --nav-active-bar: #d4a20b;
+  --field: #12141a;
+  --elevated: #1d2029;
+  --segment: #363b49;
+  --scrim: rgb(0 0 0 / 0.65);
+  --focus-ring: #d4a20b;
+  --logo: #ffffff;
+  --card-shadow: none;
+  --popover-shadow: 0 12px 32px rgb(0 0 0 / 0.55);
 }
 
 @theme inline {
@@ -171,16 +291,30 @@
   --color-secondary-hover: var(--brand-secondary-hover);
   --color-secondary-light: var(--brand-secondary-light);
   --color-secondary-subtle: var(--brand-secondary-subtle);
+  --color-secondary-ink: var(--brand-secondary-ink);
+  --color-on-secondary: var(--on-secondary);
   --color-accent: var(--brand-accent);
   --color-accent-hover: var(--brand-accent-hover);
   --color-accent-light: var(--brand-accent-light);
   --color-accent-ink: var(--brand-accent-ink);
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-blue-light: var(--accent-blue-light);
+  --color-accent-blue-ink: var(--accent-blue-ink);
 
   --color-canvas: var(--background);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-secondary);
   --color-surface-3: var(--surface-tertiary);
   --color-sidebar: var(--sidebar);
+  --color-sidebar-ink: var(--sidebar-text);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-card: var(--sidebar-card);
+  --color-nav-hover: var(--nav-hover);
+  --color-nav-active-icon: var(--nav-active-icon);
+  --color-nav-active-bar: var(--nav-active-bar);
+  --color-segment: var(--segment);
+  --color-scrim: var(--scrim);
+  --color-logo: var(--logo);
   --color-field: var(--field);
   --color-elevated: var(--elevated);
   --color-nav-active: var(--nav-active);
@@ -193,6 +327,33 @@
   --color-line-soft: var(--divider);
   --color-on-primary: var(--on-primary);
   --color-on-primary-muted: var(--on-primary-muted);
+  --color-cat-blue: var(--cat-blue);
+  --color-cat-blue-light: var(--cat-blue-light);
+  --color-cat-blue-ink: var(--cat-blue-ink);
+  --color-cat-orange: var(--cat-orange);
+  --color-cat-orange-light: var(--cat-orange-light);
+  --color-cat-orange-ink: var(--cat-orange-ink);
+  --color-cat-green: var(--cat-green);
+  --color-cat-green-light: var(--cat-green-light);
+  --color-cat-green-ink: var(--cat-green-ink);
+  --color-cat-violet: var(--cat-violet);
+  --color-cat-violet-light: var(--cat-violet-light);
+  --color-cat-violet-ink: var(--cat-violet-ink);
+  --color-cat-pink: var(--cat-pink);
+  --color-cat-pink-light: var(--cat-pink-light);
+  --color-cat-pink-ink: var(--cat-pink-ink);
+  --color-cat-teal: var(--cat-teal);
+  --color-cat-teal-light: var(--cat-teal-light);
+  --color-cat-teal-ink: var(--cat-teal-ink);
+  --color-cat-amber: var(--cat-amber);
+  --color-cat-amber-light: var(--cat-amber-light);
+  --color-cat-amber-ink: var(--cat-amber-ink);
+  --color-cat-slate: var(--cat-slate);
+  --color-cat-slate-light: var(--cat-slate-light);
+  --color-cat-slate-ink: var(--cat-slate-ink);
+  --color-on-deep: var(--on-deep);
+  --color-on-deep-muted: var(--on-deep-muted);
+  --color-on-deep-accent: var(--on-deep-accent);
 
   --color-success: var(--success);
   --color-success-light: var(--success-light);
@@ -228,7 +389,7 @@
   }
 
   ::selection {
-    background: var(--brand-secondary-light);
+    background: var(--brand-primary-light);
   }
 
   body {
@@ -251,8 +412,9 @@
   button:focus-visible,
   a:focus-visible,
   input:focus-visible,
+  select:focus-visible,
   textarea:focus-visible {
-    outline: 2px solid var(--brand-secondary);
+    outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
   }
 }
@@ -268,14 +430,33 @@
   font-size-adjust: 0.54;
 }
 
+/* Cards: hairline border and, in light mode only, a barely-there shadow. */
 .neo-card {
   border: 1px solid var(--border);
   background: var(--surface);
-  box-shadow: 0 1px 2px rgb(23 23 94 / 0.04);
+  box-shadow: var(--card-shadow);
 }
 
-:root.dark .neo-card {
-  box-shadow: none;
+/* Floating layers (menus, popovers, toasts): elevated surface with a soft drop shadow. */
+.neo-popover {
+  border: 1px solid var(--border);
+  background: var(--elevated);
+  box-shadow: var(--popover-shadow);
+}
+
+/*
+ * The ಆyaama wordmark drawn in the theme's logo color (see components/brand/logo.tsx).
+ * In the components layer so a `bg-*` utility can override the color.
+ */
+@layer components {
+  .brand-logo {
+    display: inline-block;
+    vertical-align: middle;
+    aspect-ratio: 863 / 160;
+    background-color: var(--logo);
+    -webkit-mask: url('/brand/logo.png') no-repeat left center / contain;
+    mask: url('/brand/logo.png') no-repeat left center / contain;
+  }
 }
 
 .neo-inset {
@@ -291,7 +472,7 @@
 }
 
 dialog::backdrop {
-  background: rgb(13 16 32 / 0.45);
+  background: var(--scrim);
 }
 
 /* Motion: short, eased, and off for people who ask for reduced motion. */
@@ -306,6 +487,7 @@ dialog::backdrop {
   select,
   textarea,
   .neo-card,
+  .neo-popover,
   .neo-control {
     transition-property: color, background-color, border-color, box-shadow, opacity, transform;
     transition-duration: 160ms;
@@ -344,6 +526,11 @@ dialog::backdrop {
     animation: toast-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 
+  /* Completing a task: the check mark springs in. */
+  .animate-check {
+    animation: check-pop 280ms cubic-bezier(0.3, 1.5, 0.5, 1);
+  }
+
   .modal-dialog[open] {
     animation: dialog-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
@@ -364,6 +551,13 @@ dialog::backdrop {
   from {
     opacity: 0;
     transform: translateY(6px);
+  }
+}
+
+@keyframes check-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
   }
 }
 

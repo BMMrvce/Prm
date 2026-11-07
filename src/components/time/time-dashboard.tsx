@@ -151,7 +151,7 @@ export function TimeDashboard() {
               key={option.days}
               onClick={() => setRange(option.days)}
               aria-pressed={range === option.days}
-              className={`rounded-md px-3 py-1.5 ${range === option.days ? 'bg-surface shadow-sm' : 'text-ink-2'}`}
+              className={`rounded-md px-3 py-1.5 ${range === option.days ? 'bg-segment shadow-sm' : 'text-ink-2'}`}
             >
               {option.label}
             </button>
@@ -275,7 +275,7 @@ export function TimeDashboard() {
           <button
             type="submit"
             disabled={!minutes}
-            className="h-10 w-full rounded-lg bg-primary text-sm font-medium text-white disabled:opacity-50 hover:bg-primary-hover active:bg-primary-active"
+            className="h-10 w-full rounded-lg bg-primary text-sm font-medium text-on-primary disabled:opacity-50 hover:bg-primary-hover active:bg-primary-active"
           >
             Log time
           </button>

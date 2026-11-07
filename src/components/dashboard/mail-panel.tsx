@@ -1,9 +1,11 @@
 'use client'
 
+import { Mail } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import { ComposeDialog } from '@/components/mail/compose-dialog'
 import { MailNotice } from '@/components/mail/mail-notice'
+import { PanelHeader } from '@/components/ui/panel'
 import { useMailbox } from '@/components/mail/use-mailbox'
 import { mailDate } from '@/lib/format'
 import type { MailFolder } from '@/lib/mail/types'
@@ -17,28 +19,28 @@ export function MailPanel({ workspace }: { workspace: WorkspaceData }) {
   const connected = status?.state === 'connected'
 
   return (
-    <section className="neo-card flex min-h-[330px] min-w-0 flex-col rounded-xl p-4">
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <h2 className="text-card font-semibold">Mail</h2>
-          <p className="truncate text-2xs text-ink-2">
-            {status?.state === 'connected'
-              ? `${status.label} · ${status.account}`
-              : status
-                ? 'No mailbox connected'
-                : 'Checking…'}
-          </p>
-        </div>
+    <section className="neo-card flex min-h-[330px] min-w-0 flex-col rounded-xl p-4 sm:p-5">
+      <PanelHeader
+        icon={Mail}
+        title="Mail"
+        subtitle={
+          status?.state === 'connected'
+            ? `${status.label} · ${status.account}`
+            : status
+              ? 'No mailbox connected'
+              : 'Checking…'
+        }
+      >
         {connected && (
           <button
             type="button"
             onClick={() => setComposing(true)}
-            className="shrink-0 rounded-lg bg-primary px-2.5 py-1.5 text-2xs font-medium text-white hover:bg-primary-hover active:bg-primary-active"
+            className="shrink-0 rounded-lg bg-primary px-2.5 py-1.5 text-2xs font-medium text-on-primary hover:bg-primary-hover active:bg-primary-active"
           >
             Compose
           </button>
         )}
-      </div>
+      </PanelHeader>
       {composing && (
         <ComposeDialog
           space={workspace.key}
@@ -55,7 +57,7 @@ export function MailPanel({ workspace }: { workspace: WorkspaceData }) {
           <button
             type="button"
             onClick={() => setMailTab(tab)}
-            className={`border-b-2 px-2 py-2 text-xs font-medium capitalize ${mailTab === tab ? 'border-primary text-secondary' : 'border-transparent text-ink-2'}`}
+            className={`border-b-2 px-2 py-2 text-xs font-medium capitalize ${mailTab === tab ? 'border-primary text-primary-ink' : 'border-transparent text-ink-2'}`}
             key={tab}
           >
             {tab}
@@ -65,7 +67,7 @@ export function MailPanel({ workspace }: { workspace: WorkspaceData }) {
           type="button"
           onClick={() => void refresh()}
           disabled={loading}
-          className="ml-auto text-2xs font-medium text-secondary"
+          className="ml-auto text-2xs font-medium text-primary-ink"
         >
           {loading ? 'Syncing…' : 'Refresh'}
         </button>
@@ -101,7 +103,7 @@ export function MailPanel({ workspace }: { workspace: WorkspaceData }) {
       {connected && (
         <Link
           href={workspacePath(workspace.key, 'inbox')}
-          className="mt-auto pt-2 text-2xs font-medium text-secondary"
+          className="mt-auto pt-2 text-2xs font-medium text-primary-ink"
         >
           Open inbox →
         </Link>

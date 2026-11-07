@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { PeoplePicker } from '@/components/people/people-picker'
+import { ProjectBadge, ProjectColorPicker } from '@/components/projects/project-color'
 import { TaskBoard } from '@/components/tasks/task-board'
 import { shareableDomain } from '@/lib/email-domain'
 import { workspacePath } from '@/lib/routes'
@@ -22,7 +23,7 @@ export function ProjectDetail() {
         <p>This project does not exist in {workspace.name}.</p>
         <Link
           href={workspacePath(workspace.key, 'projects')}
-          className="mt-3 inline-block font-medium text-secondary"
+          className="mt-3 inline-block font-medium text-primary-ink"
         >
           ← All projects
         </Link>
@@ -35,14 +36,21 @@ export function ProjectDetail() {
     <div className="space-y-4">
       <section className="neo-card rounded-xl p-5">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <h2 className="font-semibold">{project.name}</h2>
-            <p className="text-xs text-ink-2">
-              {own
-                ? 'People you tag see this project and all its tasks on their dashboard.'
-                : `Shared by ${project.sharedBy}${project.sharedDomain ? ` with everyone @${project.sharedDomain}` : ''}. Tasks you add here belong to their workspace.`}
-            </p>
+          <div className="flex min-w-0 items-start gap-3">
+            <ProjectBadge project={project} size="lg" />
+            <div className="min-w-0">
+              <h2 className="font-semibold">{project.name}</h2>
+              <p className="text-xs text-ink-2">
+                {own
+                  ? 'People you tag see this project and all its tasks on their dashboard.'
+                  : `Shared by ${project.sharedBy}${project.sharedDomain ? ` with everyone @${project.sharedDomain}` : ''}. Tasks you add here belong to their workspace.`}
+              </p>
+            </div>
           </div>
+        </div>
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-medium text-ink-2">Color</p>
+          <ProjectColorPicker project={project} />
         </div>
         {own && domain && (
           <label className="mt-4 flex items-start gap-2 text-xs text-ink-2">

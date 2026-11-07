@@ -1,6 +1,7 @@
 /**
- * Small dependency-free charts. Colors come from a validated two-slot categorical
- * palette (blue, orange); text always uses ink colors, never the series color.
+ * Small dependency-free charts. Colors come from a two-slot categorical palette per theme
+ * (light: indigo, turquoise; dark: yellow, cyan); text always uses ink colors, never the
+ * series color.
  */
 
 // CSS variables so dark mode can use the steps validated for the dark surface (globals.css).
@@ -129,7 +130,7 @@ export function ColumnChart({
                     )
                   })}
                   <div
-                    className={`pointer-events-none absolute top-0 z-10 hidden w-max max-w-[180px] rounded-md border border-line bg-surface px-2.5 py-1.5 text-2xs shadow-md group-hover:block group-focus-visible:block ${align}`}
+                    className={`pointer-events-none absolute top-0 z-10 hidden w-max max-w-[180px] neo-popover rounded-md px-2.5 py-1.5 text-2xs group-hover:block group-focus-visible:block ${align}`}
                   >
                     <p className="text-ink-2">{item.detail ?? item.label}</p>
                     {series.map((entry, slot) => (

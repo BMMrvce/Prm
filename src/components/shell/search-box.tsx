@@ -2,7 +2,7 @@
 
 import { Search } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { mainNav, manageNav, projectNav, workspacePath } from '@/lib/routes'
 import { useWorkspace } from '@/state/workbench-store'
 
@@ -12,6 +12,25 @@ export function SearchBox({ className = '' }: { className?: string }) {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
+  const input = useRef<HTMLInputElement>(null)
+
+  // "/" focuses search from anywhere (only the copy that is visible at this width).
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return
+      const target = event.target as HTMLElement | null
+      if (
+        target?.isContentEditable ||
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName ?? '')
+      )
+        return
+      if (!input.current?.offsetParent || document.querySelector('dialog[open]')) return
+      event.preventDefault()
+      input.current.focus()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   const term = query.trim().toLowerCase()
   const results = term
@@ -44,6 +63,7 @@ export function SearchBox({ className = '' }: { className?: string }) {
         size={15}
       />
       <input
+        ref={input}
         value={query}
         onChange={(event) => {
           setQuery(event.target.value)
@@ -53,14 +73,23 @@ export function SearchBox({ className = '' }: { className?: string }) {
         onBlur={() => window.setTimeout(() => setOpen(false), 150)}
         onKeyDown={(event) => {
           if (event.key === 'Enter' && results[0]) go(results[0].href)
-          if (event.key === 'Escape') setOpen(false)
+          if (event.key === 'Escape') {
+            setOpen(false)
+            event.currentTarget.blur()
+          }
         }}
-        className="h-10 w-full rounded-lg border border-line-strong bg-field pl-9 pr-3 text-sm outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
-        placeholder="Search..."
+        className="h-10 w-full rounded-lg border border-line-strong bg-field pl-9 pr-8 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+        placeholder="Search…"
         aria-label="Search pages, projects and tasks"
+        aria-keyshortcuts="/"
       />
+      {!query && (
+        <kbd className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded border border-line-strong px-1.5 font-sans text-2xs text-ink-3 md:block">
+          /
+        </kbd>
+      )}
       {open && term && (
-        <div className="neo-card absolute left-0 right-0 top-12 z-30 overflow-hidden rounded-xl py-1">
+        <div className="neo-popover absolute left-0 right-0 top-12 z-30 overflow-hidden rounded-xl py-1">
           {results.length ? (
             results.map((item) => (
               <button

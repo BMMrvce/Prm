@@ -50,7 +50,7 @@ export function ComposeForm({
   }
 
   const field =
-    'w-full min-w-0 rounded-lg border border-line-strong bg-field px-3 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15'
+    'w-full min-w-0 rounded-lg border border-line-strong bg-field px-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20'
   const text = compact ? 'text-xs' : 'text-sm'
 
   return (
@@ -80,7 +80,7 @@ export function ComposeForm({
       <button
         type="submit"
         disabled={sending}
-        className={`flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 font-medium text-white hover:bg-primary-hover disabled:opacity-60 ${text}`}
+        className={`flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60 ${text}`}
       >
         <Send size={13} />
         {sending ? 'Sending…' : 'Send'}

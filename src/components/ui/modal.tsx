@@ -29,7 +29,7 @@ export function Modal({
       onClick={(event) => {
         if (event.target === ref.current) onClose()
       }}
-      className={`modal-dialog m-auto max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-xl border border-line bg-surface p-0 text-ink shadow-xl backdrop:bg-black/30 ${
+      className={`modal-dialog m-auto max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-xl border border-line bg-surface p-0 text-ink shadow-[var(--popover-shadow)] backdrop:bg-scrim ${
         wide ? 'w-[min(720px,calc(100vw-2rem))]' : 'w-[min(560px,calc(100vw-2rem))]'
       }`}
     >
@@ -50,6 +50,6 @@ export function Modal({
 }
 
 export const fieldClass =
-  'h-10 w-full min-w-0 rounded-lg border border-line-strong bg-field px-3 text-sm outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15 disabled:bg-surface-2 disabled:text-ink-3'
+  'h-10 w-full min-w-0 rounded-lg border border-line-strong bg-field px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-2 disabled:text-ink-3'
 
 export const labelClass = 'block text-xs font-medium text-ink-2'

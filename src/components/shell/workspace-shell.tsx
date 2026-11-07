@@ -3,27 +3,36 @@
 import { Menu } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState, ViewTransition, type ReactNode } from 'react'
-import { greeting } from '@/lib/format'
-import { pageTitle } from '@/lib/routes'
+import { NewTaskDialog } from '@/components/tasks/new-task-dialog'
+import { greetingParts } from '@/lib/format'
+import { pageSubtitle, pageTitle, workspacePath } from '@/lib/routes'
 import { useToast, useWorkspace } from '@/state/workbench-store'
 import { NotificationCenter } from './notification-center'
 import { SearchBox } from './search-box'
 import { Sidebar } from './sidebar'
+import { ThemeToggle } from './theme-controls'
 import { UserMenu } from './user-menu'
 import { WorkspaceSwitcher } from './workspace-switcher'
 
 const COLLAPSED_KEY = 'aayama-sidebar-collapsed'
 
+/** True when a key press is meant for a text field, so single-key shortcuts must ignore it. */
+function typing(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false
+  return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+}
+
 /** Sidebar, header and toast wrapped around every `/[space]/*` page. */
 export function WorkspaceShell({ children }: { children: ReactNode }) {
-  const { workspace, projects, error, reload } = useWorkspace()
+  const { workspace, projects, profile, error, reload } = useWorkspace()
   const { toast } = useToast()
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   // Desktop only: the sidebar shrinks to an icon rail. Remembered per browser.
   const [collapsed, setCollapsed] = useState(false)
+  const [creating, setCreating] = useState(false)
   // Computed after mount: pages are prerendered, so the server cannot know today's date.
-  const [homeTitle, setHomeTitle] = useState('')
+  const [greeting, setGreeting] = useState<ReturnType<typeof greetingParts> | null>(null)
 
   useEffect(() => {
     try {
@@ -44,13 +53,32 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     })
 
   useEffect(() => {
-    setHomeTitle(greeting())
-    // Keeps the clock in the greeting current.
-    const interval = window.setInterval(() => setHomeTitle(greeting()), 15_000)
+    setGreeting(greetingParts())
+    // Keeps the clock in the subtitle current.
+    const interval = window.setInterval(() => setGreeting(greetingParts()), 15_000)
     return () => window.clearInterval(interval)
   }, [])
 
-  const title = pageTitle(workspace, projects, pathname, homeTitle || workspace.name)
+  // N opens "New task" from anywhere, unless typing or another dialog is open.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== 'n' || event.metaKey || event.ctrlKey || event.altKey) return
+      if (typing(event.target) || document.querySelector('dialog[open]')) return
+      event.preventDefault()
+      setCreating(true)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const home = pathname === workspacePath(workspace.key)
+  const firstName = profile?.fullName?.trim().split(/\s+/)[0]
+  const title = home
+    ? greeting
+      ? `${greeting.salutation}${firstName ? `, ${firstName}` : ''}`
+      : workspace.name
+    : pageTitle(workspace, projects, pathname, workspace.name)
+  const subtitle = home ? (greeting?.when ?? ' ') : pageSubtitle(workspace, pathname)
 
   return (
     <div className="workbench-scale flex min-h-screen bg-canvas text-ink">
@@ -61,10 +89,11 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         collapsed={collapsed}
         onClose={() => setSidebarOpen(false)}
         onToggleCollapsed={toggleCollapsed}
+        onNewTask={() => setCreating(true)}
       />
       <main className="min-w-0 flex-1 overflow-x-hidden">
-        <div className="mx-auto w-full max-w-[1600px] px-4 py-5 md:px-8 md:py-6">
-          <header className="flex flex-wrap items-center gap-x-3 gap-y-3">
+        <div className="mx-auto w-full max-w-[1600px] px-4 pb-10 pt-5 md:px-8 md:pt-7">
+          <header className="flex items-center gap-3">
             <button
               type="button"
               className="neo-control grid size-9 shrink-0 place-items-center rounded-lg text-ink-2 hover:text-ink lg:hidden"
@@ -73,24 +102,17 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             >
               <Menu size={18} />
             </button>
-            <h2 className="mr-auto min-w-0 flex-1 truncate text-xl font-semibold text-ink sm:text-2xl">
-              {title === homeTitle && homeTitle.includes(' · ') ? (
-                <>
-                  {/* Phones show just the greeting; the date and time follow from sm up. */}
-                  {homeTitle.slice(0, homeTitle.indexOf(' · '))}
-                  <span className="hidden sm:inline">
-                    {homeTitle.slice(homeTitle.indexOf(' · '))}
-                  </span>
-                </>
-              ) : (
-                title
-              )}
-            </h2>
+            <div className="mr-auto min-w-0 flex-1">
+              <h1 className="truncate text-xl font-semibold tracking-tight text-ink sm:text-[26px] sm:leading-8">
+                {title}
+              </h1>
+              <p className="truncate text-xs text-ink-2 sm:text-ui">{subtitle}</p>
+            </div>
             <SearchBox className="hidden w-[220px] md:block xl:w-[260px]" />
-            {/* Full width on its own row on phones, inline from tablet up. */}
-            <div className="order-last w-full sm:order-none sm:w-auto">
+            <div className="hidden xl:block">
               <WorkspaceSwitcher active={workspace.key} />
             </div>
+            <ThemeToggle />
             <NotificationCenter />
             <UserMenu />
           </header>
@@ -128,10 +150,11 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           </ViewTransition>
         </div>
       </main>
+      {creating && <NewTaskDialog onClose={() => setCreating(false)} />}
       {toast && (
         <div
           key={toast}
-          className="neo-card animate-toast fixed bottom-4 right-4 z-[70] max-w-[min(24rem,calc(100vw-2rem))] rounded-xl px-4 py-3 text-ui font-medium text-ink [overflow-wrap:anywhere]"
+          className="neo-popover animate-toast fixed bottom-4 right-4 z-[70] max-w-[min(24rem,calc(100vw-2rem))] rounded-xl px-4 py-3 text-ui font-medium text-ink [overflow-wrap:anywhere]"
           role="status"
         >
           {toast}

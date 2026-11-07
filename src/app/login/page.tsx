@@ -9,16 +9,16 @@ export const metadata: Metadata = { title: 'Sign in' }
 export default function LoginPage() {
   return (
     <main className="workbench-scale grid min-h-screen bg-surface lg:grid-cols-[1.05fr_.95fr]">
-      <section className="hidden bg-primary-deep p-12 text-on-primary lg:flex lg:flex-col">
+      <section className="hidden bg-primary-deep p-12 text-on-deep lg:flex lg:flex-col">
         <Logo onDark className="h-9" />
         <div className="my-auto max-w-lg">
-          <p className="text-sm font-medium tracking-[0.08em] text-accent">
+          <p className="text-sm font-medium tracking-[0.08em] text-on-deep-accent">
             CLARITY · FOCUS · STRUCTURE · PROGRESS
           </p>
           <h1 className="mt-5 text-5xl font-semibold leading-[1.08]">
             Plans become progress, without the busywork.
           </h1>
-          <p className="mt-6 text-lg leading-8 text-on-primary-muted">
+          <p className="mt-6 text-lg leading-8 text-on-deep-muted">
             Projects, time, conversations and daily focus, connected in one calm place.
           </p>
           <div className="mt-10 space-y-4">
@@ -27,13 +27,13 @@ export default function LoginPage() {
               'Tasks, calendar, notes and money in one place',
               'Your own mailbox in every workspace',
             ].map((item) => (
-              <div className="flex items-center gap-3 text-sm text-on-primary-muted" key={item}>
-                <CheckCircle2 size={18} className="text-accent" /> {item}
+              <div className="flex items-center gap-3 text-sm text-on-deep-muted" key={item}>
+                <CheckCircle2 size={18} className="text-on-deep-accent" /> {item}
               </div>
             ))}
           </div>
         </div>
-        <p className="text-xs text-on-primary-muted">
+        <p className="text-xs text-on-deep-muted">
           Designed for teams who value clarity over complexity.
         </p>
       </section>

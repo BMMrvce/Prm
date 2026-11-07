@@ -42,7 +42,7 @@ export function NotificationCenter() {
         )}
       </button>
       {open && (
-        <div className="neo-card animate-pop absolute right-0 top-12 z-30 w-[min(340px,calc(100vw-2rem))] rounded-xl p-3">
+        <div className="neo-popover animate-pop absolute right-0 top-12 z-30 w-[min(340px,calc(100vw-2rem))] rounded-xl p-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h3 className="text-sm font-semibold">Notifications</h3>
@@ -62,7 +62,7 @@ export function NotificationCenter() {
               <button
                 type="button"
                 onClick={() => void attempt(push.enable, 'Reminders are on for this device.')}
-                className="rounded-lg bg-primary px-3 py-1.5 text-2xs font-medium text-white hover:bg-primary-hover active:bg-primary-active"
+                className="rounded-lg bg-primary px-3 py-1.5 text-2xs font-medium text-on-primary hover:bg-primary-hover active:bg-primary-active"
               >
                 Turn on reminders
               </button>

@@ -1,24 +1,18 @@
 'use client'
 
-import { LogOut, Monitor, Moon, Settings, Sun } from 'lucide-react'
+import { LogOut, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import { initials } from '@/lib/format'
 import { workspacePath } from '@/lib/routes'
-import { useTheme, type ThemePreference } from '@/lib/theme'
 import { useWorkspace } from '@/state/workbench-store'
+import { ThemePicker } from './theme-controls'
 
-/** Avatar button with the signed-in account and sign-out. */
+/** Avatar button with the signed-in account, theme choice, settings and sign-out. */
 export function UserMenu() {
   const { profile, workspace, signOut } = useWorkspace()
   const [open, setOpen] = useState(false)
   const name = profile?.fullName || profile?.email || ''
-  const theme = useTheme()
-  const themes: [ThemePreference, string, typeof Sun][] = [
-    ['light', 'Light', Sun],
-    ['dark', 'Dark', Moon],
-    ['system', 'System', Monitor],
-  ]
 
   return (
     <div className="relative shrink-0">
@@ -38,33 +32,13 @@ export function UserMenu() {
             onClick={() => setOpen(false)}
             aria-label="Close account menu"
           />
-          <div className="neo-card animate-pop absolute right-0 top-11 z-30 w-[min(260px,calc(100vw-2rem))] rounded-xl p-2">
+          <div className="neo-popover animate-pop absolute right-0 top-11 z-30 w-[min(260px,calc(100vw-2rem))] rounded-xl p-2">
             <div className="px-2 py-1.5">
               <p className="truncate text-ui font-medium">{profile?.fullName}</p>
               <p className="truncate text-2xs text-ink-2">{profile?.email}</p>
             </div>
-            <div
-              className="mt-1 grid grid-cols-3 gap-1 rounded-lg bg-surface-2 p-1"
-              role="radiogroup"
-              aria-label="Theme"
-            >
-              {themes.map(([value, label, Icon]) => (
-                <button
-                  type="button"
-                  key={value}
-                  role="radio"
-                  aria-checked={theme.preference === value}
-                  onClick={() => theme.choose(value)}
-                  className={`flex flex-col items-center gap-1 rounded-md py-1.5 text-2xs ${
-                    theme.preference === value
-                      ? 'bg-surface font-medium text-ink shadow-sm'
-                      : 'text-ink-2 hover:text-ink'
-                  }`}
-                >
-                  <Icon size={14} />
-                  {label}
-                </button>
-              ))}
+            <div className="mt-1">
+              <ThemePicker />
             </div>
             <Link
               href={workspacePath(workspace.key, 'settings')}

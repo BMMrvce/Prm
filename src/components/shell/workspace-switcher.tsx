@@ -4,7 +4,7 @@ import { LinkPending } from '@/components/ui/link-pending'
 import { workspacePath } from '@/lib/routes'
 import type { SpaceKey } from '@/types/workbench'
 
-/** Segmented control for Office / Studio / Personal; the active workspace is filled indigo. */
+/** Segmented control for Office / Studio / Personal; the active workspace is filled with the brand color. */
 export function WorkspaceSwitcher({ active }: { active: SpaceKey }) {
   return (
     <nav
@@ -19,7 +19,7 @@ export function WorkspaceSwitcher({ active }: { active: SpaceKey }) {
           className={`flex h-8 items-center justify-center rounded-md px-3.5 text-ui font-medium ${
             active === key
               ? 'bg-primary text-on-primary shadow-sm hover:bg-primary-hover active:bg-primary-active'
-              : 'text-ink-2 hover:bg-surface hover:text-ink'
+              : 'text-ink-2 hover:bg-segment hover:text-ink'
           }`}
         >
           {spaces[key].switchLabel}

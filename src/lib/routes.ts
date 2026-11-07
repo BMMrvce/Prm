@@ -81,3 +81,21 @@ export function pageTitle(
   const items = [...mainNav(workspace), ...projectNav(workspace, projects), ...manageNav(workspace)]
   return items.find((item) => item.href === pathname)?.label ?? workspace.name
 }
+
+/** One-line description under the page heading, by the first path segment after the space. */
+const SUBTITLES: Record<string, string> = {
+  tasks: 'Everything on your plate, grouped by when it is due',
+  inbox: 'Mail from the mailbox connected to this workspace',
+  calendar: 'Meetings and task due dates',
+  time: 'Where your hours go',
+  expenses: 'Track spending and claims',
+  projects: 'Projects in this workspace and ones shared with you',
+  integrations: 'Connect your mailbox and other services',
+  settings: 'Workspace, appearance and account',
+}
+
+export function pageSubtitle(workspace: WorkspaceData, pathname: string) {
+  const [, , section, project] = pathname.split('/')
+  if (section === 'projects' && project) return `Project in ${workspace.name}`
+  return SUBTITLES[section ?? ''] ?? `${workspace.name} workspace`
+}

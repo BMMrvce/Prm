@@ -6,6 +6,7 @@ import { useState, type FormEvent } from 'react'
 import { shareableDomain } from '@/lib/email-domain'
 import { projectPath } from '@/lib/routes'
 import { useWorkspace } from '@/state/workbench-store'
+import { ProjectBadge } from './project-color'
 
 /** All projects with real task progress, plus a form to create one. */
 export function ProjectGrid() {
@@ -30,7 +31,7 @@ export function ProjectGrid() {
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="h-10 min-w-0 flex-1 rounded-lg border border-line-strong px-3 text-sm outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
+            className="h-10 min-w-0 flex-1 rounded-lg border border-line-strong px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             placeholder="New project name"
             aria-label="New project name"
             maxLength={120}
@@ -38,7 +39,7 @@ export function ProjectGrid() {
           <button
             type="submit"
             disabled={!ready}
-            className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-white disabled:opacity-60 hover:bg-primary-hover active:bg-primary-active"
+            className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-on-primary disabled:opacity-60 hover:bg-primary-hover active:bg-primary-active"
           >
             <Plus size={15} /> Create project
           </button>
@@ -72,11 +73,14 @@ export function ProjectGrid() {
           return (
             <Link
               href={projectPath(workspace.key, project)}
-              className="neo-card block min-w-0 rounded-xl p-5 text-left transition hover:border-secondary"
+              className="neo-card block min-w-0 rounded-xl p-5 text-left transition hover:border-primary"
               key={project.id}
             >
               <div className="flex items-center justify-between gap-2">
-                <h3 className="truncate font-semibold">{project.name}</h3>
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <ProjectBadge project={project} />
+                  <h3 className="truncate font-semibold">{project.name}</h3>
+                </span>
                 <span className="shrink-0 rounded-full bg-primary-light px-2 py-1 text-2xs capitalize text-primary-ink">
                   {project.status}
                 </span>

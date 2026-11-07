@@ -1,242 +1,210 @@
 'use client'
 
-import { Clock, ListTodo, Pause, Play, Plus, Square } from 'lucide-react'
+import { ChevronDown, ListChecks, PartyPopper } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useState, type FormEvent } from 'react'
-import { EmptyState } from '@/components/ui/empty-state'
+import { useState } from 'react'
+import { TaskComposer } from '@/components/tasks/task-composer'
 import { TaskDialog } from '@/components/tasks/task-dialog'
-import { SquareCheck } from '@/components/ui/square-check'
-import {
-  capitalize,
-  duration,
-  entrySeconds,
-  priorityStyle,
-  shortDate,
-  stopwatch,
-} from '@/lib/format'
+import { TaskRow, TaskRowSkeleton } from '@/components/tasks/task-row'
+import { useNow, useTaskTime } from '@/components/tasks/use-task-time'
+import { PanelHeader } from '@/components/ui/panel'
 import { workspacePath } from '@/lib/routes'
+import { dayFromToday, groupByDue, isToday, type DueBucket } from '@/lib/tasks'
 import { useWorkspace } from '@/state/workbench-store'
 
-/** Open tasks first, then a few recently completed ones. */
-const VISIBLE_TASKS = 6
+type View = 'today' | 'upcoming' | 'all'
 
-export function TaskList() {
-  const {
-    workspace,
-    ready,
-    tasks,
-    timeEntries,
-    timer,
-    toggleTask,
-    addTask,
-    startTimer,
-    stopTimer,
-    pauseTimer,
-    resumeTimer,
-  } = useWorkspace()
-  const [newTask, setNewTask] = useState('')
+const VIEWS: { key: View; label: string; buckets: DueBucket[] | undefined }[] = [
+  { key: 'today', label: 'Today', buckets: ['overdue', 'today'] },
+  { key: 'upcoming', label: 'Upcoming', buckets: ['upcoming', 'later'] },
+  { key: 'all', label: 'All open', buckets: undefined },
+]
+
+/** Rows shown on the dashboard before "View all" links to My Tasks. */
+const VISIBLE_TASKS = 8
+
+/**
+ * The dashboard's centerpiece: open tasks grouped by when they are due (Today, Upcoming,
+ * All), a quick-add line, and today's completed tasks tucked underneath.
+ */
+export function TaskList({
+  narrow = false,
+}: {
+  /** Half-width layout: the view tabs always get their own row under the title. */
+  narrow?: boolean
+} = {}) {
+  const { workspace, ready, tasks } = useWorkspace()
+  const { secondsFor } = useTaskTime()
+  const now = useNow()
+  const [view, setView] = useState<View>('today')
   const [editing, setEditing] = useState<string | null>(null)
-  const [now, setNow] = useState(() => Date.now())
+  const [showDone, setShowDone] = useState(false)
+
   const open = tasks.filter((task) => task.state === 'open')
-  const done = tasks.filter((task) => task.state === 'completed')
-  const visible = [...open, ...done].slice(0, VISIBLE_TASKS)
+  const doneToday = now
+    ? tasks.filter((task) => task.state === 'completed' && isToday(task.completedAt, now))
+    : []
+  const active = VIEWS.find((item) => item.key === view)!
+  const groups = now ? groupByDue(open, now, active.buckets) : []
+  const total = groups.reduce((sum, group) => sum + group.tasks.length, 0)
 
-  useEffect(() => {
-    if (timer?.state !== 'running') return
-    const interval = window.setInterval(() => setNow(Date.now()), 1000)
-    return () => window.clearInterval(interval)
-  }, [timer?.state])
-
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const title = newTask.trim()
-    if (!title) return
-    if (await addTask({ title })) setNewTask('')
-  }
-
-  /** Seconds logged on a task by everyone, counting a running timer live. */
-  const loggedSeconds = (taskId: string) =>
-    timeEntries
-      .filter((entry) => entry.taskId === taskId)
-      .reduce((sum, entry) => sum + entrySeconds(entry, now), 0)
-
-  // This run of the timer, and everything logged on its task (the number shown on the task).
-  const session = timer ? entrySeconds(timer, now) : 0
-  const taskTotal = timer?.taskId ? loggedSeconds(timer.taskId) : session
-  const paused = timer?.state === 'paused'
+  // Cap the dashboard list, trimming whole rows from the last groups first.
+  let budget = VISIBLE_TASKS
+  const shown = groups
+    .map((group) => {
+      const rows = group.tasks.slice(0, Math.max(0, budget))
+      budget -= rows.length
+      return { ...group, rows }
+    })
+    .filter((group) => group.rows.length)
 
   return (
-    <section className="neo-card flex min-h-[437px] min-w-0 max-w-full flex-col overflow-hidden rounded-xl p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-card font-semibold">To Do</h2>
-        <span className="text-ui text-ink-2">
-          {open.length} open · {done.length} done
-        </span>
+    <section className="neo-card flex min-w-0 flex-col rounded-xl p-4 sm:p-5">
+      <PanelHeader
+        icon={ListChecks}
+        title="My Tasks"
+        subtitle={
+          ready ? `${open.length} open · ${doneToday.length} done today` : 'Loading your tasks…'
+        }
+      >
+        <div
+          className={`hidden rounded-lg border border-line bg-surface-2 p-0.5 text-xs font-medium ${narrow ? '' : 'sm:flex'}`}
+          role="tablist"
+          aria-label="Task view"
+        >
+          {VIEWS.map((item) => (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === item.key}
+              key={item.key}
+              onClick={() => setView(item.key)}
+              className={`rounded-md px-3 py-1.5 ${view === item.key ? 'bg-segment text-ink shadow-sm' : 'text-ink-2 hover:text-ink'}`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </PanelHeader>
+
+      {/* Phones: the view tabs get their own full-width row. */}
+      <div
+        className={`mt-3 grid grid-cols-3 rounded-lg border border-line bg-surface-2 p-0.5 text-xs font-medium ${narrow ? '' : 'sm:hidden'}`}
+        role="tablist"
+        aria-label="Task view"
+      >
+        {VIEWS.map((item) => (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === item.key}
+            key={item.key}
+            onClick={() => setView(item.key)}
+            className={`rounded-md py-1.5 ${view === item.key ? 'bg-segment text-ink shadow-sm' : 'text-ink-2'}`}
+          >
+            {item.label}
+          </button>
+        ))}
       </div>
-      {!ready && <p className="py-6 text-center text-ui text-ink-3">Loading tasks…</p>}
-      {ready && !tasks.length && (
-        <EmptyState icon={ListTodo} title="No tasks yet" hint="Add your first one below." />
-      )}
-      <div className="space-y-4">
-        {visible.map((task) => {
-          const tracking = timer?.taskId === task.id
-          return (
-            <div className="group flex items-start gap-3" key={task.id}>
-              <SquareCheck
-                checked={task.state === 'completed'}
-                onClick={() => void toggleTask(task.id)}
-                label={`${task.state === 'completed' ? 'Reopen' : 'Complete'} ${task.title}`}
-              />
+
+      <div className="mt-4">
+        <TaskComposer defaultDue={view === 'today' && now ? dayFromToday(0, now) : ''} />
+      </div>
+
+      <div className="mt-3 min-h-[220px] flex-1">
+        {(!ready || !now) && <TaskRowSkeleton rows={4} />}
+        {ready && now && !total && (
+          <div className="flex flex-col items-center px-4 py-10 text-center">
+            <span className="grid size-11 place-items-center rounded-full bg-accent-light text-accent-ink">
+              <PartyPopper size={20} />
+            </span>
+            <p className="mt-3 text-sm font-medium text-ink">
+              {view === 'today'
+                ? 'Nothing due today'
+                : view === 'upcoming'
+                  ? 'Nothing scheduled ahead'
+                  : open.length
+                    ? 'All caught up'
+                    : 'No open tasks'}
+            </p>
+            <p className="mt-0.5 text-xs text-ink-2">
+              {view !== 'all' && open.length
+                ? `${open.length} open ${open.length === 1 ? 'task has' : 'tasks have'} other dates.`
+                : 'Add a task above to get started.'}
+            </p>
+            {view !== 'all' && open.length > 0 && (
               <button
                 type="button"
-                onClick={() => setEditing(task.id)}
-                className="min-w-0 flex-1 text-left"
+                onClick={() => setView('all')}
+                className="mt-3 text-xs font-semibold text-primary-ink hover:underline"
               >
-                <p
-                  className={`break-words font-handwritten text-card leading-[20px] ${task.state === 'completed' ? 'text-ink-3 line-through' : 'text-ink'}`}
-                >
-                  {task.title}
-                </p>
-                <p className="mt-0.5 truncate font-handwritten text-xs text-ink-2">
-                  {task.code}
-                  {task.projectName && ` · ${task.projectName}`}
-                  {task.dueAt && ` · Due ${shortDate(task.dueAt)}`}
-                  {task.sharedBy && ` · from ${task.sharedBy}`}
-                </p>
-                <TaskTime
-                  seconds={loggedSeconds(task.id)}
-                  estimateMinutes={task.estimateMinutes}
-                  status={tracking ? (paused ? 'paused' : 'tracking') : null}
-                />
+                Show all open tasks
               </button>
-              {task.priority !== 'none' && (
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-2xs font-medium sm:px-2.5 ${priorityStyle(task.priority)}`}
-                >
-                  {capitalize(task.priority)}
-                </span>
-              )}
-              {task.state === 'open' && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    void (!tracking ? startTimer(task.id) : paused ? resumeTimer() : pauseTimer())
-                  }
-                  className={`grid size-6 shrink-0 place-items-center rounded-md text-secondary hover:bg-secondary-light hover:opacity-100 ${
-                    tracking ? 'bg-secondary-light opacity-100' : 'opacity-60'
-                  }`}
-                  aria-label={`${!tracking ? 'Start' : paused ? 'Resume' : 'Pause'} timer for ${task.title}`}
-                  title={!tracking ? 'Start timer' : paused ? 'Resume' : 'Pause'}
-                >
-                  {tracking && !paused ? <Pause size={13} /> : <Play size={13} />}
-                </button>
-              )}
+            )}
+          </div>
+        )}
+        {shown.map((group) => (
+          <div key={group.key} className="mt-2 first:mt-0">
+            <h3 className="flex items-center gap-2 px-2.5 pb-1 pt-2 text-2xs font-semibold uppercase tracking-[0.08em] text-ink-2">
+              <span className={`size-1.5 rounded-full ${group.tone}`} aria-hidden />
+              {group.label}
+              <span className="font-medium tabular-nums text-ink-3">{group.tasks.length}</span>
+            </h3>
+            <div>
+              {group.rows.map((task) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  seconds={secondsFor(task.id)}
+                  now={now}
+                  onOpen={setEditing}
+                  compact={narrow}
+                />
+              ))}
             </div>
-          )
-        })}
+          </div>
+        ))}
       </div>
-      {tasks.length > VISIBLE_TASKS && (
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line-soft pt-3">
+        {doneToday.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => setShowDone((value) => !value)}
+            aria-expanded={showDone}
+            className="flex items-center gap-1.5 text-xs font-medium text-ink-2 hover:text-ink"
+          >
+            <ChevronDown
+              size={14}
+              className={`transition-transform ${showDone ? 'rotate-0' : '-rotate-90'}`}
+            />
+            Completed today · {doneToday.length}
+          </button>
+        ) : (
+          <span className="text-xs text-ink-3">Nothing completed yet today</span>
+        )}
         <Link
           href={workspacePath(workspace.key, 'tasks')}
-          className="mt-3 text-xs font-medium text-secondary"
+          className="text-xs font-semibold text-primary-ink hover:underline"
         >
-          View all {tasks.length} tasks →
+          {total > VISIBLE_TASKS ? `View all ${total}` : 'Open My Tasks'} →
         </Link>
-      )}
-      <form onSubmit={submit} className="mt-3 flex gap-2">
-        <input
-          value={newTask}
-          onChange={(event) => setNewTask(event.target.value)}
-          disabled={!ready}
-          className="h-9 min-w-0 flex-1 rounded-lg border border-line-strong bg-field px-3 font-handwritten text-xs outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
-          placeholder="Add a to-do item"
-          aria-label="New to-do item"
-        />
-        <button
-          type="submit"
-          disabled={!ready}
-          className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-white disabled:opacity-60 hover:bg-primary-hover active:bg-primary-active"
-          aria-label="Add to-do item"
-        >
-          <Plus size={15} />
-        </button>
-      </form>
-      {editing && <TaskDialog taskId={editing} onClose={() => setEditing(null)} />}
-      <div className="neo-inset mt-auto rounded-lg p-2.5">
-        {timer ? (
-          <>
-            <div className="flex items-center justify-between gap-2 text-2xs text-ink-2">
-              <span className="flex items-center gap-1.5 font-handwritten">
-                <span
-                  className={`size-1.5 rounded-full ${paused ? 'bg-warning' : 'animate-pulse bg-accent'}`}
-                  aria-hidden
-                />
-                {paused ? 'Paused' : 'Now tracking'}
-              </span>
-              <span className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => void (paused ? resumeTimer() : pauseTimer())}
-                  className="flex h-6 items-center gap-1 rounded-md px-1.5 font-medium text-secondary hover:bg-secondary-light"
-                >
-                  {paused ? <Play size={11} /> : <Pause size={11} />}
-                  {paused ? 'Resume' : 'Pause'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void stopTimer()}
-                  className="flex h-6 items-center gap-1 rounded-md px-1.5 font-medium text-error-ink hover:bg-error-light"
-                >
-                  <Square size={10} /> Stop
-                </button>
-              </span>
-            </div>
-            <p className="mt-1 truncate font-handwritten text-ui font-medium">
-              {timer.taskTitle ?? 'Untitled task'}
-            </p>
-            {/* Same total as the task line above; the current run is shown underneath. */}
-            <span
-              className={`mt-1 block font-handwritten text-xl font-semibold tabular-nums leading-none ${paused ? 'text-ink-2' : ''}`}
-            >
-              {stopwatch(taskTotal)}
-            </span>
-            <span className="mt-1 block font-handwritten text-2xs text-ink-3">
-              Total on this task · this session {stopwatch(session)}
-            </span>
-          </>
-        ) : (
-          <p className="font-handwritten text-xs text-ink-2">
-            No timer running. Press <Play size={11} className="inline" /> on a task to track time.
-          </p>
-        )}
       </div>
+      {showDone && (
+        <div className="animate-page mt-1">
+          {doneToday.map((task) => (
+            <TaskRow
+              key={task.id}
+              task={task}
+              seconds={secondsFor(task.id)}
+              now={now}
+              onOpen={setEditing}
+              compact={narrow}
+            />
+          ))}
+        </div>
+      )}
+      {editing && <TaskDialog taskId={editing} onClose={() => setEditing(null)} />}
     </section>
-  )
-}
-
-/** Time logged on a task, against its estimate when it has one. */
-function TaskTime({
-  seconds,
-  estimateMinutes,
-  status,
-}: {
-  seconds: number
-  estimateMinutes: number | null
-  /** Set while this task's timer is active. */
-  status: 'tracking' | 'paused' | null
-}) {
-  const running = status !== null
-  const over = Boolean(estimateMinutes && seconds / 60 > estimateMinutes)
-  return (
-    <p
-      className={`mt-1 flex items-center gap-1 font-handwritten text-xs font-medium ${
-        over ? 'text-error-ink' : running ? 'text-accent-ink' : 'text-secondary'
-      }`}
-    >
-      <Clock size={12} className="shrink-0" />
-      {running ? stopwatch(seconds) : duration(seconds / 60)}
-      {estimateMinutes ? ` of ${duration(estimateMinutes)}` : ' logged'}
-      {status && ` · ${status}`}
-    </p>
   )
 }

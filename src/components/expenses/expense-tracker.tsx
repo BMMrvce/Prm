@@ -166,7 +166,7 @@ export function ExpenseTracker() {
 
   const shown = filter === 'all' ? records : records.filter((record) => record.kind === filter)
   const input =
-    'mt-2 h-10 w-full rounded-lg border border-line-strong bg-field px-3 text-sm outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15'
+    'mt-2 h-10 w-full rounded-lg border border-line-strong bg-field px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20'
   const net = income - spent
 
   return (
@@ -197,7 +197,7 @@ export function ExpenseTracker() {
             type="button"
             onClick={() => showMonth(month)}
             aria-pressed={viewMonth === month}
-            className={`rounded-md px-2.5 py-1 ${viewMonth === month ? 'bg-surface shadow-sm' : 'text-ink-2'}`}
+            className={`rounded-md px-2.5 py-1 ${viewMonth === month ? 'bg-segment shadow-sm' : 'text-ink-2'}`}
           >
             This month
           </button>
@@ -205,7 +205,7 @@ export function ExpenseTracker() {
             type="button"
             onClick={() => showMonth('all')}
             aria-pressed={viewMonth === 'all'}
-            className={`rounded-md px-2.5 py-1 ${viewMonth === 'all' ? 'bg-surface shadow-sm' : 'text-ink-2'}`}
+            className={`rounded-md px-2.5 py-1 ${viewMonth === 'all' ? 'bg-segment shadow-sm' : 'text-ink-2'}`}
           >
             All time
           </button>
@@ -302,7 +302,7 @@ export function ExpenseTracker() {
                   key={value}
                   onClick={() => switchKind(value)}
                   aria-pressed={kind === value}
-                  className={`rounded-md py-2 ${kind === value ? 'bg-surface shadow-sm' : 'text-ink-2'}`}
+                  className={`rounded-md py-2 ${kind === value ? 'bg-segment shadow-sm' : 'text-ink-2'}`}
                 >
                   {value === 'income' ? 'Income' : 'Expense'}
                 </button>
@@ -364,7 +364,7 @@ export function ExpenseTracker() {
             />
           </label>
           <button
-            className="mt-5 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-60"
+            className="mt-5 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60"
             type="submit"
             disabled={!ready}
           >
@@ -389,7 +389,7 @@ export function ExpenseTracker() {
                     key={value}
                     onClick={() => setFilter(value)}
                     aria-pressed={filter === value}
-                    className={`rounded-md px-3 py-1.5 ${filter === value ? 'bg-surface shadow-sm' : 'text-ink-2'}`}
+                    className={`rounded-md px-3 py-1.5 ${filter === value ? 'bg-segment shadow-sm' : 'text-ink-2'}`}
                   >
                     {value === 'all' ? 'All' : value === 'income' ? 'Income' : 'Expenses'}
                   </button>
@@ -425,7 +425,7 @@ export function ExpenseTracker() {
                   key={record.id}
                 >
                   <span
-                    className={`grid size-7 place-items-center rounded-full ${isIncome ? 'bg-accent-light text-accent-ink' : 'bg-secondary-light text-secondary'}`}
+                    className={`grid size-7 place-items-center rounded-full ${isIncome ? 'bg-accent-light text-accent-ink' : 'bg-primary-light text-primary-ink'}`}
                     aria-label={isIncome ? 'Income' : 'Expense'}
                   >
                     {isIncome ? <ArrowDownLeft size={14} /> : <ArrowUpRight size={14} />}

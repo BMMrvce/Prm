@@ -1,18 +1,15 @@
 'use client'
 
-import { CalendarClock, CheckSquare, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { TaskDialog } from '@/components/tasks/task-dialog'
 import { localDate, sameDay, timeOfDay, weekRange } from '@/lib/format'
+import { meetingStyle, type MeetingCategory } from '@/lib/meetings'
 import { useWorkspace } from '@/state/workbench-store'
 import type { Meeting, WorkspaceTask } from '@/types/workbench'
-import { durationLabel, durations, MeetingDialog } from './meeting-dialog'
-
-function nextHour() {
-  const date = new Date()
-  date.setHours(date.getHours() + 1, 0, 0, 0)
-  return `${String(date.getHours()).padStart(2, '0')}:00`
-}
+import { DayDialog } from './day-dialog'
+import { MeetingDialog } from './meeting-dialog'
+import { useMeetingCategories } from './use-meeting-categories'
 
 function addDays(date: Date, days: number) {
   const next = new Date(date)
@@ -51,27 +48,27 @@ function monthGrid(cursor: Date) {
 
 /**
  * Meetings (from `meetings`) and task due dates by day: one day, one week or a month grid,
- * with previous / next / today navigation. Click an item to edit it, or a day in the month
- * grid to open it.
+ * with previous / next / today navigation. Click an item to edit it; click a day (or +) to
+ * see that day and add a meeting or to-do to it.
  */
 export function CalendarPanel({
   defaultRange = 'Week',
   compact = false,
+  side = false,
 }: {
   /** View shown first: the dashboard opens on Month, the Calendar page on Week. */
   defaultRange?: Range
   /** Shorter month cells, for the dashboard. */
   compact?: boolean
+  /** Narrow side column: dot markers in the month grid and stacked forms. */
+  side?: boolean
 } = {}) {
-  const { ready, meetings, meetingWeeks, tasks, addMeeting, addTask, loadWeek } = useWorkspace()
+  const { ready, meetings, meetingWeeks, tasks, loadWeek } = useWorkspace()
+  // Office and Studio color meetings by who they are with (Guru, Arjun, Client).
+  const categories = useMeetingCategories()
   const [range, setRange] = useState<Range>(defaultRange)
-  /** The + menu, or which kind of item is being added. */
-  const [adding, setAdding] = useState<'menu' | 'meeting' | 'todo' | null>(null)
-  const [title, setTitle] = useState('')
-  const [date, setDate] = useState('')
-  const [time, setTime] = useState('09:00')
-  const [duration, setDuration] = useState(30)
-  const [link, setLink] = useState('')
+  /** The day whose add / overview dialog is open. */
+  const [dayDialog, setDayDialog] = useState<Date | null>(null)
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null)
   const [editingTask, setEditingTask] = useState<string | null>(null)
   // Dates depend on the viewer's clock, so they are filled in after mount.
@@ -133,52 +130,21 @@ export function CalendarPanel({
     setRange('Day')
   }
 
-  const openForm = (kind: 'meeting' | 'todo') => {
-    const firstShown = days.find(inMonth) ?? days[0]
-    setDate(localDate(showsToday || !firstShown ? new Date() : firstShown))
-    setTime(kind === 'meeting' ? nextHour() : '')
-    setAdding(kind)
-  }
-
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!title.trim() || !date) return
-    if (adding === 'todo') {
-      // Without a time the to-do is due at the end of the day.
-      const ok = await addTask({
-        title: title.trim(),
-        dueAt: new Date(`${date}T${time || '23:59'}`).toISOString(),
-      })
-      if (ok) {
-        setTitle('')
-        setAdding(null)
-      }
-      return
-    }
-    if (!time) return
-    const starts = new Date(`${date}T${time}`)
-    const ends = new Date(starts.getTime() + duration * 60_000)
-    const ok = await addMeeting({
-      title: title.trim(),
-      startsAt: starts.toISOString(),
-      endsAt: ends.toISOString(),
-      meetingUrl: link.trim() || undefined,
-    })
-    if (ok) {
-      setTitle('')
-      setLink('')
-      setAdding(null)
-    }
-  }
-
-  const field =
-    'h-9 min-w-0 rounded-lg border border-line-strong bg-field px-2 text-xs outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15'
+  /** The + button adds to today when it is on screen, else the first day shown. */
+  const defaultDay = () =>
+    showsToday && today ? today : (days.find(inMonth) ?? days[0] ?? new Date())
 
   return (
-    <section className="neo-card min-h-[437px] min-w-0 overflow-hidden rounded-xl p-[18px]">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <section className="neo-card min-w-0 overflow-hidden rounded-xl p-4 sm:p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <h2 className="mr-1 text-card font-semibold">Calendar view</h2>
+          <span
+            className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary-light text-primary-ink"
+            aria-hidden
+          >
+            <CalendarDays size={17} />
+          </span>
+          <h2 className="mr-1 text-card font-semibold">Calendar</h2>
           <button
             type="button"
             onClick={() => today && setCursor(today)}
@@ -219,36 +185,16 @@ export function CalendarPanel({
           )}
         </div>
         <div className="flex gap-2">
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setAdding((current) => (current ? null : 'menu'))}
-              disabled={!ready}
-              className="grid size-9 place-items-center rounded-lg border border-line-strong bg-surface text-secondary disabled:opacity-50"
-              aria-label="Add calendar item"
-              aria-expanded={adding === 'menu'}
-            >
-              <Plus size={15} className={`transition-transform ${adding ? 'rotate-45' : ''}`} />
-            </button>
-            {adding === 'menu' && (
-              <div className="animate-pop absolute right-0 top-11 z-20 w-44 overflow-hidden rounded-xl border border-line bg-surface py-1 shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => openForm('meeting')}
-                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-ui hover:bg-primary-subtle"
-                >
-                  <CalendarClock size={15} className="text-accent-ink" /> Meeting
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openForm('todo')}
-                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-ui hover:bg-primary-subtle"
-                >
-                  <CheckSquare size={15} className="text-primary-ink" /> To-do
-                </button>
-              </div>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => setDayDialog(defaultDay())}
+            disabled={!ready}
+            className="grid size-9 place-items-center rounded-lg border border-line-strong bg-surface text-primary-ink hover:border-primary/50 disabled:opacity-50"
+            aria-label="Add a meeting or to-do"
+            title="Add a meeting or to-do"
+          >
+            <Plus size={15} />
+          </button>
           <div
             className="flex rounded-lg border border-line bg-surface-2 p-1"
             role="group"
@@ -272,119 +218,23 @@ export function CalendarPanel({
           </div>
         </div>
       </div>
-      {adding === 'todo' && (
-        <form
-          onSubmit={submit}
-          className="animate-pop mb-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]"
-        >
-          <input
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            className={`${field} px-3`}
-            placeholder="To-do title"
-            aria-label="To-do title"
-            autoFocus
-            required
-          />
-          <input
-            type="date"
-            value={date}
-            onChange={(event) => setDate(event.target.value)}
-            className={field}
-            aria-label="Due date"
-            required
-          />
-          <input
-            type="time"
-            value={time}
-            onChange={(event) => setTime(event.target.value)}
-            className={field}
-            aria-label="Due time (optional)"
-            title="Optional: leave empty for end of day"
-          />
-          <button
-            className="h-9 rounded-lg bg-primary px-3 text-xs font-medium text-white hover:bg-primary-hover active:bg-primary-active"
-            type="submit"
-          >
-            Add to-do
-          </button>
-        </form>
-      )}
-      {adding === 'meeting' && (
-        <form
-          onSubmit={submit}
-          className="animate-pop mb-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]"
-        >
-          <input
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            className={`${field} px-3 sm:col-span-4`}
-            placeholder="Meeting or event title"
-            aria-label="Event title"
-            autoFocus
-            required
-          />
-          <input
-            type="url"
-            value={link}
-            onChange={(event) => setLink(event.target.value)}
-            className={`${field} px-3`}
-            placeholder="Meeting link (optional)"
-            aria-label="Meeting link"
-          />
-          <input
-            type="date"
-            value={date}
-            onChange={(event) => setDate(event.target.value)}
-            className={field}
-            aria-label="Date"
-            required
-          />
-          <input
-            type="time"
-            value={time}
-            onChange={(event) => setTime(event.target.value)}
-            className={field}
-            aria-label="Start time"
-            required
-          />
-          <div className="flex gap-2">
-            <select
-              value={duration}
-              onChange={(event) => setDuration(Number(event.target.value))}
-              className={field}
-              aria-label="Duration"
-            >
-              {durations.map((minutes) => (
-                <option key={minutes} value={minutes}>
-                  {durationLabel(minutes)}
-                </option>
-              ))}
-            </select>
-            <button
-              className="h-9 rounded-lg bg-primary px-3 text-xs font-medium text-white hover:bg-primary-hover active:bg-primary-active"
-              type="submit"
-            >
-              Add
-            </button>
-          </div>
-        </form>
-      )}
       {range === 'Month' ? (
         <MonthGrid
           days={days}
           today={today}
           inMonth={inMonth}
           compact={compact}
+          side={side}
+          categories={categories}
           itemsOn={itemsOn}
-          onOpenDay={openDay}
+          onPickDay={setDayDialog}
           onEditMeeting={setEditingMeeting}
           onEditTask={setEditingTask}
         />
       ) : (
         <div
           className={`grid min-h-[361px] gap-2 ${
-            range === 'Week'
+            range === 'Week' && !side
               ? 'grid-cols-2 sm:grid-cols-4 md:gap-2.5 lg:grid-cols-7'
               : 'grid-cols-1'
           }`}
@@ -394,34 +244,43 @@ export function CalendarPanel({
             const isToday = today ? sameDay(day, today) : false
             return (
               <div
-                className={`min-w-0 rounded-lg border p-2.5 ${
-                  isToday
-                    ? 'border-secondary/40 bg-secondary-subtle'
-                    : 'border-line-soft bg-surface'
+                className={`min-w-0 cursor-pointer rounded-lg border p-2.5 hover:border-primary/40 ${
+                  isToday ? 'border-primary/40 bg-primary-subtle' : 'border-line-soft bg-surface'
                 }`}
                 key={day.toISOString()}
+                // Empty space in the column opens the day; items keep their own clicks.
+                onClick={(event) => {
+                  if (event.target === event.currentTarget) setDayDialog(day)
+                }}
               >
-                <p className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setDayDialog(day)}
+                  className="flex items-center gap-1.5 rounded-md pr-1 hover:bg-surface-2"
+                  aria-label={`Add to ${day.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}`}
+                >
                   <span
-                    className={`text-2xs font-medium uppercase tracking-[0.06em] ${isToday ? 'text-secondary' : 'text-ink-3'}`}
+                    className={`text-2xs font-medium uppercase tracking-[0.06em] ${isToday ? 'text-primary-ink' : 'text-ink-3'}`}
                   >
                     {day.toLocaleDateString([], { weekday: 'short' })}
                   </span>
                   <span
                     className={`grid size-6 place-items-center rounded-full text-ui font-semibold ${
-                      isToday ? 'bg-secondary text-on-primary' : 'text-ink'
+                      isToday ? 'bg-primary text-on-primary' : 'text-ink'
                     }`}
                     aria-current={isToday ? 'date' : undefined}
                   >
                     {day.getDate()}
                   </span>
-                </p>
+                </button>
                 {dayMeetings.map((meeting) => (
                   <button
                     type="button"
                     key={meeting.id}
                     onClick={() => setEditingMeeting(meeting)}
-                    className="mt-2 block w-full break-words rounded-md border-l-2 border-accent bg-accent-light px-2 py-1 text-left text-xs leading-4 text-accent-ink hover:brightness-95"
+                    className={`mt-2 block w-full break-words rounded-md border-l-2 px-2 py-1 text-left text-xs leading-4 hover:brightness-95 ${
+                      meetingStyle(meeting, categories).border
+                    } ${meetingStyle(meeting, categories).chip}`}
                     aria-label={`Edit ${meeting.title}`}
                   >
                     {timeOfDay(meeting.startsAt)} · {meeting.title}
@@ -432,19 +291,50 @@ export function CalendarPanel({
                     type="button"
                     key={task.id}
                     onClick={() => setEditingTask(task.id)}
-                    className="mt-2 block w-full break-words rounded-md border-l-2 border-secondary bg-secondary-subtle px-2 py-1 text-left text-xs leading-4 text-secondary hover:brightness-95"
+                    className="mt-2 block w-full break-words rounded-md border-l-2 border-primary bg-primary-subtle px-2 py-1 text-left text-xs leading-4 text-primary-ink hover:brightness-95"
                     aria-label={`Edit task ${task.title}`}
                   >
                     Due · {task.title}
                   </button>
                 ))}
                 {!dayMeetings.length && !dueTasks.length && range === 'Day' && (
-                  <p className="mt-3 text-xs text-ink-3">Nothing scheduled.</p>
+                  <button
+                    type="button"
+                    onClick={() => setDayDialog(day)}
+                    className="mt-3 text-xs text-ink-3 hover:text-primary-ink"
+                  >
+                    Nothing scheduled. Click to add a meeting or to-do.
+                  </button>
                 )}
               </div>
             )
           })}
         </div>
+      )}
+      {dayDialog && (
+        <DayDialog
+          day={dayDialog}
+          meetings={itemsOn(dayDialog).meetings}
+          tasks={itemsOn(dayDialog).due}
+          categories={categories}
+          onClose={() => setDayDialog(null)}
+          onEditMeeting={(meeting) => {
+            setDayDialog(null)
+            setEditingMeeting(meeting)
+          }}
+          onEditTask={(id) => {
+            setDayDialog(null)
+            setEditingTask(id)
+          }}
+          onOpenDay={
+            range === 'Day'
+              ? undefined
+              : () => {
+                  openDay(dayDialog)
+                  setDayDialog(null)
+                }
+          }
+        />
       )}
       {editingMeeting && (
         <MeetingDialog meeting={editingMeeting} onClose={() => setEditingMeeting(null)} />
@@ -462,8 +352,10 @@ function MonthGrid({
   today,
   inMonth,
   compact,
+  side,
+  categories,
   itemsOn,
-  onOpenDay,
+  onPickDay,
   onEditMeeting,
   onEditTask,
 }: {
@@ -471,13 +363,19 @@ function MonthGrid({
   today: Date | null
   inMonth: (day: Date) => boolean
   compact: boolean
+  side: boolean
+  categories: MeetingCategory[] | null
   itemsOn: (day: Date) => { meetings: Meeting[]; due: WorkspaceTask[] }
-  onOpenDay: (day: Date) => void
+  /** Opens the day's dialog (its items plus adding a meeting or to-do). */
+  onPickDay: (day: Date) => void
   onEditMeeting: (meeting: Meeting) => void
   onEditTask: (id: string) => void
 }) {
   // The dashboard's shorter cells fit two chips; the Calendar page fits three.
-  const limit = compact ? 2 : MAX_CHIPS
+  const limit = side ? 3 : compact ? 2 : MAX_CHIPS
+  // Narrow columns always use dots; otherwise dots on phones and chips from sm up.
+  const dots = side ? 'flex' : 'flex sm:hidden'
+  const chips = side ? 'hidden' : 'hidden sm:block'
   return (
     <div className="overflow-hidden rounded-lg border border-line">
       <div className="grid grid-cols-7 border-b border-line bg-surface-2">
@@ -486,8 +384,10 @@ function MonthGrid({
             key={day.getDay()}
             className="py-2 text-center text-2xs font-semibold uppercase tracking-[0.06em] text-ink-3"
           >
-            <span className="sm:hidden">{day.toLocaleDateString([], { weekday: 'narrow' })}</span>
-            <span className="hidden sm:inline">
+            <span className={side ? '' : 'sm:hidden'}>
+              {day.toLocaleDateString([], { weekday: 'narrow' })}
+            </span>
+            <span className={side ? 'hidden' : 'hidden sm:inline'}>
               {day.toLocaleDateString([], { weekday: 'short' })}
             </span>
           </p>
@@ -506,21 +406,27 @@ function MonthGrid({
           return (
             <div
               key={day.toISOString()}
-              className={`group relative flex min-h-[64px] min-w-0 flex-col p-1 sm:p-1.5 ${
-                compact ? 'sm:min-h-[92px]' : 'sm:min-h-[112px]'
-              } ${isToday ? 'bg-secondary-subtle' : outside ? 'bg-surface-2/60' : 'bg-surface'}`}
+              // Empty space in the cell opens the day; chips keep their own clicks.
+              onClick={(event) => {
+                if (event.target === event.currentTarget) onPickDay(day)
+              }}
+              className={`group relative flex min-w-0 cursor-pointer flex-col p-1 hover:bg-surface-2 ${
+                side
+                  ? 'min-h-[54px]'
+                  : `min-h-[64px] sm:p-1.5 ${compact ? 'sm:min-h-[92px]' : 'sm:min-h-[112px]'}`
+              } ${isToday ? 'bg-primary-subtle' : outside ? 'bg-surface-2/60' : 'bg-surface'}`}
             >
               <button
                 type="button"
-                onClick={() => onOpenDay(day)}
+                onClick={() => onPickDay(day)}
                 className={`grid size-7 place-items-center self-start rounded-full text-ui font-medium tabular-nums hover:bg-surface-3 ${
                   isToday
-                    ? 'bg-secondary font-semibold text-on-primary hover:bg-secondary-hover'
+                    ? 'bg-primary font-semibold text-on-primary hover:bg-primary-hover'
                     : outside
                       ? 'text-ink-3'
                       : 'text-ink'
                 }`}
-                aria-label={`Open ${day.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}`}
+                aria-label={`${day.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}: view and add`}
                 aria-current={isToday ? 'date' : undefined}
               >
                 {day.getDate()}
@@ -530,31 +436,47 @@ function MonthGrid({
               {items.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => onOpenDay(day)}
-                  className="mt-auto flex justify-center gap-1 pb-1 sm:hidden"
+                  onClick={() => onPickDay(day)}
+                  className={`mt-auto justify-center gap-1 pb-1 ${dots}`}
                   aria-label={`${items.length} items`}
+                  title={items
+                    .map((item) =>
+                      item.kind === 'meeting'
+                        ? `${timeOfDay(item.meeting.startsAt)} · ${item.meeting.title}`
+                        : `Due · ${item.task.title}`,
+                    )
+                    .join('\n')}
                 >
                   {items.slice(0, limit).map((item) => (
                     <span
                       key={item.kind === 'meeting' ? item.meeting.id : item.task.id}
-                      className={`size-1.5 rounded-full ${item.kind === 'meeting' ? 'bg-accent' : 'bg-secondary'}`}
+                      className={`size-1.5 rounded-full ${
+                        item.kind === 'meeting'
+                          ? meetingStyle(item.meeting, categories).dot
+                          : 'bg-primary'
+                      }`}
                     />
                   ))}
                 </button>
               )}
 
               {/* Larger screens: chips, then "+N more". */}
-              <div className="mt-1 hidden min-w-0 space-y-1 sm:block">
+              <div className={`mt-1 min-w-0 space-y-1 ${chips}`}>
                 {items.slice(0, limit).map((item) =>
                   item.kind === 'meeting' ? (
                     <button
                       type="button"
                       key={item.meeting.id}
                       onClick={() => onEditMeeting(item.meeting)}
-                      className="flex w-full min-w-0 items-center gap-1.5 rounded-md bg-accent-light px-1.5 py-0.5 text-left text-2xs text-accent-ink hover:brightness-95"
+                      className={`flex w-full min-w-0 items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left text-2xs hover:brightness-95 ${
+                        meetingStyle(item.meeting, categories).chip
+                      }`}
                       title={`${timeOfDay(item.meeting.startsAt)} · ${item.meeting.title}`}
                     >
-                      <span className="size-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+                      <span
+                        className={`size-1.5 shrink-0 rounded-full ${meetingStyle(item.meeting, categories).dot}`}
+                        aria-hidden
+                      />
                       <span className="shrink-0 tabular-nums">
                         {timeOfDay(item.meeting.startsAt)}
                       </span>
@@ -565,10 +487,10 @@ function MonthGrid({
                       type="button"
                       key={item.task.id}
                       onClick={() => onEditTask(item.task.id)}
-                      className="flex w-full min-w-0 items-center gap-1.5 rounded-md bg-secondary-subtle px-1.5 py-0.5 text-left text-2xs text-secondary hover:brightness-95"
+                      className="flex w-full min-w-0 items-center gap-1.5 rounded-md bg-primary-subtle px-1.5 py-0.5 text-left text-2xs text-primary-ink hover:brightness-95"
                       title={`Due · ${item.task.title}`}
                     >
-                      <span className="size-1.5 shrink-0 rounded-full bg-secondary" aria-hidden />
+                      <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
                       <span className="truncate font-medium">{item.task.title}</span>
                     </button>
                   ),
@@ -576,7 +498,7 @@ function MonthGrid({
                 {hidden > 0 && (
                   <button
                     type="button"
-                    onClick={() => onOpenDay(day)}
+                    onClick={() => onPickDay(day)}
                     className="px-1.5 text-2xs font-medium text-ink-2 hover:text-ink"
                   >
                     +{hidden} more

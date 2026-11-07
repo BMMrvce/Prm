@@ -47,13 +47,13 @@ export function shortDate(iso: string) {
   return new Date(iso).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-/** "Good morning · Thu, 5 Nov · 3:42 PM" for the home header. */
-export function greeting(now = new Date()) {
+/** Home heading parts: "Good afternoon" and "Saturday, 7 November · 4:30 pm". */
+export function greetingParts(now = new Date()) {
   const hour = now.getHours()
-  const part = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-  const date = now.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })
+  const salutation = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const date = now.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })
   const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-  return `${part} · ${date} · ${time}`
+  return { salutation, when: `${date} · ${time}` }
 }
 
 /** `HH:MM:SS` stopwatch text. */

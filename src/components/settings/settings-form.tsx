@@ -1,9 +1,13 @@
 'use client'
 
-import { Settings } from 'lucide-react'
+import { Palette, Settings } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
+import { ThemePicker } from '@/components/shell/theme-controls'
+import { categoriesEnabled } from '@/lib/meetings'
 import { useToast, useWorkspace } from '@/state/workbench-store'
 import type { Currency } from '@/types/workbench'
+import { MeetingColors } from './meeting-colors'
+import { ProjectColors } from './project-colors'
 
 const currencies: [Currency, string][] = [
   ['USD', 'USD — US Dollar'],
@@ -59,13 +63,13 @@ export function SettingsForm() {
   }
 
   const input =
-    'mt-2 h-10 w-full rounded-lg border border-line-strong bg-field px-3 text-sm outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15'
+    'mt-2 h-10 w-full rounded-lg border border-line-strong bg-field px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20'
 
   return (
     <div className="max-w-3xl space-y-4">
       <form onSubmit={submit} className="neo-card rounded-xl p-6">
         <div className="flex items-center gap-3">
-          <Settings size={20} className="text-secondary" />
+          <Settings size={20} className="text-primary-ink" />
           <div>
             <h3 className="font-semibold">Workspace settings</h3>
             <p className="text-xs text-ink-2">{workspace.switchLabel} workspace</p>
@@ -109,11 +113,27 @@ export function SettingsForm() {
         <button
           type="submit"
           disabled={!ready || saving}
-          className="mt-6 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-60"
+          className="mt-6 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60"
         >
           {saving ? 'Saving…' : 'Save changes'}
         </button>
       </form>
+      <section className="neo-card rounded-xl p-6">
+        <div className="flex items-center gap-3">
+          <Palette size={20} className="text-primary-ink" />
+          <div>
+            <h3 className="font-semibold">Appearance</h3>
+            <p className="text-xs text-ink-2">
+              Light or dark theme for this browser. System follows your device setting.
+            </p>
+          </div>
+        </div>
+        <div className="mt-5">
+          <ThemePicker size="md" />
+        </div>
+      </section>
+      {categoriesEnabled(workspace.key) && <MeetingColors />}
+      <ProjectColors />
       <section className="neo-card flex flex-wrap items-center gap-3 rounded-xl p-6">
         <div className="mr-auto min-w-0">
           <h3 className="font-semibold">Account</h3>

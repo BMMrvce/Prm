@@ -1,193 +1,144 @@
 'use client'
 
-import { Users } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
-import { DurationInput } from '@/components/ui/duration-input'
-import { SquareCheck } from '@/components/ui/square-check'
-import { capitalize, duration, entrySeconds, priorityStyle, shortDate } from '@/lib/format'
+import { CheckCheck, ListChecks, Search, X } from 'lucide-react'
+import { useState } from 'react'
+import { groupByDue } from '@/lib/tasks'
 import { useWorkspace } from '@/state/workbench-store'
-import type { Priority } from '@/types/workbench'
+import { TaskComposer } from './task-composer'
 import { TaskDialog } from './task-dialog'
+import { TaskRow, TaskRowSkeleton } from './task-row'
+import { useNow, useTaskTime } from './use-task-time'
 
-const priorities: Priority[] = ['none', 'low', 'medium', 'high', 'urgent']
-
-/** Task list with a full add form; pass `projectId` to scope it to one project. */
+/**
+ * The full task list: a composer with every option, open tasks grouped by due date
+ * (Overdue, Today, Next 7 days, Later, No due date) or completed tasks newest first, and a
+ * filter. Pass `projectId` to scope it to one project.
+ */
 export function TaskBoard({ projectId }: { projectId?: string }) {
-  const { ready, tasks: allTasks, projects, timeEntries, toggleTask, addTask } = useWorkspace()
+  const { ready, tasks: allTasks } = useWorkspace()
+  const { secondsFor } = useTaskTime()
+  const now = useNow()
   const [filter, setFilter] = useState<'open' | 'completed'>('open')
-  const [title, setTitle] = useState('')
-  const [project, setProject] = useState('')
-  const [priority, setPriority] = useState<Priority>('none')
-  const [due, setDue] = useState('')
-  const [estimate, setEstimate] = useState<number | null>(null)
+  const [query, setQuery] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
 
   const scoped = projectId ? allTasks.filter((task) => task.projectId === projectId) : allTasks
-  const tasks = scoped.filter((task) => task.state === filter)
   const openCount = scoped.filter((task) => task.state === 'open').length
-  const loggedMinutes = new Map<string, number>()
-  for (const entry of timeEntries) {
-    if (entry.taskId) {
-      loggedMinutes.set(
-        entry.taskId,
-        (loggedMinutes.get(entry.taskId) ?? 0) + entrySeconds(entry) / 60,
-      )
-    }
-  }
-
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!title.trim()) return
-    const ok = await addTask({
-      title: title.trim(),
-      projectId: projectId ?? (project || undefined),
-      priority,
-      // End of the chosen day, local time.
-      dueAt: due ? new Date(`${due}T23:59`).toISOString() : null,
-      estimateMinutes: estimate,
-    })
-    if (ok) {
-      setTitle('')
-      setDue('')
-      setEstimate(null)
-      setPriority('none')
-    }
-  }
-
-  const control =
-    'h-10 min-w-0 rounded-lg border border-line-strong bg-field px-3 text-sm outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15'
+  const doneCount = scoped.filter((task) => task.state === 'completed').length
+  const term = query.trim().toLowerCase()
+  const tasks = scoped.filter(
+    (task) =>
+      task.state === filter &&
+      (!term ||
+        task.title.toLowerCase().includes(term) ||
+        task.code.toLowerCase().includes(term) ||
+        (task.projectName ?? '').toLowerCase().includes(term)),
+  )
+  const groups =
+    filter === 'open'
+      ? now
+        ? groupByDue(tasks, now)
+        : []
+      : [
+          {
+            key: 'done',
+            label: 'Completed',
+            tone: 'bg-success',
+            tasks: [...tasks].sort((a, b) =>
+              (b.completedAt ?? '').localeCompare(a.completedAt ?? ''),
+            ),
+          },
+        ]
 
   return (
-    <section className="neo-card min-w-0 overflow-hidden rounded-xl">
-      <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-4">
-        <div className="mr-auto">
-          <h3 className="font-semibold">{projectId ? 'Project tasks' : 'All tasks'}</h3>
-          <p className="text-xs text-ink-2">{openCount} open tasks</p>
-        </div>
-        <div className="flex rounded-lg bg-surface-2 p-0.5 text-xs font-medium">
-          {(['open', 'completed'] as const).map((value) => (
-            <button
-              type="button"
-              key={value}
-              onClick={() => setFilter(value)}
-              className={`rounded-md px-3 py-1.5 capitalize ${filter === value ? 'bg-surface shadow-sm' : 'text-ink-2'}`}
-            >
-              {value}
-            </button>
-          ))}
-        </div>
-      </div>
-      <form
-        onSubmit={submit}
-        className="grid gap-2 border-b border-line-soft p-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_auto_auto_190px_auto]"
-      >
-        <input
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          className={`${control} sm:col-span-2 xl:col-span-1`}
-          placeholder="Add a task"
-          aria-label="Task title"
-        />
-        {!projectId && (
-          <select
-            value={project}
-            onChange={(event) => setProject(event.target.value)}
-            className={control}
-            aria-label="Project"
-          >
-            <option value="">General</option>
-            {projects
-              .filter((item) => item.slug !== 'general')
-              .map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                  {item.sharedBy ? ` (${item.sharedBy})` : ''}
-                </option>
-              ))}
-          </select>
-        )}
-        <select
-          value={priority}
-          onChange={(event) => setPriority(event.target.value as Priority)}
-          className={control}
-          aria-label="Priority"
-        >
-          {priorities.map((value) => (
-            <option key={value} value={value}>
-              {value === 'none' ? 'No priority' : capitalize(value)}
-            </option>
-          ))}
-        </select>
-        <input
-          type="date"
-          value={due}
-          onChange={(event) => setDue(event.target.value)}
-          className={control}
-          aria-label="Due date"
-        />
-        <DurationInput value={estimate} onChange={setEstimate} label="Estimate" />
-        <button
-          className="h-10 rounded-lg bg-primary px-4 text-sm font-medium text-white disabled:opacity-60 hover:bg-primary-hover active:bg-primary-active"
-          type="submit"
-          disabled={!ready}
-        >
-          Add task
-        </button>
-      </form>
-      {!ready && <p className="px-5 py-8 text-center text-sm text-ink-3">Loading tasks…</p>}
-      {ready && !tasks.length && (
-        <p className="px-5 py-8 text-center text-sm text-ink-3">
-          {filter === 'open' ? 'No open tasks.' : 'No completed tasks yet.'}
-        </p>
-      )}
-      <div className="divide-y divide-line-soft">
-        {tasks.map((task) => (
+    <section className="min-w-0 space-y-4">
+      <TaskComposer projectId={projectId} variant="full" />
+
+      <div className="neo-card min-w-0 overflow-hidden rounded-xl">
+        <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3 sm:px-5">
           <div
-            className="flex w-full items-center gap-3 px-5 py-4 hover:bg-primary-subtle"
-            key={task.id}
+            className="flex rounded-lg border border-line bg-surface-2 p-0.5 text-xs font-medium"
+            role="tablist"
+            aria-label="Task state"
           >
-            <SquareCheck
-              checked={task.state === 'completed'}
-              onClick={() => void toggleTask(task.id)}
-              label={`Toggle ${task.title}`}
+            {(
+              [
+                ['open', 'Open', ListChecks, openCount],
+                ['completed', 'Completed', CheckCheck, doneCount],
+              ] as const
+            ).map(([value, label, Icon, count]) => (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={filter === value}
+                key={value}
+                onClick={() => setFilter(value)}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 ${filter === value ? 'bg-segment text-ink shadow-sm' : 'text-ink-2 hover:text-ink'}`}
+              >
+                <Icon size={14} />
+                {label}
+                <span className="tabular-nums text-ink-3">{count}</span>
+              </button>
+            ))}
+          </div>
+          <div className="relative ml-auto w-full sm:w-64">
+            <Search
+              size={14}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-3"
             />
-            <button
-              type="button"
-              onClick={() => setEditing(task.id)}
-              className="min-w-0 flex-1 text-left"
-            >
-              <p
-                className={`break-words text-sm font-medium ${task.state === 'completed' ? 'text-ink-3 line-through' : ''}`}
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              className="h-9 w-full rounded-lg border border-line-strong bg-field pl-8 pr-8 text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              placeholder="Filter tasks"
+              aria-label="Filter tasks"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                className="absolute right-2 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-md text-ink-3 hover:text-ink"
+                aria-label="Clear filter"
               >
-                {task.title}
-              </p>
-              <p className="mt-1 truncate text-xs text-ink-2">
-                {task.code}
-                {!projectId && task.projectName && ` · ${task.projectName}`}
-                {task.dueAt && ` · Due ${shortDate(task.dueAt)}`}
-                {task.estimateMinutes || loggedMinutes.get(task.id)
-                  ? ` · ${duration(loggedMinutes.get(task.id) ?? 0)}${task.estimateMinutes ? ` / ${duration(task.estimateMinutes)}` : ''}`
-                  : null}
-                {task.sharedBy && ` · from ${task.sharedBy}`}
-              </p>
-            </button>
-            {task.assignees.length > 0 && (
-              <span
-                className="flex shrink-0 items-center gap-1 text-2xs text-ink-2"
-                title={`${task.assignees.length} tagged`}
-              >
-                <Users size={13} /> {task.assignees.length}
-              </span>
-            )}
-            {task.priority !== 'none' && (
-              <span
-                className={`shrink-0 rounded-full px-2 py-1 text-2xs ${priorityStyle(task.priority)}`}
-              >
-                {capitalize(task.priority)}
-              </span>
+                <X size={13} />
+              </button>
             )}
           </div>
-        ))}
+        </div>
+
+        <div className="p-2 sm:p-3">
+          {(!ready || !now) && <TaskRowSkeleton rows={5} />}
+          {ready && now && !tasks.length && (
+            <p className="px-3 py-10 text-center text-sm text-ink-3">
+              {term
+                ? 'No tasks match that filter.'
+                : filter === 'open'
+                  ? 'No open tasks. Add one above.'
+                  : 'No completed tasks yet.'}
+            </p>
+          )}
+          {groups
+            .filter((group) => group.tasks.length)
+            .map((group) => (
+              <div key={group.key} className="mt-3 first:mt-0">
+                <h3 className="flex items-center gap-2 px-2.5 pb-1 pt-1 text-2xs font-semibold uppercase tracking-[0.08em] text-ink-2">
+                  <span className={`size-1.5 rounded-full ${group.tone}`} aria-hidden />
+                  {group.label}
+                  <span className="font-medium tabular-nums text-ink-3">{group.tasks.length}</span>
+                </h3>
+                {group.tasks.map((task) => (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    seconds={secondsFor(task.id)}
+                    now={now}
+                    onOpen={setEditing}
+                    showProject={!projectId}
+                  />
+                ))}
+              </div>
+            ))}
+        </div>
       </div>
       {editing && <TaskDialog taskId={editing} onClose={() => setEditing(null)} />}
     </section>

@@ -87,12 +87,12 @@ export function MailConnection({ space }: { space: SpaceKey }) {
   }
 
   const field =
-    'h-9 w-full rounded-lg border border-line-strong bg-field px-3 text-xs outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15'
+    'h-9 w-full rounded-lg border border-line-strong bg-field px-3 text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/20'
 
   return (
     <div className="neo-card min-w-0 rounded-xl p-5">
       <div className="flex flex-wrap items-center gap-4">
-        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-light text-secondary">
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-light text-primary-ink">
           <Inbox size={19} />
         </span>
         <div className="min-w-0 flex-1">
@@ -151,7 +151,7 @@ export function MailConnection({ space }: { space: SpaceKey }) {
                   key={option.provider}
                   onClick={() => setHostingerOpen((open) => !open)}
                   aria-expanded={hostingerOpen}
-                  className="rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white hover:bg-primary-hover active:bg-primary-active"
+                  className="rounded-lg bg-primary px-3 py-2 text-xs font-medium text-on-primary hover:bg-primary-hover active:bg-primary-active"
                 >
                   Connect {option.label}
                 </button>
@@ -159,7 +159,7 @@ export function MailConnection({ space }: { space: SpaceKey }) {
                 <a
                   key={option.provider}
                   href={connectUrl(option.provider, space)}
-                  className="rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white hover:bg-primary-hover active:bg-primary-active"
+                  className="rounded-lg bg-primary px-3 py-2 text-xs font-medium text-on-primary hover:bg-primary-hover active:bg-primary-active"
                 >
                   Connect {option.label}
                 </a>
@@ -212,7 +212,7 @@ export function MailConnection({ space }: { space: SpaceKey }) {
               <button
                 type="submit"
                 disabled={busy}
-                className="h-9 rounded-lg bg-primary text-xs font-medium text-white disabled:opacity-60 hover:bg-primary-hover active:bg-primary-active"
+                className="h-9 rounded-lg bg-primary text-xs font-medium text-on-primary disabled:opacity-60 hover:bg-primary-hover active:bg-primary-active"
               >
                 {busy ? 'Checking…' : 'Connect Hostinger Mail'}
               </button>

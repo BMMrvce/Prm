@@ -1,5 +1,7 @@
 'use client'
 
+import { Sparkles } from 'lucide-react'
+import { PanelHeader } from '@/components/ui/panel'
 import { mailDate } from '@/lib/format'
 import { useWorkspace } from '@/state/workbench-store'
 
@@ -20,8 +22,13 @@ export function ActivityFeed() {
     .slice(0, 6)
 
   return (
-    <section className="neo-card min-h-[330px] min-w-0 rounded-xl p-4">
-      <h2 className="text-card font-semibold">What’s Cooking</h2>
+    <section className="neo-card min-w-0 rounded-xl p-4 sm:p-5">
+      <PanelHeader
+        icon={Sparkles}
+        tone="accent"
+        title="What’s Cooking"
+        subtitle="Recent activity"
+      />
       {ready && !events.length && (
         <p className="mt-4 text-ui text-ink-3">Activity will show up as you work.</p>
       )}

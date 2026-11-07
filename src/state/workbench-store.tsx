@@ -13,6 +13,7 @@ import {
 } from 'react'
 import { findWorkspace, spaces, workspaceSlug } from '@/data/workspaces'
 import { localDate, weekRange } from '@/lib/format'
+import { isHexColor, nextProjectColor } from '@/lib/projects'
 import { projectSlug } from '@/lib/routes'
 import { createClient } from '@/lib/supabase/client'
 import type {
@@ -598,6 +599,8 @@ function useWorkbenchState() {
         name,
         slug,
         created_by: userId,
+        // A color no other project uses yet, so projects are told apart at a glance.
+        color: nextProjectColor(data.projects.map((project) => project.color)),
         ...(sharedDomain ? { shared_domain: sharedDomain } : {}),
       })
       .select(PROJECT_FIELDS)
@@ -729,6 +732,25 @@ function useWorkbenchState() {
         },
         sharedDomain ? `Shared with everyone @${sharedDomain}.` : 'Domain sharing turned off.',
       ),
+
+    setProjectColor: (space: SpaceKey, projectId: string, color: string) =>
+      run(async () => {
+        if (!isHexColor(color)) throw new Error('Pick a color like #2563eb.')
+        const row = checkRow(
+          await supabase
+            .from('projects')
+            .update({ color })
+            .eq('id', projectId)
+            .select(PROJECT_FIELDS)
+            .single(),
+        )
+        update(space, (current) => ({
+          ...current,
+          projects: current.projects.map((item) =>
+            item.id === projectId ? { ...item, color: row.color } : item,
+          ),
+        }))
+      }),
 
     addTask: (space: SpaceKey, input: NewTaskInput) =>
       run(async () => {
@@ -1091,7 +1113,8 @@ function useWorkbenchState() {
 
     saveSettings: (space: SpaceKey, next: WorkspaceSettings) =>
       run(async () => {
-        const merged = { ...settings, [space]: next }
+        // Merge, so saving one setting (currency) keeps the others (meeting colors).
+        const merged = { ...settings, [space]: { ...settings[space], ...next } }
         setSettings(merged)
         const { error } = await supabase.auth.updateUser({ data: { settings: merged } })
         if (error) throw new Error(error.message)
@@ -1308,12 +1331,13 @@ export function useWorkspace() {
     /** True for projects and tasks in your own workspace (you can share and delete them). */
     isOwn: (workspaceId: string) => workspaceId === data?.workspaceId,
     timer: store.timer,
-    settings: { currency },
+    settings: { currency, meetingCategories: store.settings[key]?.meetingCategories },
     reload: () => store.reload(key),
     addProject: (name: string, sharedDomain: string | null = null) =>
       store.addProject(key, name, sharedDomain),
     setProjectDomain: (id: string, sharedDomain: string | null) =>
       store.setProjectDomain(key, id, sharedDomain),
+    setProjectColor: (id: string, color: string) => store.setProjectColor(key, id, color),
     loadWeek: (weekStart: Date) => store.loadWeek(key, weekStart),
     addTask: (input: NewTaskInput) => store.addTask(key, input),
     toggleTask: (id: string) => store.toggleTask(key, id),

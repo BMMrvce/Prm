@@ -13,7 +13,10 @@ export default function NotFound() {
       <p className="mt-4 text-ink-2">
         The page you&apos;re looking for doesn&apos;t exist or has been moved.
       </p>
-      <Link className="mt-6 font-medium text-secondary underline-offset-4 hover:underline" href="/">
+      <Link
+        className="mt-6 font-medium text-primary-ink underline-offset-4 hover:underline"
+        href="/"
+      >
         &larr; Back to Home
       </Link>
     </main>

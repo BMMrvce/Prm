@@ -182,7 +182,7 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="submit"
-            className="h-10 rounded-lg bg-primary px-5 text-sm font-medium text-white hover:bg-primary-hover active:bg-primary-active"
+            className="h-10 rounded-lg bg-primary px-5 text-sm font-medium text-on-primary hover:bg-primary-hover active:bg-primary-active"
           >
             Save changes
           </button>
@@ -212,7 +212,7 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
               <button
                 type="button"
                 onClick={() => void (paused ? resumeTimer() : pauseTimer())}
-                className="flex h-9 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-xs font-medium text-secondary"
+                className="flex h-9 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-xs font-medium text-primary-ink"
               >
                 {paused ? <Play size={12} /> : <Pause size={12} />}
                 {paused ? 'Resume' : 'Pause'}
@@ -224,7 +224,7 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
               className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium ${
                 tracking
                   ? 'bg-error-light text-error-ink'
-                  : 'border border-line-strong bg-surface text-secondary'
+                  : 'border border-line-strong bg-surface text-primary-ink'
               }`}
             >
               {tracking ? <Square size={12} /> : <Play size={12} />}
@@ -273,7 +273,7 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
           <button
             type="submit"
             disabled={!logMinutes}
-            className="h-10 rounded-lg border border-primary px-4 text-sm font-medium text-secondary disabled:opacity-50 sm:col-span-2"
+            className="h-10 rounded-lg border border-primary px-4 text-sm font-medium text-primary-ink disabled:opacity-50 sm:col-span-2"
           >
             Log time
           </button>

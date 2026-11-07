@@ -108,7 +108,7 @@ export function MeetingDialog({ meeting, onClose }: { meeting: Meeting; onClose:
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="submit"
-            className="h-10 rounded-lg bg-primary px-5 text-sm font-medium text-white hover:bg-primary-hover active:bg-primary-active"
+            className="h-10 rounded-lg bg-primary px-5 text-sm font-medium text-on-primary hover:bg-primary-hover active:bg-primary-active"
           >
             Save changes
           </button>

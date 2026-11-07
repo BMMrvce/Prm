@@ -114,9 +114,35 @@ export type Profile = {
 
 export type Currency = 'USD' | 'EUR' | 'GBP' | 'INR'
 
-/** Per-device preferences that have no column in the database. */
+/** Theme-aware colors a meeting category can use (tokens `--cat-<color>` in globals.css). */
+export type CategoryColor =
+  | 'blue'
+  | 'orange'
+  | 'green'
+  | 'violet'
+  | 'pink'
+  | 'teal'
+  | 'amber'
+  | 'slate'
+
+/** A person or entity whose meetings get their own calendar color. */
+export type MeetingCategoryConfig = {
+  id: string
+  /** Shown on tabs and chips; also matched in meeting titles. */
+  label: string
+  /** Extra words that also put a meeting in this category (e.g. initials, a company). */
+  keywords: string[]
+  color: CategoryColor
+}
+
+/**
+ * Per-workspace preferences with no column of their own; stored in the account's metadata
+ * so every browser shares them. Every field is optional and saves merge.
+ */
 export type WorkspaceSettings = {
-  currency: Currency
+  currency?: Currency
+  /** Meeting color mappings; unset means the built-in defaults. */
+  meetingCategories?: MeetingCategoryConfig[]
 }
 
 export type NewTaskInput = {

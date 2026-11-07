@@ -72,7 +72,7 @@ export function InboxView() {
             type="button"
             onClick={() => setDraft({})}
             disabled={!connected}
-            className="flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-medium text-white disabled:opacity-50 hover:bg-primary-hover active:bg-primary-active"
+            className="flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-medium text-on-primary disabled:opacity-50 hover:bg-primary-hover active:bg-primary-active"
           >
             <PenSquare size={14} /> Compose
           </button>
@@ -84,7 +84,7 @@ export function InboxView() {
               key={tab}
               onClick={() => switchFolder(tab)}
               className={`border-b-2 px-2 py-2.5 text-xs font-medium capitalize ${
-                folder === tab ? 'border-primary text-secondary' : 'border-transparent text-ink-2'
+                folder === tab ? 'border-primary text-primary-ink' : 'border-transparent text-ink-2'
               }`}
             >
               {tab}
@@ -107,7 +107,7 @@ export function InboxView() {
               key={item.id}
               onClick={() => void open(item.id)}
               aria-current={pane.kind === 'message' && pane.id === item.id ? 'true' : undefined}
-              className="flex w-full min-w-0 gap-3 px-4 py-3 text-left hover:bg-primary-subtle aria-[current]:bg-secondary-light"
+              className="flex w-full min-w-0 gap-3 px-4 py-3 text-left hover:bg-primary-subtle aria-[current]:bg-primary-light"
             >
               <span
                 className={`mt-1.5 size-2 shrink-0 rounded-full ${item.unread ? 'bg-primary' : 'bg-transparent'}`}
@@ -136,7 +136,7 @@ export function InboxView() {
             <button
               type="button"
               onClick={() => setPane({ kind: 'empty' })}
-              className="flex items-center gap-1.5 text-xs font-medium text-secondary"
+              className="flex items-center gap-1.5 text-xs font-medium text-primary-ink"
             >
               <ArrowLeft size={14} /> Back to {folder}
             </button>

@@ -73,7 +73,7 @@ export function IntegrationsList() {
           {youtubeStatus?.state === 'needs_auth' && (
             <a
               href={connectYouTubeUrl(workspacePath('personal'))}
-              className="rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white hover:bg-primary-hover active:bg-primary-active"
+              className="rounded-lg bg-primary px-3 py-2 text-xs font-medium text-on-primary hover:bg-primary-hover active:bg-primary-active"
             >
               Connect
             </a>

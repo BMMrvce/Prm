@@ -153,7 +153,7 @@ export function RecipientInput({
       {showList && (
         <ul
           role="listbox"
-          className="animate-pop absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-lg border border-line bg-surface py-1 shadow-lg"
+          className="animate-pop absolute inset-x-0 top-full z-30 mt-1 overflow-hidden neo-popover rounded-lg py-1"
         >
           {suggestions.map((contact, index) => (
             <li key={contact.address} role="option" aria-selected={index === active}>

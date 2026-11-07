@@ -99,11 +99,21 @@ Setup once:
 
 ## Appearance
 
-ಆyaama brand tokens (deep indigo, electric violet, cyan, neutrals and state colors) live as
-CSS variables in `src/app/globals.css` and are exposed to Tailwind as `bg-primary`,
-`text-ink-2`, `border-line` and so on. Use those, never hex values, in components: dark mode
-swaps the variable values under `html.dark`. Light, dark or system theme is chosen in the
-account menu (stored per browser). The UI uses Inter with a named type scale
+ಆyaama has two intentional themes, both defined as CSS variables in `src/app/globals.css`
+and exposed to Tailwind as `bg-primary`, `text-ink-2`, `border-line` and so on:
+
+- **Light**: lavender-grey sidebar (`#E4E4F1`), white cards on `#F3F4F8`, deep indigo
+  signature (`#423A8E`) supported by turquoise (`#00CCCD`).
+- **Dark**: black canvas, charcoal sidebar and cards (`#191C24`), deep gold signature
+  (`#D4A20B`, with near-black text on gold fills) and vivid semantic colors.
+
+`primary` is the signature color (buttons, active states; `text-primary-ink` for links),
+`accent` the complementary highlight (meetings, live timers: turquoise / blue), and every
+`*-ink` token is the text-safe shade of its color. Use tokens, never hex values, in
+components: dark mode swaps the variable values under `html.dark`. Light, dark or system
+theme is chosen from the header toggle, the account menu or Settings → Appearance (stored
+per browser, synced across tabs; System follows the device). The wordmark is tinted from
+`--logo` with a CSS mask, so it is indigo in light mode and white in dark mode. The UI uses Inter with a named type scale
 (`text-2xs` 11 → `text-2xl` 24, each with its line height and letter spacing, set in
 `globals.css`); the To Do list uses Shantell Sans (`font-handwritten`). Page changes
 crossfade with React `<ViewTransition>`. On desktop the sidebar

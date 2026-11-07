@@ -11,7 +11,7 @@ const FRAME_HEAD =
   `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data: cid:; style-src 'unsafe-inline' https:; font-src https: data:">` +
   '<style>' +
   'html{-webkit-text-size-adjust:100%;color-scheme:light}' +
-  'body{margin:0;padding:16px;font:14px/1.55 system-ui,sans-serif;color:#17172b;background:#fff;' +
+  'body{margin:0;padding:16px;font:14px/1.55 system-ui,sans-serif;color:#202238;background:#fff;' +
   'overflow-wrap:anywhere;word-break:break-word;overflow-x:auto}' +
   // Fit fixed-width newsletter layouts and images to narrow screens.
   'img{max-width:100%!important;height:auto!important}' +
@@ -55,6 +55,8 @@ export function MailFrame({ title, html }: { title: string; html: string }) {
       sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
       srcDoc={`<!doctype html><html><head>${FRAME_HEAD}</head><body>${html}</body></html>`}
       style={{ height }}
+      // Email HTML is authored for white paper and cannot read the app's CSS variables, so it
+      // keeps a white page (like other mail clients) in both themes.
       className="block w-full rounded-b-xl bg-white"
     />
   )

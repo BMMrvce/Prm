@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Shantell_Sans } from 'next/font/google'
 import type { ReactNode } from 'react'
 import { PwaRegister } from '@/components/pwa-register'
-import { THEME_SCRIPT } from '@/lib/theme'
+import { THEME_COLORS, THEME_SCRIPT } from '@/lib/theme-config'
 import './globals.css'
 
 // One UI typeface (Inter). The optical-size axis gives large headings Inter's display cut.
@@ -41,8 +41,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f8f9fc' },
-    { media: '(prefers-color-scheme: dark)', color: '#0d1020' },
+    { media: '(prefers-color-scheme: light)', color: THEME_COLORS.light },
+    { media: '(prefers-color-scheme: dark)', color: THEME_COLORS.dark },
   ],
 }
 

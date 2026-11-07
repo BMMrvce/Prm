@@ -158,7 +158,7 @@ export function WatchLaterPanel() {
           </p>
           <a
             href={connectYouTubeUrl(window.location.pathname)}
-            className="h-9 rounded-lg bg-primary px-4 text-ui font-medium leading-9 text-white hover:bg-primary-hover active:bg-primary-active"
+            className="h-9 rounded-lg bg-primary px-4 text-ui font-medium leading-9 text-on-primary hover:bg-primary-hover active:bg-primary-active"
           >
             Connect YouTube
           </a>
@@ -186,7 +186,7 @@ export function WatchLaterPanel() {
               <button
                 type="button"
                 onClick={() => void save()}
-                className="h-9 rounded-lg bg-primary px-4 text-ui font-medium text-white hover:bg-primary-hover active:bg-primary-active"
+                className="h-9 rounded-lg bg-primary px-4 text-ui font-medium text-on-primary hover:bg-primary-hover active:bg-primary-active"
               >
                 Show this playlist
               </button>
@@ -224,7 +224,7 @@ export function WatchLaterPanel() {
                   href={video.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+                  className="group block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <div className="aspect-video overflow-hidden rounded-lg bg-surface-2">
                     {video.thumbnail && (
@@ -237,7 +237,7 @@ export function WatchLaterPanel() {
                       />
                     )}
                   </div>
-                  <p className="mt-2 line-clamp-2 text-ui font-medium leading-[18px] text-ink group-hover:text-secondary">
+                  <p className="mt-2 line-clamp-2 text-ui font-medium leading-[18px] text-ink group-hover:text-primary-ink">
                     {video.title}
                   </p>
                   <p className="mt-0.5 truncate text-2xs text-ink-2">
@@ -252,7 +252,7 @@ export function WatchLaterPanel() {
             <button
               type="button"
               onClick={() => setExpanded((value) => !value)}
-              className="mt-3 text-xs font-medium text-secondary"
+              className="mt-3 text-xs font-medium text-primary-ink"
             >
               {expanded ? 'Show fewer' : `Show all ${videos.length} videos`}
             </button>

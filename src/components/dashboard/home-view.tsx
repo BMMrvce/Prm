@@ -3,8 +3,10 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { CalendarPanel } from '@/components/calendar/calendar-panel'
+import { MeetingCategories } from '@/components/calendar/meeting-categories'
 import { WatchLaterPanel } from '@/components/youtube/watch-later-panel'
 import { timeOfDay } from '@/lib/format'
+import { categoriesEnabled } from '@/lib/meetings'
 import { workspacePath } from '@/lib/routes'
 import { useToast, useWorkspace } from '@/state/workbench-store'
 import type { Meeting } from '@/types/workbench'
@@ -13,6 +15,8 @@ import { DayNote } from './day-note'
 import { MailPanel } from './mail-panel'
 import { PlanPanel } from './plan-panel'
 import { TaskList } from './task-list'
+import { TimerCard } from './timer-card'
+import { TodayOverview } from './today-overview'
 
 const ALERT_WINDOW_MS = 60 * 60 * 1000
 
@@ -43,58 +47,109 @@ export function HomeView() {
   const minutes =
     meeting && now ? Math.round((new Date(meeting.startsAt).getTime() - now) / 60000) : 0
 
+  const banner = visible && meeting && (
+    <section className="flex flex-wrap items-center gap-2 rounded-xl border border-accent/40 bg-accent-light px-4 py-2.5">
+      <p className="mr-auto min-w-0 text-sm text-accent-ink">
+        <strong className="font-medium">
+          {meeting.title} {minutes > 0 ? `starts in ${minutes} min` : 'is happening now'}
+        </strong>{' '}
+        · {timeOfDay(meeting.startsAt)}
+        {meeting.location && ` · ${meeting.location}`}
+      </p>
+      <button
+        type="button"
+        onClick={() => {
+          setHidden((current) => ({ ...current, [meeting.id]: Date.now() + 10 * 60 * 1000 }))
+          showToast('Reminder snoozed for 10 minutes.')
+        }}
+        className="h-8 rounded-lg border border-line-strong bg-surface px-3 text-ui text-ink-2"
+      >
+        Snooze 10 min
+      </button>
+      <button
+        type="button"
+        onClick={() => setHidden((current) => ({ ...current, [meeting.id]: Infinity }))}
+        className="h-8 rounded-lg border border-line-strong bg-surface px-3 text-ui text-ink-2"
+      >
+        Dismiss
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          meeting.meetingUrl
+            ? window.open(meeting.meetingUrl, '_blank', 'noopener')
+            : router.push(workspacePath(workspace.key, 'calendar'))
+        }
+        className="h-8 rounded-lg bg-primary px-4 text-ui font-medium text-on-primary hover:bg-primary-hover active:bg-primary-active"
+      >
+        {meeting.meetingUrl ? 'Join' : 'Open calendar'}
+      </button>
+    </section>
+  )
+
+  if (categoriesEnabled(workspace.key)) {
+    /*
+     * Office and Studio: the calendar and the meetings-by-person window hold the top-right quarter of
+     * the screen, and tasks share their row with mail. Placement is explicit so that below
+     * xl the calendar follows the tasks.
+     */
+    return (
+      <div className="mt-4 grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,25vw)] xl:grid-rows-[auto_1fr]">
+        <div className="grid min-w-0 gap-4 xl:col-start-1 xl:row-start-1">
+          {banner}
+          <TodayOverview />
+          {/* Tasks and mail share the row, half each (stacked on phones). */}
+          <div className="grid min-w-0 gap-4 md:grid-cols-2">
+            <TaskList narrow />
+            <MailPanel workspace={workspace} />
+          </div>
+        </div>
+        <aside
+          className="grid min-w-0 gap-4 md:grid-cols-2 xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:grid-cols-1"
+          aria-label="Calendar and meetings"
+        >
+          <CalendarPanel defaultRange="Month" side />
+          <MeetingCategories />
+        </aside>
+        <div className="grid min-w-0 items-start gap-4 md:grid-cols-2 xl:col-start-1 xl:row-start-2">
+          <TimerCard />
+          <PlanPanel />
+          <DayNote />
+          <ActivityFeed />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
-      {visible && meeting && (
-        <section className="mt-[15px] flex flex-wrap items-center gap-2 rounded-lg border border-accent/40 bg-accent-light px-4 py-[7px]">
-          <p className="mr-auto min-w-0 text-sm text-accent-ink">
-            <strong className="font-medium">
-              {meeting.title} {minutes > 0 ? `starts in ${minutes} min` : 'is happening now'}
-            </strong>{' '}
-            · {timeOfDay(meeting.startsAt)}
-            {meeting.location && ` · ${meeting.location}`}
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setHidden((current) => ({ ...current, [meeting.id]: Date.now() + 10 * 60 * 1000 }))
-              showToast('Reminder snoozed for 10 minutes.')
-            }}
-            className="h-8 rounded-lg border border-line-strong bg-surface px-3 text-ui text-ink-2"
-          >
-            Snooze 10 min
-          </button>
-          <button
-            type="button"
-            onClick={() => setHidden((current) => ({ ...current, [meeting.id]: Infinity }))}
-            className="h-8 rounded-lg border border-line-strong bg-surface px-3 text-ui text-ink-2"
-          >
-            Dismiss
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              meeting.meetingUrl
-                ? window.open(meeting.meetingUrl, '_blank', 'noopener')
-                : router.push(workspacePath(workspace.key, 'calendar'))
-            }
-            className="h-8 rounded-lg bg-primary px-4 text-ui font-medium text-white hover:bg-primary-hover active:bg-primary-active"
-          >
-            {meeting.meetingUrl ? 'Join' : 'Open calendar'}
-          </button>
-        </section>
-      )}
+      {banner && <div className="mt-4">{banner}</div>}
 
-      <div className="mt-[13px] grid min-w-0 gap-4 xl:grid-cols-[333px_minmax(0,1fr)]">
-        <TaskList />
-        <CalendarPanel defaultRange="Month" compact />
+      <div className="mt-4">
+        <TodayOverview />
       </div>
 
-      <div className="mt-[15px] grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <DayNote />
-        <MailPanel workspace={workspace} />
-        <PlanPanel />
-        <ActivityFeed />
+      {/*
+       * Main column: tasks, then the calendar. Rail: timer, plan, note, mail and activity.
+       * Below xl the rail flows into a two-column grid under the main column.
+       */}
+      <div className="mt-4 grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid min-w-0 gap-4">
+          <TaskList />
+          <CalendarPanel defaultRange="Month" compact />
+        </div>
+        <aside
+          className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-1"
+          aria-label="Focus and updates"
+        >
+          <TimerCard />
+          <PlanPanel />
+          <DayNote />
+          <MailPanel workspace={workspace} />
+          <div className="md:col-span-2 xl:col-span-1">
+            <ActivityFeed />
+          </div>
+        </aside>
       </div>
 
       {workspace.key === 'personal' && <WatchLaterPanel />}

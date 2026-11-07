@@ -7,8 +7,9 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Designed for teams who value clarity over complexity.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#f8f9fc',
-    theme_color: '#17175e',
+    // Light theme values (globals.css: --background, --brand-primary).
+    background_color: '#f3f4f8',
+    theme_color: '#423a8e',
     orientation: 'any',
     categories: ['productivity', 'business'],
     icons: [
