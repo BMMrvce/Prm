@@ -129,7 +129,6 @@
   /* Notes highlight (/highlight): a true marker yellow in both themes. */
   --note-highlight: #fff3a3;
   --note-highlight-ink: #3d3000;
-  --logo: #423a8e;
   --card-shadow: 0 1px 2px rgb(32 34 56 / 0.04), 0 1px 3px rgb(32 34 56 / 0.03);
   --popover-shadow: 0 8px 24px rgb(32 34 56 / 0.1), 0 2px 6px rgb(32 34 56 / 0.05);
 }
@@ -239,7 +238,6 @@
   --focus-ring: #ffc107;
   --note-highlight: #ffc107;
   --note-highlight-ink: #1b1500;
-  --logo: #ffffff;
   --card-shadow: none;
   --popover-shadow: 0 12px 32px rgb(0 0 0 / 0.55);
 }
@@ -320,7 +318,6 @@
   --color-nav-active-bar: var(--nav-active-bar);
   --color-segment: var(--segment);
   --color-scrim: var(--scrim);
-  --color-logo: var(--logo);
   --color-field: var(--field);
   --color-elevated: var(--elevated);
   --color-nav-active: var(--nav-active);
@@ -450,26 +447,6 @@
   box-shadow: var(--popover-shadow);
 }
 
-/*
- * The ಆyaama wordmark drawn in the theme's logo color (see components/brand/logo.tsx).
- * In the components layer so a `bg-*` utility can override the color.
- */
-@layer components {
-  .brand-logo {
-    display: inline-block;
-    vertical-align: middle;
-    aspect-ratio: 863 / 160;
-    background-color: var(--logo);
-    -webkit-mask: url('/brand/logo.png') no-repeat left center / contain;
-    mask: url('/brand/logo.png') no-repeat left center / contain;
-  }
-}
-
-.neo-inset {
-  border: 1px solid var(--divider);
-  background: var(--surface);
-  box-shadow: none;
-}
 
 .neo-control {
   border: 1px solid var(--border-strong);

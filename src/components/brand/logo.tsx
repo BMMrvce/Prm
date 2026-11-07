@@ -1,8 +1,14 @@
+/** Intrinsic size of public/brand/logo.png and logo-dark.png (both made from src/assets/logo.png). */
+const WIDTH = 1251
+const HEIGHT = 324
+const ALT = 'ಸ(kala)²'
+
 /**
- * The ಆyaama wordmark, drawn from the single-color logo artwork as a mask so its color
- * comes from the theme: brand indigo in light mode, white in dark mode (`--logo`).
- * `onDark` forces the light variant for the deep brand panel on the login screen.
- * Size it by height (`h-7`); the width follows the artwork's aspect ratio.
+ * The full-color brand logo. Light mode shows the navy original; dark mode shows the
+ * variant with the navy turned white (blue accents kept). The page's `dark` class picks
+ * the image, so the right one shows from the first paint. `onDark` always uses the dark
+ * variant (for the deep brand panel on the login screen). Size it by height (`h-7`);
+ * the width follows the artwork.
  */
 export function Logo({
   className = 'h-7',
@@ -11,11 +17,22 @@ export function Logo({
   className?: string
   onDark?: boolean
 }) {
-  return (
-    <span
-      role="img"
-      aria-label="ಆyaama"
-      className={`brand-logo shrink-0 self-start ${onDark ? 'bg-on-deep' : ''} ${className}`}
+  const image = (src: string, visibility: string) => (
+    /* eslint-disable-next-line @next/next/no-img-element -- static brand artwork */
+    <img
+      src={src}
+      alt={ALT}
+      width={WIDTH}
+      height={HEIGHT}
+      draggable={false}
+      className={`w-auto shrink-0 select-none self-start object-contain ${visibility} ${className}`}
     />
+  )
+  if (onDark) return image('/brand/logo-dark.png', '')
+  return (
+    <>
+      {image('/brand/logo.png', 'dark:hidden')}
+      {image('/brand/logo-dark.png', 'hidden dark:block')}
+    </>
   )
 }

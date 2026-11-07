@@ -78,10 +78,13 @@ export function useTheme() {
   const [resolved, setResolved] = useState<ResolvedTheme>('light')
 
   useEffect(() => {
+    // From the saved choice, not the page's class: during an animated switch the class only
+    // changes a moment later, and reading it here would leave every toggle one step behind
+    // (the next click would "switch" to the theme already showing).
     const sync = () => {
       const saved = readPreference()
       setPreference(saved)
-      setResolved(document.documentElement.classList.contains('dark') ? 'dark' : 'light')
+      setResolved(resolve(saved))
     }
     sync()
     syncThemeColor(resolve(readPreference()))
