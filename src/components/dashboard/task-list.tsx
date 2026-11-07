@@ -1,6 +1,6 @@
 'use client'
 
-import { Clock, ListTodo, Play, Plus, Square } from 'lucide-react'
+import { Clock, ListTodo, Pause, Play, Plus, Square } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState, type FormEvent } from 'react'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -31,6 +31,8 @@ export function TaskList() {
     addTask,
     startTimer,
     stopTimer,
+    pauseTimer,
+    resumeTimer,
   } = useWorkspace()
   const [newTask, setNewTask] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
@@ -58,10 +60,10 @@ export function TaskList() {
       .filter((entry) => entry.taskId === taskId)
       .reduce((sum, entry) => sum + entrySeconds(entry, now), 0)
 
-  const elapsed = timer
-    ? timer.accumulatedSeconds +
-      (timer.state === 'running' ? (now - new Date(timer.startedAt).getTime()) / 1000 : 0)
-    : 0
+  // This run of the timer, and everything logged on its task (the number shown on the task).
+  const session = timer ? entrySeconds(timer, now) : 0
+  const taskTotal = timer?.taskId ? loggedSeconds(timer.taskId) : session
+  const paused = timer?.state === 'paused'
 
   return (
     <section className="neo-card flex min-h-[437px] min-w-0 max-w-full flex-col overflow-hidden rounded-xl p-4">
@@ -104,7 +106,7 @@ export function TaskList() {
                 <TaskTime
                   seconds={loggedSeconds(task.id)}
                   estimateMinutes={task.estimateMinutes}
-                  running={tracking}
+                  status={tracking ? (paused ? 'paused' : 'tracking') : null}
                 />
               </button>
               {task.priority !== 'none' && (
@@ -114,14 +116,19 @@ export function TaskList() {
                   {capitalize(task.priority)}
                 </span>
               )}
-              {task.state === 'open' && !tracking && (
+              {task.state === 'open' && (
                 <button
                   type="button"
-                  onClick={() => void startTimer(task.id)}
-                  className="grid size-6 shrink-0 place-items-center rounded-md text-secondary opacity-60 hover:bg-secondary-light hover:opacity-100"
-                  aria-label={`Start timer for ${task.title}`}
+                  onClick={() =>
+                    void (!tracking ? startTimer(task.id) : paused ? resumeTimer() : pauseTimer())
+                  }
+                  className={`grid size-6 shrink-0 place-items-center rounded-md text-secondary hover:bg-secondary-light hover:opacity-100 ${
+                    tracking ? 'bg-secondary-light opacity-100' : 'opacity-60'
+                  }`}
+                  aria-label={`${!tracking ? 'Start' : paused ? 'Resume' : 'Pause'} timer for ${task.title}`}
+                  title={!tracking ? 'Start timer' : paused ? 'Resume' : 'Pause'}
                 >
-                  <Play size={13} />
+                  {tracking && !paused ? <Pause size={13} /> : <Play size={13} />}
                 </button>
               )}
             </div>
@@ -158,21 +165,43 @@ export function TaskList() {
       <div className="neo-inset mt-auto rounded-lg p-2.5">
         {timer ? (
           <>
-            <div className="flex items-center justify-between text-2xs text-ink-2">
-              <span className="font-handwritten">Now tracking</span>
-              <button
-                type="button"
-                onClick={() => void stopTimer()}
-                className="flex items-center gap-1 font-medium text-error-ink"
-              >
-                <Square size={10} /> Stop
-              </button>
+            <div className="flex items-center justify-between gap-2 text-2xs text-ink-2">
+              <span className="flex items-center gap-1.5 font-handwritten">
+                <span
+                  className={`size-1.5 rounded-full ${paused ? 'bg-warning' : 'animate-pulse bg-accent'}`}
+                  aria-hidden
+                />
+                {paused ? 'Paused' : 'Now tracking'}
+              </span>
+              <span className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => void (paused ? resumeTimer() : pauseTimer())}
+                  className="flex h-6 items-center gap-1 rounded-md px-1.5 font-medium text-secondary hover:bg-secondary-light"
+                >
+                  {paused ? <Play size={11} /> : <Pause size={11} />}
+                  {paused ? 'Resume' : 'Pause'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void stopTimer()}
+                  className="flex h-6 items-center gap-1 rounded-md px-1.5 font-medium text-error-ink hover:bg-error-light"
+                >
+                  <Square size={10} /> Stop
+                </button>
+              </span>
             </div>
             <p className="mt-1 truncate font-handwritten text-ui font-medium">
               {timer.taskTitle ?? 'Untitled task'}
             </p>
-            <span className="mt-1 block font-handwritten text-xl font-semibold leading-none">
-              {stopwatch(elapsed)}
+            {/* Same total as the task line above; the current run is shown underneath. */}
+            <span
+              className={`mt-1 block font-handwritten text-xl font-semibold tabular-nums leading-none ${paused ? 'text-ink-2' : ''}`}
+            >
+              {stopwatch(taskTotal)}
+            </span>
+            <span className="mt-1 block font-handwritten text-2xs text-ink-3">
+              Total on this task · this session {stopwatch(session)}
             </span>
           </>
         ) : (
@@ -189,12 +218,14 @@ export function TaskList() {
 function TaskTime({
   seconds,
   estimateMinutes,
-  running,
+  status,
 }: {
   seconds: number
   estimateMinutes: number | null
-  running: boolean
+  /** Set while this task's timer is active. */
+  status: 'tracking' | 'paused' | null
 }) {
+  const running = status !== null
   const over = Boolean(estimateMinutes && seconds / 60 > estimateMinutes)
   return (
     <p
@@ -205,7 +236,7 @@ function TaskTime({
       <Clock size={12} className="shrink-0" />
       {running ? stopwatch(seconds) : duration(seconds / 60)}
       {estimateMinutes ? ` of ${duration(estimateMinutes)}` : ' logged'}
-      {running && ' · tracking'}
+      {status && ` · ${status}`}
     </p>
   )
 }

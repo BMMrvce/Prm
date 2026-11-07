@@ -1,6 +1,6 @@
 'use client'
 
-import { Play, Square, Trash2 } from 'lucide-react'
+import { Pause, Play, Square, Trash2 } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { PeoplePicker } from '@/components/people/people-picker'
 import { DurationInput } from '@/components/ui/duration-input'
@@ -33,6 +33,8 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
     untagTask,
     startTimer,
     stopTimer,
+    pauseTimer,
+    resumeTimer,
     logTime,
     deleteTimeEntry,
   } = useWorkspace()
@@ -50,6 +52,7 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
 
   const entries = timeEntries.filter((entry) => entry.taskId === task.id)
   const tracking = timer?.taskId === task.id
+  const paused = tracking && timer?.state === 'paused'
   const loggedMinutes = entries.reduce((sum, entry) => sum + entrySeconds(entry, now), 0) / 60
   const ratio = estimate ? loggedMinutes / estimate : 0
 
@@ -204,18 +207,30 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
               {estimate ? ` of ${duration(estimate)} estimated` : ' · no estimate set'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => void (tracking ? stopTimer() : startTimer(task.id))}
-            className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium ${
-              tracking
-                ? 'bg-error-light text-error-ink'
-                : 'border border-line-strong bg-surface text-secondary'
-            }`}
-          >
-            {tracking ? <Square size={12} /> : <Play size={12} />}
-            {tracking ? 'Stop timer' : 'Start timer'}
-          </button>
+          <div className="flex gap-2">
+            {tracking && (
+              <button
+                type="button"
+                onClick={() => void (paused ? resumeTimer() : pauseTimer())}
+                className="flex h-9 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-xs font-medium text-secondary"
+              >
+                {paused ? <Play size={12} /> : <Pause size={12} />}
+                {paused ? 'Resume' : 'Pause'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => void (tracking ? stopTimer() : startTimer(task.id))}
+              className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium ${
+                tracking
+                  ? 'bg-error-light text-error-ink'
+                  : 'border border-line-strong bg-surface text-secondary'
+              }`}
+            >
+              {tracking ? <Square size={12} /> : <Play size={12} />}
+              {tracking ? 'Stop timer' : 'Start timer'}
+            </button>
+          </div>
         </div>
         {estimate ? (
           <div

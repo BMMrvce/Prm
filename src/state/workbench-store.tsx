@@ -663,20 +663,24 @@ function useWorkbenchState() {
         .eq('id', entry.id),
     )
     setTimer(null)
+    replaceEntry(entry.id, [stopped])
+  }
+
+  /** Swaps a time entry (in whichever space shows it) for `entries`, newest first. */
+  const replaceEntry = (id: string, entries: TimeEntry[]) =>
     setSpaceData((current) => {
       const next = { ...current }
       for (const key of Object.keys(next) as SpaceKey[]) {
         const data = next[key]!
-        if (data.timeEntries.some((item) => item.id === entry.id)) {
+        if (data.timeEntries.some((item) => item.id === id)) {
           next[key] = {
             ...data,
-            timeEntries: data.timeEntries.map((item) => (item.id === entry.id ? stopped : item)),
+            timeEntries: data.timeEntries.flatMap((item) => (item.id === id ? entries : [item])),
           }
         }
       }
       return next
     })
-  }
 
   /** People matching a name or email, for the tag picker. Stable so effects can depend on it. */
   const searchPeople = useCallback(
@@ -1114,6 +1118,70 @@ function useWorkbenchState() {
         if (timer) await finishTimer(timer)
       }, 'Timer stopped.'),
 
+    /** Freezes the running timer; the time so far is saved on its entry. */
+    pauseTimer: () =>
+      run(async () => {
+        if (!timer || timer.state !== 'running') return
+        const now = new Date()
+        const elapsed = Math.floor((now.getTime() - new Date(timer.startedAt).getTime()) / 1000)
+        const paused: TimeEntry = {
+          ...timer,
+          state: 'paused',
+          accumulatedSeconds: timer.accumulatedSeconds + Math.max(0, elapsed),
+        }
+        check(
+          await supabase
+            .from('time_entries')
+            .update({
+              state: 'paused',
+              paused_at: now.toISOString(),
+              accumulated_seconds: paused.accumulatedSeconds,
+            })
+            .eq('id', timer.id),
+        )
+        setTimer(paused)
+        replaceEntry(timer.id, [paused])
+      }, 'Timer paused.'),
+
+    /**
+     * Continues a paused timer as a new run on the same task. Each run is its own entry, so
+     * time lands on the day it was actually worked.
+     */
+    resumeTimer: () =>
+      run(async () => {
+        if (!timer || timer.state !== 'paused' || !timer.taskId) return
+        const paused = timer
+        if (!profile) throw new Error('Not signed in.')
+        await finishTimer(paused)
+        const entry = toTimer(
+          checkRow(
+            await supabase
+              .from('time_entries')
+              .insert({
+                workspace_id: paused.workspaceId,
+                task_id: paused.taskId,
+                user_id: profile.id,
+                state: 'running',
+                started_at: new Date().toISOString(),
+              })
+              .select(TIMER_FIELDS)
+              .single(),
+          ),
+        )
+        setTimer(entry)
+        // Show the new run next to the one it continues.
+        setSpaceData((current) => {
+          const next = { ...current }
+          for (const key of Object.keys(next) as SpaceKey[]) {
+            const data = next[key]!
+            if (data.timeEntries.some((item) => item.id === paused.id)) {
+              next[key] = { ...data, timeEntries: [entry, ...data.timeEntries] }
+            }
+          }
+          return next
+        })
+      }, 'Timer resumed.'),
+
     startTimer: (space: SpaceKey, taskId: string) =>
       run(async () => {
         const { task } = findTask(space, taskId)
@@ -1273,6 +1341,8 @@ export function useWorkspace() {
     logTime: (input: NewTimeLogInput) => store.logTime(key, input),
     deleteTimeEntry: (id: string) => store.deleteTimeEntry(key, id),
     stopTimer: store.stopTimer,
+    pauseTimer: store.pauseTimer,
+    resumeTimer: store.resumeTimer,
     signOut: store.signOut,
   }
 }
