@@ -20,8 +20,8 @@ export function MailPanel({ workspace }: { workspace: WorkspaceData }) {
     <section className="neo-card flex min-h-[330px] min-w-0 flex-col rounded-xl p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <h2 className="text-[15px] font-semibold">Mail</h2>
-          <p className="truncate text-[11px] text-ink-2">
+          <h2 className="text-card font-semibold">Mail</h2>
+          <p className="truncate text-2xs text-ink-2">
             {status?.state === 'connected'
               ? `${status.label} · ${status.account}`
               : status
@@ -33,7 +33,7 @@ export function MailPanel({ workspace }: { workspace: WorkspaceData }) {
           <button
             type="button"
             onClick={() => setComposing(true)}
-            className="shrink-0 rounded-lg bg-primary px-2.5 py-1.5 text-[11px] font-medium text-white hover:bg-primary-hover active:bg-primary-active"
+            className="shrink-0 rounded-lg bg-primary px-2.5 py-1.5 text-2xs font-medium text-white hover:bg-primary-hover active:bg-primary-active"
           >
             Compose
           </button>
@@ -65,7 +65,7 @@ export function MailPanel({ workspace }: { workspace: WorkspaceData }) {
           type="button"
           onClick={() => void refresh()}
           disabled={loading}
-          className="ml-auto text-[11px] font-medium text-secondary"
+          className="ml-auto text-2xs font-medium text-secondary"
         >
           {loading ? 'Syncing…' : 'Refresh'}
         </button>
@@ -89,9 +89,9 @@ export function MailPanel({ workspace }: { workspace: WorkspaceData }) {
                 >
                   {message.subject}
                 </p>
-                <span className="shrink-0 text-[11px] text-ink-3">{mailDate(message.date)}</span>
+                <span className="shrink-0 text-2xs text-ink-3">{mailDate(message.date)}</span>
               </div>
-              <p className="mt-0.5 truncate text-[11px] text-ink-2">
+              <p className="mt-0.5 truncate text-2xs text-ink-2">
                 {mailTab === 'sent' ? `To ${message.to}` : `From ${message.from}`}
               </p>
             </Link>
@@ -101,7 +101,7 @@ export function MailPanel({ workspace }: { workspace: WorkspaceData }) {
       {connected && (
         <Link
           href={workspacePath(workspace.key, 'inbox')}
-          className="mt-auto pt-2 text-[11px] font-medium text-secondary"
+          className="mt-auto pt-2 text-2xs font-medium text-secondary"
         >
           Open inbox →
         </Link>

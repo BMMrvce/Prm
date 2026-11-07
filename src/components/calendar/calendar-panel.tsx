@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { TaskDialog } from '@/components/tasks/task-dialog'
 import { localDate, sameDay, timeOfDay, weekRange } from '@/lib/format'
 import { useWorkspace } from '@/state/workbench-store'
-import type { Meeting } from '@/types/workbench'
+import type { Meeting, WorkspaceTask } from '@/types/workbench'
 import { durationLabel, durations, MeetingDialog } from './meeting-dialog'
 
 function nextHour() {
@@ -38,13 +38,33 @@ function rangeTitle(days: Date[]) {
   return `${month(first)} ${first.getDate()} – ${end}, ${last.getFullYear()}`
 }
 
+type Range = 'Day' | 'Week' | 'Month'
+
+/** Every day shown in a month grid: whole weeks (Sunday first) covering the month. */
+function monthGrid(cursor: Date) {
+  const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1)
+  const last = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0)
+  const start = weekRange(first)[0]
+  const weeks = Math.ceil((first.getDay() + last.getDate()) / 7)
+  return Array.from({ length: weeks * 7 }, (_, index) => addDays(start, index))
+}
+
 /**
- * Meetings (from `meetings`) and task due dates by day, one week or day at a time with
- * previous / next / today navigation. Click an item to edit it.
+ * Meetings (from `meetings`) and task due dates by day: one day, one week or a month grid,
+ * with previous / next / today navigation. Click an item to edit it, or a day in the month
+ * grid to open it.
  */
-export function CalendarPanel() {
+export function CalendarPanel({
+  defaultRange = 'Week',
+  compact = false,
+}: {
+  /** View shown first: the dashboard opens on Month, the Calendar page on Week. */
+  defaultRange?: Range
+  /** Shorter month cells, for the dashboard. */
+  compact?: boolean
+} = {}) {
   const { ready, meetings, meetingWeeks, tasks, addMeeting, addTask, loadWeek } = useWorkspace()
-  const [range, setRange] = useState<'Day' | 'Week'>('Week')
+  const [range, setRange] = useState<Range>(defaultRange)
   /** The + menu, or which kind of item is being added. */
   const [adding, setAdding] = useState<'menu' | 'meeting' | 'todo' | null>(null)
   const [title, setTitle] = useState('')
@@ -65,29 +85,57 @@ export function CalendarPanel() {
   }, [])
 
   const weekStart = cursor ? weekRange(cursor)[0] : null
-  const weekKey = weekStart ? localDate(weekStart) : ''
-  const weekLoaded = meetingWeeks.includes(weekKey)
+  const days = cursor
+    ? range === 'Month'
+      ? monthGrid(cursor)
+      : range === 'Day'
+        ? [cursor]
+        : Array.from({ length: 7 }, (_, index) => addDays(weekStart!, index))
+    : []
+  // Sundays of every week on screen; meetings are fetched a week at a time.
+  const weekKeys = [...new Set(days.map((day) => localDate(weekRange(day)[0])))]
+  const weeksLoaded = weekKeys.every((key) => meetingWeeks.includes(key))
+  const weekKeysKey = weekKeys.join(',')
 
-  // Fetch the viewed week's meetings once; kept in a ref so retries never loop on re-render.
+  // Fetch each visible week's meetings once; kept in a ref so retries never loop on re-render.
   const loadWeekRef = useRef(loadWeek)
   useEffect(() => {
     loadWeekRef.current = loadWeek
   })
   useEffect(() => {
-    if (ready && weekKey) void loadWeekRef.current(weekRange(new Date(`${weekKey}T12:00`))[0])
-  }, [ready, weekKey])
+    if (!ready || !weekKeysKey) return
+    for (const key of weekKeysKey.split(',')) {
+      void loadWeekRef.current(weekRange(new Date(`${key}T12:00`))[0])
+    }
+  }, [ready, weekKeysKey])
 
-  const days =
-    cursor && weekStart
-      ? range === 'Day'
-        ? [cursor]
-        : Array.from({ length: 7 }, (_, index) => addDays(weekStart, index))
-      : []
-  const showsToday = today ? days.some((day) => sameDay(day, today)) : false
-  const step = range === 'Day' ? 1 : 7
+  const inMonth = (day: Date) => !cursor || day.getMonth() === cursor.getMonth()
+  const showsToday = today
+    ? days.some((day) => sameDay(day, today) && (range !== 'Month' || inMonth(day)))
+    : false
+  const move = (direction: 1 | -1) => {
+    if (!cursor) return
+    setCursor(
+      range === 'Month'
+        ? new Date(cursor.getFullYear(), cursor.getMonth() + direction, 1)
+        : addDays(cursor, direction * (range === 'Day' ? 1 : 7)),
+    )
+  }
+  const unit = range === 'Day' ? 'day' : range === 'Week' ? 'week' : 'month'
+  const itemsOn = (day: Date) => ({
+    meetings: meetings.filter((meeting) => sameDay(new Date(meeting.startsAt), day)),
+    due: tasks.filter(
+      (task) => task.state === 'open' && task.dueAt && sameDay(new Date(task.dueAt), day),
+    ),
+  })
+  const openDay = (day: Date) => {
+    setCursor(day)
+    setRange('Day')
+  }
 
   const openForm = (kind: 'meeting' | 'todo') => {
-    setDate(localDate(showsToday || !days.length ? new Date() : days[0]))
+    const firstShown = days.find(inMonth) ?? days[0]
+    setDate(localDate(showsToday || !firstShown ? new Date() : firstShown))
     setTime(kind === 'meeting' ? nextHour() : '')
     setAdding(kind)
   }
@@ -130,40 +178,42 @@ export function CalendarPanel() {
     <section className="neo-card min-h-[437px] min-w-0 overflow-hidden rounded-xl p-[18px]">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <h2 className="mr-1 text-[15px] font-semibold">Calendar view</h2>
+          <h2 className="mr-1 text-card font-semibold">Calendar view</h2>
           <button
             type="button"
             onClick={() => today && setCursor(today)}
             disabled={!cursor || showsToday}
-            className="h-9 rounded-lg border border-line-strong bg-surface px-3 text-[13px] text-ink disabled:opacity-50"
+            className="h-9 rounded-lg border border-line-strong bg-surface px-3 text-ui text-ink disabled:opacity-50"
           >
             Today
           </button>
           <div className="flex">
             <button
               type="button"
-              onClick={() => cursor && setCursor(addDays(cursor, -step))}
+              onClick={() => move(-1)}
               disabled={!cursor}
               className="grid size-9 place-items-center rounded-full text-ink-2 hover:bg-surface-2"
-              aria-label={range === 'Day' ? 'Previous day' : 'Previous week'}
+              aria-label={`Previous ${unit}`}
             >
               <ChevronLeft size={18} />
             </button>
             <button
               type="button"
-              onClick={() => cursor && setCursor(addDays(cursor, step))}
+              onClick={() => move(1)}
               disabled={!cursor}
               className="grid size-9 place-items-center rounded-full text-ink-2 hover:bg-surface-2"
-              aria-label={range === 'Day' ? 'Next day' : 'Next week'}
+              aria-label={`Next ${unit}`}
             >
               <ChevronRight size={18} />
             </button>
           </div>
-          {days.length > 0 && (
-            <p className="text-[14px] font-medium text-ink" aria-live="polite">
-              {rangeTitle(days)}
-              {ready && !weekLoaded && (
-                <span className="ml-2 text-[12px] font-normal text-ink-3">Loading…</span>
+          {days.length > 0 && cursor && (
+            <p className="text-sm font-medium text-ink" aria-live="polite">
+              {range === 'Month'
+                ? cursor.toLocaleDateString([], { month: 'long', year: 'numeric' })
+                : rangeTitle(days)}
+              {ready && !weeksLoaded && (
+                <span className="ml-2 text-xs font-normal text-ink-3">Loading…</span>
               )}
             </p>
           )}
@@ -185,34 +235,41 @@ export function CalendarPanel() {
                 <button
                   type="button"
                   onClick={() => openForm('meeting')}
-                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-[13px] hover:bg-primary-subtle"
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-ui hover:bg-primary-subtle"
                 >
                   <CalendarClock size={15} className="text-accent-ink" /> Meeting
                 </button>
                 <button
                   type="button"
                   onClick={() => openForm('todo')}
-                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-[13px] hover:bg-primary-subtle"
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-ui hover:bg-primary-subtle"
                 >
                   <CheckSquare size={15} className="text-primary-ink" /> To-do
                 </button>
               </div>
             )}
           </div>
-          {(['Day', 'Week'] as const).map((item) => (
-            <button
-              type="button"
-              onClick={() => setRange(item)}
-              key={item}
-              className={`h-9 rounded-lg border px-4 text-[14px] ${
-                range === item
-                  ? 'border-primary bg-primary text-white hover:bg-primary-hover active:bg-primary-active'
-                  : 'border-line-strong bg-surface text-ink'
-              }`}
-            >
-              {item}
-            </button>
-          ))}
+          <div
+            className="flex rounded-lg border border-line bg-surface-2 p-1"
+            role="group"
+            aria-label="Calendar range"
+          >
+            {(['Day', 'Week', 'Month'] as const).map((item) => (
+              <button
+                type="button"
+                onClick={() => setRange(item)}
+                key={item}
+                aria-pressed={range === item}
+                className={`h-7 rounded-md px-3 text-ui font-medium ${
+                  range === item
+                    ? 'bg-primary text-on-primary shadow-sm'
+                    : 'text-ink-2 hover:bg-surface hover:text-ink'
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       {adding === 'todo' && (
@@ -313,72 +370,223 @@ export function CalendarPanel() {
           </div>
         </form>
       )}
-      <div
-        className={`grid min-h-[361px] gap-2 ${
-          range === 'Week' ? 'grid-cols-2 sm:grid-cols-4 md:gap-2.5 lg:grid-cols-7' : 'grid-cols-1'
-        }`}
-      >
-        {days.map((day) => {
-          const dayMeetings = meetings.filter((meeting) => sameDay(new Date(meeting.startsAt), day))
-          const dueTasks = tasks.filter(
-            (task) => task.state === 'open' && task.dueAt && sameDay(new Date(task.dueAt), day),
-          )
-          const isToday = today ? sameDay(day, today) : false
-          return (
-            <div
-              className={`min-w-0 rounded-lg border p-2.5 ${
-                isToday ? 'border-secondary/40 bg-secondary-subtle' : 'border-line-soft bg-surface'
-              }`}
-              key={day.toISOString()}
-            >
-              <p className="flex items-center gap-1.5">
-                <span
-                  className={`text-[11px] font-medium uppercase tracking-[0.06em] ${isToday ? 'text-secondary' : 'text-ink-3'}`}
-                >
-                  {day.toLocaleDateString([], { weekday: 'short' })}
-                </span>
-                <span
-                  className={`grid size-6 place-items-center rounded-full text-[13px] font-semibold ${
-                    isToday ? 'bg-secondary text-on-primary' : 'text-ink'
-                  }`}
-                  aria-current={isToday ? 'date' : undefined}
-                >
-                  {day.getDate()}
-                </span>
-              </p>
-              {dayMeetings.map((meeting) => (
-                <button
-                  type="button"
-                  key={meeting.id}
-                  onClick={() => setEditingMeeting(meeting)}
-                  className="mt-2 block w-full break-words rounded-md border-l-2 border-accent bg-accent-light px-2 py-1 text-left text-[12px] leading-4 text-accent-ink hover:brightness-95"
-                  aria-label={`Edit ${meeting.title}`}
-                >
-                  {timeOfDay(meeting.startsAt)} · {meeting.title}
-                </button>
-              ))}
-              {dueTasks.map((task) => (
-                <button
-                  type="button"
-                  key={task.id}
-                  onClick={() => setEditingTask(task.id)}
-                  className="mt-2 block w-full break-words rounded-md border-l-2 border-secondary bg-secondary-subtle px-2 py-1 text-left text-[12px] leading-4 text-secondary hover:brightness-95"
-                  aria-label={`Edit task ${task.title}`}
-                >
-                  Due · {task.title}
-                </button>
-              ))}
-              {!dayMeetings.length && !dueTasks.length && range === 'Day' && (
-                <p className="mt-3 text-[12px] text-ink-3">Nothing scheduled.</p>
-              )}
-            </div>
-          )
-        })}
-      </div>
+      {range === 'Month' ? (
+        <MonthGrid
+          days={days}
+          today={today}
+          inMonth={inMonth}
+          compact={compact}
+          itemsOn={itemsOn}
+          onOpenDay={openDay}
+          onEditMeeting={setEditingMeeting}
+          onEditTask={setEditingTask}
+        />
+      ) : (
+        <div
+          className={`grid min-h-[361px] gap-2 ${
+            range === 'Week'
+              ? 'grid-cols-2 sm:grid-cols-4 md:gap-2.5 lg:grid-cols-7'
+              : 'grid-cols-1'
+          }`}
+        >
+          {days.map((day) => {
+            const { meetings: dayMeetings, due: dueTasks } = itemsOn(day)
+            const isToday = today ? sameDay(day, today) : false
+            return (
+              <div
+                className={`min-w-0 rounded-lg border p-2.5 ${
+                  isToday
+                    ? 'border-secondary/40 bg-secondary-subtle'
+                    : 'border-line-soft bg-surface'
+                }`}
+                key={day.toISOString()}
+              >
+                <p className="flex items-center gap-1.5">
+                  <span
+                    className={`text-2xs font-medium uppercase tracking-[0.06em] ${isToday ? 'text-secondary' : 'text-ink-3'}`}
+                  >
+                    {day.toLocaleDateString([], { weekday: 'short' })}
+                  </span>
+                  <span
+                    className={`grid size-6 place-items-center rounded-full text-ui font-semibold ${
+                      isToday ? 'bg-secondary text-on-primary' : 'text-ink'
+                    }`}
+                    aria-current={isToday ? 'date' : undefined}
+                  >
+                    {day.getDate()}
+                  </span>
+                </p>
+                {dayMeetings.map((meeting) => (
+                  <button
+                    type="button"
+                    key={meeting.id}
+                    onClick={() => setEditingMeeting(meeting)}
+                    className="mt-2 block w-full break-words rounded-md border-l-2 border-accent bg-accent-light px-2 py-1 text-left text-xs leading-4 text-accent-ink hover:brightness-95"
+                    aria-label={`Edit ${meeting.title}`}
+                  >
+                    {timeOfDay(meeting.startsAt)} · {meeting.title}
+                  </button>
+                ))}
+                {dueTasks.map((task) => (
+                  <button
+                    type="button"
+                    key={task.id}
+                    onClick={() => setEditingTask(task.id)}
+                    className="mt-2 block w-full break-words rounded-md border-l-2 border-secondary bg-secondary-subtle px-2 py-1 text-left text-xs leading-4 text-secondary hover:brightness-95"
+                    aria-label={`Edit task ${task.title}`}
+                  >
+                    Due · {task.title}
+                  </button>
+                ))}
+                {!dayMeetings.length && !dueTasks.length && range === 'Day' && (
+                  <p className="mt-3 text-xs text-ink-3">Nothing scheduled.</p>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
       {editingMeeting && (
         <MeetingDialog meeting={editingMeeting} onClose={() => setEditingMeeting(null)} />
       )}
       {editingTask && <TaskDialog taskId={editingTask} onClose={() => setEditingTask(null)} />}
     </section>
+  )
+}
+
+const MAX_CHIPS = 3
+
+/** Month at a glance: whole weeks, dimmed outside days, up to three items per day. */
+function MonthGrid({
+  days,
+  today,
+  inMonth,
+  compact,
+  itemsOn,
+  onOpenDay,
+  onEditMeeting,
+  onEditTask,
+}: {
+  days: Date[]
+  today: Date | null
+  inMonth: (day: Date) => boolean
+  compact: boolean
+  itemsOn: (day: Date) => { meetings: Meeting[]; due: WorkspaceTask[] }
+  onOpenDay: (day: Date) => void
+  onEditMeeting: (meeting: Meeting) => void
+  onEditTask: (id: string) => void
+}) {
+  // The dashboard's shorter cells fit two chips; the Calendar page fits three.
+  const limit = compact ? 2 : MAX_CHIPS
+  return (
+    <div className="overflow-hidden rounded-lg border border-line">
+      <div className="grid grid-cols-7 border-b border-line bg-surface-2">
+        {days.slice(0, 7).map((day) => (
+          <p
+            key={day.getDay()}
+            className="py-2 text-center text-2xs font-semibold uppercase tracking-[0.06em] text-ink-3"
+          >
+            <span className="sm:hidden">{day.toLocaleDateString([], { weekday: 'narrow' })}</span>
+            <span className="hidden sm:inline">
+              {day.toLocaleDateString([], { weekday: 'short' })}
+            </span>
+          </p>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-px bg-line">
+        {days.map((day) => {
+          const { meetings, due } = itemsOn(day)
+          const items = [
+            ...meetings.map((meeting) => ({ kind: 'meeting' as const, meeting })),
+            ...due.map((task) => ({ kind: 'task' as const, task })),
+          ]
+          const isToday = today ? sameDay(day, today) : false
+          const outside = !inMonth(day)
+          const hidden = items.length - limit
+          return (
+            <div
+              key={day.toISOString()}
+              className={`group relative flex min-h-[64px] min-w-0 flex-col p-1 sm:p-1.5 ${
+                compact ? 'sm:min-h-[92px]' : 'sm:min-h-[112px]'
+              } ${isToday ? 'bg-secondary-subtle' : outside ? 'bg-surface-2/60' : 'bg-surface'}`}
+            >
+              <button
+                type="button"
+                onClick={() => onOpenDay(day)}
+                className={`grid size-7 place-items-center self-start rounded-full text-ui font-medium tabular-nums hover:bg-surface-3 ${
+                  isToday
+                    ? 'bg-secondary font-semibold text-on-primary hover:bg-secondary-hover'
+                    : outside
+                      ? 'text-ink-3'
+                      : 'text-ink'
+                }`}
+                aria-label={`Open ${day.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}`}
+                aria-current={isToday ? 'date' : undefined}
+              >
+                {day.getDate()}
+              </button>
+
+              {/* Phones: one dot per item (up to three). */}
+              {items.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onOpenDay(day)}
+                  className="mt-auto flex justify-center gap-1 pb-1 sm:hidden"
+                  aria-label={`${items.length} items`}
+                >
+                  {items.slice(0, limit).map((item) => (
+                    <span
+                      key={item.kind === 'meeting' ? item.meeting.id : item.task.id}
+                      className={`size-1.5 rounded-full ${item.kind === 'meeting' ? 'bg-accent' : 'bg-secondary'}`}
+                    />
+                  ))}
+                </button>
+              )}
+
+              {/* Larger screens: chips, then "+N more". */}
+              <div className="mt-1 hidden min-w-0 space-y-1 sm:block">
+                {items.slice(0, limit).map((item) =>
+                  item.kind === 'meeting' ? (
+                    <button
+                      type="button"
+                      key={item.meeting.id}
+                      onClick={() => onEditMeeting(item.meeting)}
+                      className="flex w-full min-w-0 items-center gap-1.5 rounded-md bg-accent-light px-1.5 py-0.5 text-left text-2xs text-accent-ink hover:brightness-95"
+                      title={`${timeOfDay(item.meeting.startsAt)} · ${item.meeting.title}`}
+                    >
+                      <span className="size-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+                      <span className="shrink-0 tabular-nums">
+                        {timeOfDay(item.meeting.startsAt)}
+                      </span>
+                      <span className="truncate font-medium">{item.meeting.title}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      key={item.task.id}
+                      onClick={() => onEditTask(item.task.id)}
+                      className="flex w-full min-w-0 items-center gap-1.5 rounded-md bg-secondary-subtle px-1.5 py-0.5 text-left text-2xs text-secondary hover:brightness-95"
+                      title={`Due · ${item.task.title}`}
+                    >
+                      <span className="size-1.5 shrink-0 rounded-full bg-secondary" aria-hidden />
+                      <span className="truncate font-medium">{item.task.title}</span>
+                    </button>
+                  ),
+                )}
+                {hidden > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenDay(day)}
+                    className="px-1.5 text-2xs font-medium text-ink-2 hover:text-ink"
+                  >
+                    +{hidden} more
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }

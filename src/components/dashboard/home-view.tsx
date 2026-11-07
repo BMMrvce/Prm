@@ -47,7 +47,7 @@ export function HomeView() {
     <>
       {visible && meeting && (
         <section className="mt-[15px] flex flex-wrap items-center gap-2 rounded-lg border border-accent/40 bg-accent-light px-4 py-[7px]">
-          <p className="mr-auto min-w-0 text-[14px] text-accent-ink">
+          <p className="mr-auto min-w-0 text-sm text-accent-ink">
             <strong className="font-medium">
               {meeting.title} {minutes > 0 ? `starts in ${minutes} min` : 'is happening now'}
             </strong>{' '}
@@ -60,14 +60,14 @@ export function HomeView() {
               setHidden((current) => ({ ...current, [meeting.id]: Date.now() + 10 * 60 * 1000 }))
               showToast('Reminder snoozed for 10 minutes.')
             }}
-            className="h-8 rounded-lg border border-line-strong bg-surface px-3 text-[13px] text-ink-2"
+            className="h-8 rounded-lg border border-line-strong bg-surface px-3 text-ui text-ink-2"
           >
             Snooze 10 min
           </button>
           <button
             type="button"
             onClick={() => setHidden((current) => ({ ...current, [meeting.id]: Infinity }))}
-            className="h-8 rounded-lg border border-line-strong bg-surface px-3 text-[13px] text-ink-2"
+            className="h-8 rounded-lg border border-line-strong bg-surface px-3 text-ui text-ink-2"
           >
             Dismiss
           </button>
@@ -78,7 +78,7 @@ export function HomeView() {
                 ? window.open(meeting.meetingUrl, '_blank', 'noopener')
                 : router.push(workspacePath(workspace.key, 'calendar'))
             }
-            className="h-8 rounded-lg bg-primary px-4 text-[13px] font-medium text-white hover:bg-primary-hover active:bg-primary-active"
+            className="h-8 rounded-lg bg-primary px-4 text-ui font-medium text-white hover:bg-primary-hover active:bg-primary-active"
           >
             {meeting.meetingUrl ? 'Join' : 'Open calendar'}
           </button>
@@ -87,7 +87,7 @@ export function HomeView() {
 
       <div className="mt-[13px] grid min-w-0 gap-4 xl:grid-cols-[333px_minmax(0,1fr)]">
         <TaskList />
-        <CalendarPanel />
+        <CalendarPanel defaultRange="Month" compact />
       </div>
 
       <div className="mt-[15px] grid gap-4 md:grid-cols-2 xl:grid-cols-4">

@@ -112,8 +112,8 @@ export function WatchLaterPanel() {
           <ListVideo size={17} />
         </span>
         <div className="mr-auto min-w-0">
-          <h2 className="text-[15px] font-semibold">Watch Later</h2>
-          <p className="truncate text-[12px] text-ink-2">
+          <h2 className="text-card font-semibold">Watch Later</h2>
+          <p className="truncate text-xs text-ink-2">
             {connected
               ? `${connected.playlist.title} · ${videos.length} videos · ${connected.account}`
               : 'Videos you save to a YouTube playlist'}
@@ -124,7 +124,7 @@ export function WatchLaterPanel() {
             <button
               type="button"
               onClick={() => setChoosing(true)}
-              className="h-8 rounded-lg border border-line-strong bg-surface px-3 text-[12px]"
+              className="h-8 rounded-lg border border-line-strong bg-surface px-3 text-xs"
             >
               Change playlist
             </button>
@@ -141,24 +141,24 @@ export function WatchLaterPanel() {
         )}
       </div>
 
-      {!feed && <p className="mt-4 text-[13px] text-ink-3">Loading…</p>}
+      {!feed && <p className="mt-4 text-ui text-ink-3">Loading…</p>}
 
       {feed?.status.state === 'not_configured' && (
-        <p className="mt-4 text-[13px] text-ink-2">
-          Add a Google OAuth client to <code className="text-[12px]">.env</code> (
+        <p className="mt-4 text-ui text-ink-2">
+          Add a Google OAuth client to <code className="text-xs">.env</code> (
           {feed.status.missing.join(', ')}) to connect YouTube. See the README for the steps.
         </p>
       )}
 
       {state === 'needs_auth' && (
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <p className="min-w-0 flex-1 text-[13px] text-ink-2">
+          <p className="min-w-0 flex-1 text-ui text-ink-2">
             Connect your Google account, then pick a playlist (for example one called
             &ldquo;Later&rdquo;). YouTube&rsquo;s own Watch later list can&rsquo;t be read by apps.
           </p>
           <a
             href={connectYouTubeUrl(window.location.pathname)}
-            className="h-9 rounded-lg bg-primary px-4 text-[13px] font-medium leading-9 text-white hover:bg-primary-hover active:bg-primary-active"
+            className="h-9 rounded-lg bg-primary px-4 text-ui font-medium leading-9 text-white hover:bg-primary-hover active:bg-primary-active"
           >
             Connect YouTube
           </a>
@@ -168,13 +168,13 @@ export function WatchLaterPanel() {
       {picker && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {playlists === null ? (
-            <p className="text-[13px] text-ink-3">Loading your playlists…</p>
+            <p className="text-ui text-ink-3">Loading your playlists…</p>
           ) : playlists.length ? (
             <>
               <select
                 value={choice}
                 onChange={(event) => setChoice(event.target.value)}
-                className="h-9 min-w-0 max-w-full flex-1 rounded-lg border border-line-strong bg-surface px-2 text-[13px] sm:max-w-sm"
+                className="h-9 min-w-0 max-w-full flex-1 rounded-lg border border-line-strong bg-surface px-2 text-ui sm:max-w-sm"
                 aria-label="Playlist"
               >
                 {playlists.map((item) => (
@@ -186,7 +186,7 @@ export function WatchLaterPanel() {
               <button
                 type="button"
                 onClick={() => void save()}
-                className="h-9 rounded-lg bg-primary px-4 text-[13px] font-medium text-white hover:bg-primary-hover active:bg-primary-active"
+                className="h-9 rounded-lg bg-primary px-4 text-ui font-medium text-white hover:bg-primary-hover active:bg-primary-active"
               >
                 Show this playlist
               </button>
@@ -194,14 +194,14 @@ export function WatchLaterPanel() {
                 <button
                   type="button"
                   onClick={() => setChoosing(false)}
-                  className="h-9 rounded-lg px-3 text-[13px] text-ink-2"
+                  className="h-9 rounded-lg px-3 text-ui text-ink-2"
                 >
                   Cancel
                 </button>
               )}
             </>
           ) : (
-            <p className="text-[13px] text-ink-2">
+            <p className="text-ui text-ink-2">
               No playlists on this YouTube account yet. Create one (e.g. &ldquo;Later&rdquo;) on
               YouTube, save a video to it, then reload.
             </p>
@@ -211,9 +211,9 @@ export function WatchLaterPanel() {
 
       {state === 'connected' && !choosing && (
         <>
-          {feed?.error && <p className="mt-4 text-[13px] text-error-ink">{feed.error}</p>}
+          {feed?.error && <p className="mt-4 text-ui text-error-ink">{feed.error}</p>}
           {!videos.length && !feed?.error && (
-            <p className="mt-4 text-[13px] text-ink-3">
+            <p className="mt-4 text-ui text-ink-3">
               This playlist is empty. Save a video to it on YouTube and press refresh.
             </p>
           )}
@@ -237,10 +237,10 @@ export function WatchLaterPanel() {
                       />
                     )}
                   </div>
-                  <p className="mt-2 line-clamp-2 text-[13px] font-medium leading-[18px] text-ink group-hover:text-secondary">
+                  <p className="mt-2 line-clamp-2 text-ui font-medium leading-[18px] text-ink group-hover:text-secondary">
                     {video.title}
                   </p>
-                  <p className="mt-0.5 truncate text-[11px] text-ink-2">
+                  <p className="mt-0.5 truncate text-2xs text-ink-2">
                     {video.channel}
                     {video.addedAt && ` · added ${mailDate(video.addedAt)}`}
                   </p>
@@ -252,7 +252,7 @@ export function WatchLaterPanel() {
             <button
               type="button"
               onClick={() => setExpanded((value) => !value)}
-              className="mt-3 text-[12px] font-medium text-secondary"
+              className="mt-3 text-xs font-medium text-secondary"
             >
               {expanded ? 'Show fewer' : `Show all ${videos.length} videos`}
             </button>

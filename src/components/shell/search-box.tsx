@@ -55,7 +55,7 @@ export function SearchBox({ className = '' }: { className?: string }) {
           if (event.key === 'Enter' && results[0]) go(results[0].href)
           if (event.key === 'Escape') setOpen(false)
         }}
-        className="h-10 w-full rounded-lg border border-line-strong bg-field pl-9 pr-3 text-[14px] outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
+        className="h-10 w-full rounded-lg border border-line-strong bg-field pl-9 pr-3 text-sm outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/15"
         placeholder="Search..."
         aria-label="Search pages, projects and tasks"
       />
@@ -68,14 +68,14 @@ export function SearchBox({ className = '' }: { className?: string }) {
                 key={`${item.kind}-${item.label}`}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => go(item.href)}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] hover:bg-surface-2"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-ui hover:bg-surface-2"
               >
                 <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                <span className="shrink-0 text-[11px] text-ink-3">{item.kind}</span>
+                <span className="shrink-0 text-2xs text-ink-3">{item.kind}</span>
               </button>
             ))
           ) : (
-            <p className="px-3 py-2 text-[13px] text-ink-3">No matches</p>
+            <p className="px-3 py-2 text-ui text-ink-3">No matches</p>
           )}
         </div>
       )}

@@ -77,7 +77,7 @@ export function ProjectGrid() {
             >
               <div className="flex items-center justify-between gap-2">
                 <h3 className="truncate font-semibold">{project.name}</h3>
-                <span className="shrink-0 rounded-full bg-primary-light px-2 py-1 text-[11px] capitalize text-primary-ink">
+                <span className="shrink-0 rounded-full bg-primary-light px-2 py-1 text-2xs capitalize text-primary-ink">
                   {project.status}
                 </span>
               </div>

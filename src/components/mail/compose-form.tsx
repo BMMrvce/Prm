@@ -55,7 +55,7 @@ export function ComposeForm({
 
   return (
     <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col gap-2">
-      {from && <p className="truncate text-[11px] text-ink-2">From {from}</p>}
+      {from && <p className="truncate text-2xs text-ink-2">From {from}</p>}
       <RecipientInput
         space={space}
         value={to}
@@ -76,7 +76,7 @@ export function ComposeForm({
         placeholder="Write your message"
         aria-label="Message"
       />
-      {error && <p className="text-[11px] text-error-ink">{error}</p>}
+      {error && <p className="text-2xs text-error-ink">{error}</p>}
       <button
         type="submit"
         disabled={sending}

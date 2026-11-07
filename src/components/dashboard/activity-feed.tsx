@@ -21,14 +21,14 @@ export function ActivityFeed() {
 
   return (
     <section className="neo-card min-h-[330px] min-w-0 rounded-xl p-4">
-      <h2 className="text-[15px] font-semibold">What’s Cooking</h2>
+      <h2 className="text-card font-semibold">What’s Cooking</h2>
       {ready && !events.length && (
-        <p className="mt-4 text-[13px] text-ink-3">Activity will show up as you work.</p>
+        <p className="mt-4 text-ui text-ink-3">Activity will show up as you work.</p>
       )}
       <ol className="relative mt-4 space-y-4 before:absolute before:inset-y-1 before:left-[3px] before:w-px before:bg-line">
         {events.map((event) => (
           <li
-            className="relative flex gap-3 pl-4 text-[13px] leading-5"
+            className="relative flex gap-3 pl-4 text-ui leading-5"
             key={`${event.at}-${event.text}`}
           >
             <span
@@ -36,9 +36,7 @@ export function ActivityFeed() {
               aria-hidden
             />
             <p className="min-w-0 flex-1 break-words text-ink">{event.text}</p>
-            <time className="shrink-0 text-[11px] tabular-nums text-ink-3">
-              {mailDate(event.at)}
-            </time>
+            <time className="shrink-0 text-2xs tabular-nums text-ink-3">{mailDate(event.at)}</time>
           </li>
         ))}
       </ol>

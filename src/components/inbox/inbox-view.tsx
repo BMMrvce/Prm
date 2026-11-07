@@ -119,7 +119,7 @@ export function InboxView() {
                   >
                     {folder === 'sent' ? `To ${item.to || '—'}` : item.from}
                   </p>
-                  <span className="shrink-0 text-[11px] text-ink-3">{mailDate(item.date)}</span>
+                  <span className="shrink-0 text-2xs text-ink-3">{mailDate(item.date)}</span>
                 </div>
                 <p className="mt-0.5 truncate text-xs text-ink-2">{item.subject}</p>
               </div>
@@ -157,11 +157,11 @@ export function InboxView() {
               <>
                 <div className="flex flex-wrap items-start gap-3 border-b border-line px-4 py-4 sm:px-5">
                   <div className="min-w-0 flex-1 basis-60">
-                    <h3 className="break-words text-[17px] font-semibold leading-snug">
+                    <h3 className="break-words text-lg font-semibold leading-snug">
                       {message.subject}
                     </h3>
                     {/* Full sender and recipients: wrap instead of cutting addresses off. */}
-                    <p className="mt-2 text-[13px] font-medium text-ink">{message.from}</p>
+                    <p className="mt-2 text-ui font-medium text-ink">{message.from}</p>
                     {message.fromAddress && message.fromAddress !== message.from && (
                       <p className="break-all text-xs text-ink-2">{message.fromAddress}</p>
                     )}

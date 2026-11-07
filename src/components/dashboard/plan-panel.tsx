@@ -20,7 +20,7 @@ export function PlanPanel() {
 
   return (
     <section className="neo-card flex min-h-[330px] min-w-0 flex-col rounded-xl p-4">
-      <h2 className="text-[15px] font-semibold">Plan of Action</h2>
+      <h2 className="text-card font-semibold">Plan of Action</h2>
       {ready && !plan.length && (
         <EmptyState icon={Route} title="No plan for today" hint="Add the steps below." />
       )}
@@ -33,7 +33,7 @@ export function PlanPanel() {
               label={`Complete ${item.title}`}
             />
             <span
-              className={`min-w-0 flex-1 break-words text-[14px] ${item.completedAt ? 'text-ink-2 line-through' : ''}`}
+              className={`min-w-0 flex-1 break-words text-sm ${item.completedAt ? 'text-ink-2 line-through' : ''}`}
             >
               {index + 1}. {item.title}
             </span>

@@ -2,7 +2,7 @@
 
 import { Menu } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, ViewTransition, type ReactNode } from 'react'
 import { greeting } from '@/lib/format'
 import { pageTitle } from '@/lib/routes'
 import { useToast, useWorkspace } from '@/state/workbench-store'
@@ -73,7 +73,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             >
               <Menu size={18} />
             </button>
-            <h2 className="mr-auto min-w-0 flex-1 truncate text-[20px] font-semibold tracking-[-0.02em] text-ink sm:text-[24px]">
+            <h2 className="mr-auto min-w-0 flex-1 truncate text-xl font-semibold text-ink sm:text-2xl">
               {title === homeTitle && homeTitle.includes(' · ') ? (
                 <>
                   {/* Phones show just the greeting; the date and time follow from sm up. */}
@@ -113,16 +113,25 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             </div>
           )}
 
-          {/* Keyed by workspace and path: per-page state resets and each page fades in. */}
-          <div key={`${workspace.key}:${pathname}`} className="animate-page">
-            {children}
-          </div>
+          {/*
+           * Keyed by workspace and path, so per-page state resets. Navigations are React
+           * transitions: the old page fades out and the new one rises in while the sidebar
+           * and header stay put (CSS in globals.css; plain fade where unsupported).
+           */}
+          <ViewTransition
+            key={`${workspace.key}:${pathname}`}
+            enter="page-enter"
+            exit="page-exit"
+            default="none"
+          >
+            <div className="animate-page">{children}</div>
+          </ViewTransition>
         </div>
       </main>
       {toast && (
         <div
           key={toast}
-          className="neo-card animate-toast fixed bottom-4 right-4 z-[70] max-w-[min(24rem,calc(100vw-2rem))] rounded-xl px-4 py-3 text-[13px] font-medium text-ink [overflow-wrap:anywhere]"
+          className="neo-card animate-toast fixed bottom-4 right-4 z-[70] max-w-[min(24rem,calc(100vw-2rem))] rounded-xl px-4 py-3 text-ui font-medium text-ink [overflow-wrap:anywhere]"
           role="status"
         >
           {toast}

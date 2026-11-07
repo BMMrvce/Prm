@@ -20,11 +20,11 @@ export function DayNote() {
 
   return (
     <section className="neo-card flex min-h-[330px] min-w-0 flex-col rounded-xl p-4">
-      <h2 className="text-[15px] font-semibold">Day Note</h2>
+      <h2 className="text-card font-semibold">Day Note</h2>
       {ready && !notes.length && (
         <EmptyState icon={NotebookPen} title="Nothing noted yet" hint="Jot down a thought below." />
       )}
-      <ul className="mt-3 flex-1 list-disc space-y-2 pl-5 text-[13px] leading-5 text-ink-2">
+      <ul className="mt-3 flex-1 list-disc space-y-2 pl-5 text-ui leading-5 text-ink-2">
         {notes.map((item, index) => (
           <li className="group break-words" key={`${item}-${index}`}>
             <span>{item}</span>
@@ -33,7 +33,7 @@ export function DayNote() {
               onClick={() =>
                 void saveNote(notes.filter((_, itemIndex) => itemIndex !== index).join('\n'))
               }
-              className="ml-2 text-[11px] text-ink-3 opacity-0 group-hover:opacity-100 focus:opacity-100"
+              className="ml-2 text-2xs text-ink-3 opacity-0 group-hover:opacity-100 focus:opacity-100"
               aria-label={`Remove ${item}`}
             >
               Remove

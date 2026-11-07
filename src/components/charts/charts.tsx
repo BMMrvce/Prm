@@ -19,7 +19,7 @@ function niceMax(value: number) {
 export function Legend({ series }: { series: Series[] }) {
   if (series.length < 2) return null
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-2">
+    <div className="flex flex-wrap gap-x-4 gap-y-1 text-2xs text-ink-2">
       {series.map((item) => (
         <span key={item.name} className="flex items-center gap-1.5">
           <span className="size-2.5 rounded-[2px]" style={{ background: item.color }} />
@@ -63,7 +63,7 @@ export function ColumnChart({
   return (
     <div className="flex min-w-0 gap-2">
       <div
-        className="flex shrink-0 flex-col justify-between text-right text-[11px] leading-none text-ink-3"
+        className="flex shrink-0 flex-col justify-between text-right text-2xs leading-none text-ink-3"
         style={{ height }}
         aria-hidden
       >
@@ -129,7 +129,7 @@ export function ColumnChart({
                     )
                   })}
                   <div
-                    className={`pointer-events-none absolute top-0 z-10 hidden w-max max-w-[180px] rounded-md border border-line bg-surface px-2.5 py-1.5 text-[11px] shadow-md group-hover:block group-focus-visible:block ${align}`}
+                    className={`pointer-events-none absolute top-0 z-10 hidden w-max max-w-[180px] rounded-md border border-line bg-surface px-2.5 py-1.5 text-2xs shadow-md group-hover:block group-focus-visible:block ${align}`}
                   >
                     <p className="text-ink-2">{item.detail ?? item.label}</p>
                     {series.map((entry, slot) => (
@@ -151,7 +151,7 @@ export function ColumnChart({
           {data.map((item, index) => (
             <span
               key={`${index}:${item.label}`}
-              className="min-w-0 flex-1 overflow-visible whitespace-nowrap text-center text-[11px] text-ink-3"
+              className="min-w-0 flex-1 overflow-visible whitespace-nowrap text-center text-2xs text-ink-3"
             >
               {index % labelEvery === 0 ? item.label : ''}
             </span>
@@ -197,9 +197,7 @@ export function BarRows({
                       background: entry.color,
                     }}
                   />
-                  <span className="shrink-0 text-[11px] tabular-nums text-ink-2">
-                    {format(value)}
-                  </span>
+                  <span className="shrink-0 text-2xs tabular-nums text-ink-2">{format(value)}</span>
                 </div>
               )
             })}
@@ -216,7 +214,7 @@ export function StatTile({ label, value, note }: { label: string; value: string;
     <div className="neo-card min-w-0 rounded-xl p-4">
       <p className="text-xs text-ink-2">{label}</p>
       <p className="mt-1 truncate text-2xl font-semibold tracking-tight">{value}</p>
-      {note && <p className="mt-0.5 truncate text-[11px] text-ink-3">{note}</p>}
+      {note && <p className="mt-0.5 truncate text-2xs text-ink-3">{note}</p>}
     </div>
   )
 }
