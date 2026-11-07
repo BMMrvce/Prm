@@ -15,7 +15,7 @@ export function MailNotice({
   error: string | null
   compact?: boolean
 }) {
-  const text = compact ? 'text-[11px]' : 'text-sm'
+  const text = compact ? 'text-2xs' : 'text-sm'
   if (status?.state === 'disconnected') {
     return (
       <div className={`flex flex-col items-center gap-3 py-6 text-center ${text}`}>

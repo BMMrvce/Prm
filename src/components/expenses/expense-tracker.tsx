@@ -441,7 +441,7 @@ export function ExpenseTracker() {
                     {record.category}
                   </span>
                   <span
-                    className={`hidden w-fit rounded-full px-2 py-1 text-[10px] font-medium sm:block ${
+                    className={`hidden w-fit rounded-full px-2 py-1 text-2xs font-medium sm:block ${
                       record.status === 'pending'
                         ? 'bg-warning-light text-warning-ink'
                         : record.status === 'approved' || record.status === 'paid'

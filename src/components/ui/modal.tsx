@@ -34,7 +34,7 @@ export function Modal({
       }`}
     >
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line-soft bg-surface px-5 py-3.5">
-        <h2 className="min-w-0 truncate text-[15px] font-semibold">{title}</h2>
+        <h2 className="min-w-0 truncate text-card font-semibold">{title}</h2>
         <button
           type="button"
           onClick={onClose}

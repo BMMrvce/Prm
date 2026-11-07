@@ -121,6 +121,43 @@
 @theme inline {
   /* Inline so the utilities read next/font's variables, which are set on <body>, not :root. */
   --font-sans: var(--font-app), ui-sans-serif, system-ui, sans-serif;
+
+  /*
+   * Type scale (dense product UI, 13px body). Each size carries its line height and the
+   * letter spacing Inter needs at that size, so components only pick a name.
+   */
+  --text-2xs: 11px;
+  --text-2xs--line-height: 16px;
+  --text-2xs--letter-spacing: 0.005em;
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-ui: 13px;
+  --text-ui--line-height: 20px;
+  --text-ui--letter-spacing: -0.003em;
+  --text-sm: 14px;
+  --text-sm--line-height: 20px;
+  --text-sm--letter-spacing: -0.006em;
+  --text-card: 15px;
+  --text-card--line-height: 22px;
+  --text-card--letter-spacing: -0.01em;
+  --text-base: 16px;
+  --text-base--line-height: 24px;
+  --text-base--letter-spacing: -0.011em;
+  --text-lg: 18px;
+  --text-lg--line-height: 26px;
+  --text-lg--letter-spacing: -0.014em;
+  --text-xl: 20px;
+  --text-xl--line-height: 28px;
+  --text-xl--letter-spacing: -0.017em;
+  --text-2xl: 24px;
+  --text-2xl--line-height: 32px;
+  --text-2xl--letter-spacing: -0.019em;
+  --text-3xl: 30px;
+  --text-3xl--line-height: 36px;
+  --text-3xl--letter-spacing: -0.021em;
+  --text-5xl: 48px;
+  --text-5xl--line-height: 1.08;
+  --text-5xl--letter-spacing: -0.03em;
   --font-handwritten: var(--font-handwritten-face), 'Comic Sans MS', cursive;
 
   --color-primary: var(--brand-primary);
@@ -196,6 +233,14 @@
 
   body {
     font-family: var(--font-app), ui-sans-serif, system-ui, sans-serif;
+    font-size: var(--text-ui);
+    line-height: var(--text-ui--line-height);
+    /* Inter: tailed l (tells l from I) and curly quotes; crisp, legible rendering. */
+    font-feature-settings:
+      'cv05' 1,
+      'ss03' 1;
+    font-optical-sizing: auto;
+    text-rendering: optimizeLegibility;
   }
 
   button,
@@ -280,8 +325,19 @@ dialog::backdrop {
     transform-origin: top right;
   }
 
-  .animate-page {
-    animation: page-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Page changes: the view transition below; this fade is the fallback without it. */
+  @supports not (view-transition-name: none) {
+    .animate-page {
+      animation: page-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+  }
+
+  ::view-transition-old(.page-exit) {
+    animation: 110ms ease-in both fade-out;
+  }
+
+  ::view-transition-new(.page-enter) {
+    animation: 220ms cubic-bezier(0.2, 0.8, 0.2, 1) 40ms both page-in;
   }
 
   .animate-toast {
@@ -322,6 +378,18 @@ dialog::backdrop {
   from {
     opacity: 0;
     transform: translateY(10px) scale(0.98);
+  }
+}
+
+/* The sidebar and header persist across pages, so the whole-page crossfade is off. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
   }
 }
 

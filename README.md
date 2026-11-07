@@ -103,7 +103,10 @@ Setup once:
 CSS variables in `src/app/globals.css` and are exposed to Tailwind as `bg-primary`,
 `text-ink-2`, `border-line` and so on. Use those, never hex values, in components: dark mode
 swaps the variable values under `html.dark`. Light, dark or system theme is chosen in the
-account menu (stored per browser). The UI uses one typeface, Inter. On desktop the sidebar
+account menu (stored per browser). The UI uses Inter with a named type scale
+(`text-2xs` 11 → `text-2xl` 24, each with its line height and letter spacing, set in
+`globals.css`); the To Do list uses Shantell Sans (`font-handwritten`). Page changes
+crossfade with React `<ViewTransition>`. On desktop the sidebar
 collapses to an icon rail (remembered per browser). Logo and icons are in `public/brand/`, made from the
 originals in `src/assets/`. Motion respects `prefers-reduced-motion`.
 
@@ -111,31 +114,31 @@ originals in `src/assets/`. Motion respects `prefers-reduced-motion`.
 
 `[space]` is one of `office`, `studio` or `personal`. Any other value returns 404.
 
-| URL                            | Page                                                                 |
-| ------------------------------ | -------------------------------------------------------------------- |
-| `/`                            | Redirects to `/office`                                               |
-| `/login`                       | Sign in / create account (Supabase Auth)                             |
-| `/[space]`                     | Home dashboard: to-dos, calendar, notes, mail, plan                  |
-| `/[space]/tasks`               | My Tasks                                                             |
-| `/[space]/inbox`               | Unified inbox                                                        |
-| `/[space]/calendar`            | Week/day calendar with previous/next/today; click an item to edit it |
-| `/[space]/time`                | Time Management: tracked time charts and time log                    |
-| `/[space]/expenses`            | Reimbursements (Office) or Income & Expenses                         |
-| `/[space]/projects`            | All projects                                                         |
-| `/[space]/projects/[project]`  | One project, e.g. `/office/projects/website-revamp`                  |
-| `/[space]/integrations`        | Integrations                                                         |
-| `/[space]/settings`            | Workspace settings                                                   |
-| `/api/health`                  | `GET` JSON liveness probe (public)                                   |
-| `/api/auth/signup`             | `POST` create a confirmed account (public)                           |
-| `/api/mail`                    | `GET` your mailbox status per workspace                              |
-| `/api/mail/[space]`            | `GET ?folder=inbox\|sent` list · `POST` send                         |
-| `/api/mail/[space]/message`    | `GET ?folder=&id=` one message with body                             |
-| `/api/mail/[space]/connection` | `POST` connect Hostinger · `DELETE` disconnect your mailbox          |
-| `/api/oauth/outlook/*`         | Outlook sign-in: `connect?space=`, `callback`                        |
-| `/api/youtube`                 | `GET` status + videos · `POST` choose playlist · `DELETE` disconnect |
-| `/api/youtube/playlists`       | `GET` the signed-in user's YouTube playlists                         |
-| `/api/oauth/google/*`          | Google sign-in for Gmail and YouTube: `connect?purpose=`, `callback` |
-| `/manifest.webmanifest`        | PWA manifest                                                         |
+| URL                            | Page                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------ |
+| `/`                            | Redirects to `/office`                                                         |
+| `/login`                       | Sign in / create account (Supabase Auth)                                       |
+| `/[space]`                     | Home dashboard: to-dos, calendar, notes, mail, plan                            |
+| `/[space]/tasks`               | My Tasks                                                                       |
+| `/[space]/inbox`               | Unified inbox                                                                  |
+| `/[space]/calendar`            | Day / week / month calendar with previous/next/today; click an item to edit it |
+| `/[space]/time`                | Time Management: tracked time charts and time log                              |
+| `/[space]/expenses`            | Reimbursements (Office) or Income & Expenses                                   |
+| `/[space]/projects`            | All projects                                                                   |
+| `/[space]/projects/[project]`  | One project, e.g. `/office/projects/website-revamp`                            |
+| `/[space]/integrations`        | Integrations                                                                   |
+| `/[space]/settings`            | Workspace settings                                                             |
+| `/api/health`                  | `GET` JSON liveness probe (public)                                             |
+| `/api/auth/signup`             | `POST` create a confirmed account (public)                                     |
+| `/api/mail`                    | `GET` your mailbox status per workspace                                        |
+| `/api/mail/[space]`            | `GET ?folder=inbox\|sent` list · `POST` send                                   |
+| `/api/mail/[space]/message`    | `GET ?folder=&id=` one message with body                                       |
+| `/api/mail/[space]/connection` | `POST` connect Hostinger · `DELETE` disconnect your mailbox                    |
+| `/api/oauth/outlook/*`         | Outlook sign-in: `connect?space=`, `callback`                                  |
+| `/api/youtube`                 | `GET` status + videos · `POST` choose playlist · `DELETE` disconnect           |
+| `/api/youtube/playlists`       | `GET` the signed-in user's YouTube playlists                                   |
+| `/api/oauth/google/*`          | Google sign-in for Gmail and YouTube: `connect?purpose=`, `callback`           |
+| `/manifest.webmanifest`        | PWA manifest                                                                   |
 
 ## File structure
 

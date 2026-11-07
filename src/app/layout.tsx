@@ -5,8 +5,8 @@ import { PwaRegister } from '@/components/pwa-register'
 import { THEME_SCRIPT } from '@/lib/theme'
 import './globals.css'
 
-// One UI typeface everywhere (Inter); tabular numbers keep timers and money aligned.
-const appFont = Inter({ subsets: ['latin'], variable: '--font-app' })
+// One UI typeface (Inter). The optical-size axis gives large headings Inter's display cut.
+const appFont = Inter({ subsets: ['latin'], axes: ['opsz'], variable: '--font-app' })
 // Funky handwritten face, only for the dashboard To Do list (`font-handwritten`). Its
 // Informal and Bounce axes give the hand-drawn, slightly dancing letters.
 const handwrittenFont = Shantell_Sans({
@@ -49,7 +49,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     // The theme script adds `dark` to <html> before hydration, hence suppressHydrationWarning.
-    <html lang="en" suppressHydrationWarning>
+    // data-scroll-behavior: page changes jump to the top instantly; smooth scrolling (set in
+    // globals.css) still applies within a page.
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>

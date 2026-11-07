@@ -164,11 +164,11 @@ export function RecipientInput({
                 onMouseEnter={() => setActive(index)}
                 className={`block w-full px-3 py-2 text-left ${index === active ? 'bg-primary-subtle' : ''}`}
               >
-                <span className="block truncate text-[13px] font-medium text-ink">
+                <span className="block truncate text-ui font-medium text-ink">
                   {contact.name || contact.address}
                 </span>
                 {contact.name && contact.name !== contact.address && (
-                  <span className="block truncate text-[11px] text-ink-2">{contact.address}</span>
+                  <span className="block truncate text-2xs text-ink-2">{contact.address}</span>
                 )}
               </button>
             </li>

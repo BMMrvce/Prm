@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { SPACE_KEYS, spaces } from '@/data/workspaces'
+import { LinkPending } from '@/components/ui/link-pending'
 import { workspacePath } from '@/lib/routes'
 import type { SpaceKey } from '@/types/workbench'
 
@@ -15,13 +16,14 @@ export function WorkspaceSwitcher({ active }: { active: SpaceKey }) {
           key={key}
           href={workspacePath(key)}
           aria-current={active === key ? 'page' : undefined}
-          className={`flex h-8 items-center justify-center rounded-md px-3.5 text-[13px] font-medium ${
+          className={`flex h-8 items-center justify-center rounded-md px-3.5 text-ui font-medium ${
             active === key
               ? 'bg-primary text-on-primary shadow-sm hover:bg-primary-hover active:bg-primary-active'
               : 'text-ink-2 hover:bg-surface hover:text-ink'
           }`}
         >
           {spaces[key].switchLabel}
+          <LinkPending className="ml-1.5" />
         </Link>
       ))}
     </nav>

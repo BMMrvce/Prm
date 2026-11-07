@@ -67,7 +67,7 @@ export function PeoplePicker({
             key={id}
             className="flex max-w-full items-center gap-1.5 rounded-full bg-primary-light py-1 pl-1 pr-2 text-xs text-primary-ink"
           >
-            <span className="grid size-5 shrink-0 place-items-center rounded-full bg-surface text-[11px] font-semibold">
+            <span className="grid size-5 shrink-0 place-items-center rounded-full bg-surface text-2xs font-semibold">
               {initials(personName(id))}
             </span>
             <span className="truncate">{personName(id)}</span>
@@ -113,13 +113,13 @@ export function PeoplePicker({
                   onClick={() => void pick(person)}
                   className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-primary-subtle"
                 >
-                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary-light text-[11px] font-semibold text-primary-ink">
+                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary-light text-2xs font-semibold text-primary-ink">
                     {initials(person.name)}
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate text-xs font-medium">{person.name}</span>
                     {person.email && (
-                      <span className="block truncate text-[11px] text-ink-2">{person.email}</span>
+                      <span className="block truncate text-2xs text-ink-2">{person.email}</span>
                     )}
                   </span>
                 </button>

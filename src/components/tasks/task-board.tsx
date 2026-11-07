@@ -173,7 +173,7 @@ export function TaskBoard({ projectId }: { projectId?: string }) {
             </button>
             {task.assignees.length > 0 && (
               <span
-                className="flex shrink-0 items-center gap-1 text-[11px] text-ink-2"
+                className="flex shrink-0 items-center gap-1 text-2xs text-ink-2"
                 title={`${task.assignees.length} tagged`}
               >
                 <Users size={13} /> {task.assignees.length}
@@ -181,7 +181,7 @@ export function TaskBoard({ projectId }: { projectId?: string }) {
             )}
             {task.priority !== 'none' && (
               <span
-                className={`shrink-0 rounded-full px-2 py-1 text-[11px] ${priorityStyle(task.priority)}`}
+                className={`shrink-0 rounded-full px-2 py-1 text-2xs ${priorityStyle(task.priority)}`}
               >
                 {capitalize(task.priority)}
               </span>

@@ -102,7 +102,7 @@ export function MailConnection({ space }: { space: SpaceKey }) {
             </h3>
             {status && (
               <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                className={`rounded-full px-2 py-0.5 text-2xs font-medium ${
                   status.state === 'connected'
                     ? 'bg-success-light text-success-ink'
                     : 'bg-surface-2 text-ink-2'
@@ -196,7 +196,7 @@ export function MailConnection({ space }: { space: SpaceKey }) {
                 autoComplete="current-password"
                 required
               />
-              <p className="text-[11px] text-ink-2">
+              <p className="text-2xs text-ink-2">
                 Use the full mailbox address and that mailbox&rsquo;s own password (the one for
                 webmail), not your Hostinger account login. It is checked by signing in to
                 Hostinger, then stored encrypted. Only you can use it.

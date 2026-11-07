@@ -52,7 +52,7 @@ export function IntegrationsList() {
               <h3 className="text-sm font-semibold">YouTube</h3>
               {youtubeStatus && (
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${youtubeBadge[1]}`}
+                  className={`rounded-full px-2 py-0.5 text-2xs font-medium ${youtubeBadge[1]}`}
                 >
                   {youtubeBadge[0]}
                 </span>
@@ -107,7 +107,7 @@ export function IntegrationsList() {
               <p className="mt-1 text-xs text-ink-2">{detail}</p>
             </div>
             <span
-              className="shrink-0 rounded-full bg-surface-2 px-2 py-1 text-[11px] font-medium text-ink-2"
+              className="shrink-0 rounded-full bg-surface-2 px-2 py-1 text-2xs font-medium text-ink-2"
               title={`Needs ${envVar} and a server integration`}
             >
               Coming soon

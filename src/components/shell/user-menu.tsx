@@ -25,7 +25,7 @@ export function UserMenu() {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="grid size-8 place-items-center rounded-full bg-primary-light text-[11px] font-semibold text-primary-ink"
+        className="grid size-8 place-items-center rounded-full bg-primary-light text-2xs font-semibold text-primary-ink"
         aria-label="Account menu"
         aria-expanded={open}
       >
@@ -40,8 +40,8 @@ export function UserMenu() {
           />
           <div className="neo-card animate-pop absolute right-0 top-11 z-30 w-[min(260px,calc(100vw-2rem))] rounded-xl p-2">
             <div className="px-2 py-1.5">
-              <p className="truncate text-[13px] font-medium">{profile?.fullName}</p>
-              <p className="truncate text-[11px] text-ink-2">{profile?.email}</p>
+              <p className="truncate text-ui font-medium">{profile?.fullName}</p>
+              <p className="truncate text-2xs text-ink-2">{profile?.email}</p>
             </div>
             <div
               className="mt-1 grid grid-cols-3 gap-1 rounded-lg bg-surface-2 p-1"
@@ -55,7 +55,7 @@ export function UserMenu() {
                   role="radio"
                   aria-checked={theme.preference === value}
                   onClick={() => theme.choose(value)}
-                  className={`flex flex-col items-center gap-1 rounded-md py-1.5 text-[11px] ${
+                  className={`flex flex-col items-center gap-1 rounded-md py-1.5 text-2xs ${
                     theme.preference === value
                       ? 'bg-surface font-medium text-ink shadow-sm'
                       : 'text-ink-2 hover:text-ink'
@@ -69,14 +69,14 @@ export function UserMenu() {
             <Link
               href={workspacePath(workspace.key, 'settings')}
               onClick={() => setOpen(false)}
-              className="mt-1 flex items-center gap-2 rounded-lg px-2 py-2 text-[13px] hover:bg-surface-2"
+              className="mt-1 flex items-center gap-2 rounded-lg px-2 py-2 text-ui hover:bg-surface-2"
             >
               <Settings size={14} /> Settings
             </Link>
             <button
               type="button"
               onClick={() => void signOut()}
-              className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] text-error-ink hover:bg-error-light"
+              className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-ui text-error-ink hover:bg-error-light"
             >
               <LogOut size={14} /> Sign out
             </button>

@@ -19,6 +19,7 @@ import {
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Logo } from '@/components/brand/logo'
+import { LinkPending } from '@/components/ui/link-pending'
 import { initials } from '@/lib/format'
 import { mainNav, manageNav, projectNav, type NavIcon, type NavItem } from '@/lib/routes'
 import { useWorkspace } from '@/state/workbench-store'
@@ -71,7 +72,7 @@ export function Sidebar({
         onClick={onClose}
         title={collapsed ? item.label : undefined}
         aria-current={active ? 'page' : undefined}
-        className={`group relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-[14px] ${
+        className={`group relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm ${
           collapsed ? 'lg:justify-center lg:px-0' : ''
         } ${
           active
@@ -92,14 +93,15 @@ export function Sidebar({
             <span className="size-2 rounded-[3px]" style={{ background: item.color }} />
           </span>
         )}
-        <span className={`truncate ${rail}`}>{item.label}</span>
+        <span className={`min-w-0 flex-1 truncate ${rail}`}>{item.label}</span>
+        <LinkPending className={rail} />
       </Link>
     )
   }
 
   const sectionLabel = (label: string) => (
     <p
-      className={`mb-1 mt-6 px-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-3 ${
+      className={`mb-1 mt-6 px-2.5 text-2xs font-semibold uppercase tracking-[0.08em] text-ink-3 ${
         collapsed ? 'lg:sr-only' : ''
       }`}
     >
@@ -149,10 +151,10 @@ export function Sidebar({
         <div
           className={`mb-3 rounded-lg border border-line bg-surface-2 px-3 py-2 ${collapsed ? 'lg:hidden' : ''}`}
         >
-          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-ink-3">
+          <p className="text-2xs font-medium uppercase tracking-[0.08em] text-ink-3">
             {workspace.switchLabel} workspace
           </p>
-          <p className="truncate text-[14px] font-semibold text-ink">{workspace.name}</p>
+          <p className="truncate text-sm font-semibold text-ink">{workspace.name}</p>
         </div>
 
         <nav className="space-y-0.5" aria-label="Workspace navigation">
@@ -162,7 +164,7 @@ export function Sidebar({
         <nav className="space-y-0.5" aria-label="Projects">
           {projectNav(workspace, projects).map(navLink)}
           {!projects.length && (
-            <p className={`px-2.5 py-1.5 text-[13px] text-ink-3 ${rail}`}>No projects yet</p>
+            <p className={`px-2.5 py-1.5 text-ui text-ink-3 ${rail}`}>No projects yet</p>
           )}
         </nav>
         {sectionLabel('Manage')}
@@ -174,7 +176,7 @@ export function Sidebar({
           <button
             type="button"
             onClick={onToggleCollapsed}
-            className={`hidden h-9 w-full items-center gap-3 rounded-lg px-2.5 text-[13px] text-ink-2 hover:bg-surface-2 hover:text-ink lg:flex ${
+            className={`hidden h-9 w-full items-center gap-3 rounded-lg px-2.5 text-ui text-ink-2 hover:bg-surface-2 hover:text-ink lg:flex ${
               collapsed ? 'lg:justify-center lg:px-0' : ''
             }`}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -189,14 +191,14 @@ export function Sidebar({
             }`}
           >
             <span
-              className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-light text-[11px] font-semibold text-primary-ink"
+              className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-light text-2xs font-semibold text-primary-ink"
               title={collapsed ? displayName : undefined}
             >
               {displayName ? initials(displayName) : ''}
             </span>
             <div className={`min-w-0 flex-1 ${rail}`}>
-              <p className="truncate text-[13px] font-medium text-ink">{displayName}</p>
-              <p className="truncate text-[11px] text-ink-3">{profile?.email}</p>
+              <p className="truncate text-ui font-medium text-ink">{displayName}</p>
+              <p className="truncate text-2xs text-ink-3">{profile?.email}</p>
             </div>
             <button
               type="button"

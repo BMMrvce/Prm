@@ -15,7 +15,7 @@ export default function LoginPage() {
           <p className="text-sm font-medium tracking-[0.08em] text-accent">
             CLARITY · FOCUS · STRUCTURE · PROGRESS
           </p>
-          <h1 className="mt-5 text-5xl font-semibold leading-[1.08] tracking-[-0.04em]">
+          <h1 className="mt-5 text-5xl font-semibold leading-[1.08]">
             Plans become progress, without the busywork.
           </h1>
           <p className="mt-6 text-lg leading-8 text-on-primary-muted">

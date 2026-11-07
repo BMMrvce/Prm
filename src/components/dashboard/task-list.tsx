@@ -66,12 +66,12 @@ export function TaskList() {
   return (
     <section className="neo-card flex min-h-[437px] min-w-0 max-w-full flex-col overflow-hidden rounded-xl p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-[15px] font-semibold">To Do</h2>
-        <span className="text-[13px] text-ink-2">
+        <h2 className="text-card font-semibold">To Do</h2>
+        <span className="text-ui text-ink-2">
           {open.length} open · {done.length} done
         </span>
       </div>
-      {!ready && <p className="py-6 text-center text-[13px] text-ink-3">Loading tasks…</p>}
+      {!ready && <p className="py-6 text-center text-ui text-ink-3">Loading tasks…</p>}
       {ready && !tasks.length && (
         <EmptyState icon={ListTodo} title="No tasks yet" hint="Add your first one below." />
       )}
@@ -91,11 +91,11 @@ export function TaskList() {
                 className="min-w-0 flex-1 text-left"
               >
                 <p
-                  className={`break-words font-handwritten text-[15px] leading-[20px] ${task.state === 'completed' ? 'text-ink-3 line-through' : 'text-ink'}`}
+                  className={`break-words font-handwritten text-card leading-[20px] ${task.state === 'completed' ? 'text-ink-3 line-through' : 'text-ink'}`}
                 >
                   {task.title}
                 </p>
-                <p className="mt-0.5 truncate font-handwritten text-[12px] text-ink-2">
+                <p className="mt-0.5 truncate font-handwritten text-xs text-ink-2">
                   {task.code}
                   {task.projectName && ` · ${task.projectName}`}
                   {task.dueAt && ` · Due ${shortDate(task.dueAt)}`}
@@ -109,7 +109,7 @@ export function TaskList() {
               </button>
               {task.priority !== 'none' && (
                 <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium sm:px-2.5 ${priorityStyle(task.priority)}`}
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-2xs font-medium sm:px-2.5 ${priorityStyle(task.priority)}`}
                 >
                   {capitalize(task.priority)}
                 </span>
@@ -131,7 +131,7 @@ export function TaskList() {
       {tasks.length > VISIBLE_TASKS && (
         <Link
           href={workspacePath(workspace.key, 'tasks')}
-          className="mt-3 text-[12px] font-medium text-secondary"
+          className="mt-3 text-xs font-medium text-secondary"
         >
           View all {tasks.length} tasks →
         </Link>
@@ -158,7 +158,7 @@ export function TaskList() {
       <div className="neo-inset mt-auto rounded-lg p-2.5">
         {timer ? (
           <>
-            <div className="flex items-center justify-between text-[11px] text-ink-2">
+            <div className="flex items-center justify-between text-2xs text-ink-2">
               <span className="font-handwritten">Now tracking</span>
               <button
                 type="button"
@@ -168,15 +168,15 @@ export function TaskList() {
                 <Square size={10} /> Stop
               </button>
             </div>
-            <p className="mt-1 truncate font-handwritten text-[13px] font-medium">
+            <p className="mt-1 truncate font-handwritten text-ui font-medium">
               {timer.taskTitle ?? 'Untitled task'}
             </p>
-            <span className="mt-1 block font-handwritten text-[20px] font-semibold leading-none tracking-[-0.03em]">
+            <span className="mt-1 block font-handwritten text-xl font-semibold leading-none">
               {stopwatch(elapsed)}
             </span>
           </>
         ) : (
-          <p className="font-handwritten text-[12px] text-ink-2">
+          <p className="font-handwritten text-xs text-ink-2">
             No timer running. Press <Play size={11} className="inline" /> on a task to track time.
           </p>
         )}
@@ -198,7 +198,7 @@ function TaskTime({
   const over = Boolean(estimateMinutes && seconds / 60 > estimateMinutes)
   return (
     <p
-      className={`mt-1 flex items-center gap-1 font-handwritten text-[12px] font-medium ${
+      className={`mt-1 flex items-center gap-1 font-handwritten text-xs font-medium ${
         over ? 'text-error-ink' : running ? 'text-accent-ink' : 'text-secondary'
       }`}
     >

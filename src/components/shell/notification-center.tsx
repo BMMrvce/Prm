@@ -45,8 +45,8 @@ export function NotificationCenter() {
         <div className="neo-card animate-pop absolute right-0 top-12 z-30 w-[min(340px,calc(100vw-2rem))] rounded-xl p-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h3 className="text-[14px] font-semibold">Notifications</h3>
-              <p className="text-[11px] text-ink-2">
+              <h3 className="text-sm font-semibold">Notifications</h3>
+              <p className="text-2xs text-ink-2">
                 {push.state === 'on'
                   ? 'Reminders on: meetings −10 min, deadlines −1 h, 10:15 daily'
                   : push.state === 'blocked'
@@ -62,7 +62,7 @@ export function NotificationCenter() {
               <button
                 type="button"
                 onClick={() => void attempt(push.enable, 'Reminders are on for this device.')}
-                className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-medium text-white hover:bg-primary-hover active:bg-primary-active"
+                className="rounded-lg bg-primary px-3 py-1.5 text-2xs font-medium text-white hover:bg-primary-hover active:bg-primary-active"
               >
                 Turn on reminders
               </button>
@@ -76,14 +76,14 @@ export function NotificationCenter() {
                       if (!(await push.test())) throw new Error('No device received it.')
                     }, 'Test notification sent.')
                   }
-                  className="rounded-lg border border-line-strong bg-surface px-2.5 py-1.5 text-[11px] font-medium"
+                  className="rounded-lg border border-line-strong bg-surface px-2.5 py-1.5 text-2xs font-medium"
                 >
                   Test
                 </button>
                 <button
                   type="button"
                   onClick={() => void attempt(push.disable, 'Reminders are off for this device.')}
-                  className="rounded-lg border border-line-strong bg-surface px-2.5 py-1.5 text-[11px] font-medium text-error-ink"
+                  className="rounded-lg border border-line-strong bg-surface px-2.5 py-1.5 text-2xs font-medium text-error-ink"
                 >
                   Turn off
                 </button>
@@ -92,7 +92,7 @@ export function NotificationCenter() {
           </div>
           <div className="mt-3 space-y-2">
             {!notifications.length && (
-              <p className="py-4 text-center text-[12px] text-ink-3">You&apos;re all caught up.</p>
+              <p className="py-4 text-center text-xs text-ink-3">You&apos;re all caught up.</p>
             )}
             {notifications.map((item) => (
               <div className="neo-inset flex gap-2 rounded-lg p-2.5" key={item.id}>
@@ -100,9 +100,9 @@ export function NotificationCenter() {
                   className={`mt-1.5 size-2 shrink-0 rounded-full ${item.readAt ? 'bg-ink-3' : 'bg-primary'}`}
                 />
                 <div className="min-w-0">
-                  <p className="text-[12px] font-medium text-ink">{item.title}</p>
-                  {item.body && <p className="mt-0.5 text-[11px] text-ink-2">{item.body}</p>}
-                  <p className="mt-0.5 text-[11px] text-ink-3">{mailDate(item.createdAt)}</p>
+                  <p className="text-xs font-medium text-ink">{item.title}</p>
+                  {item.body && <p className="mt-0.5 text-2xs text-ink-2">{item.body}</p>}
+                  <p className="mt-0.5 text-2xs text-ink-3">{mailDate(item.createdAt)}</p>
                 </div>
               </div>
             ))}
