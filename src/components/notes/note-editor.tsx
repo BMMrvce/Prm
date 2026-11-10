@@ -333,6 +333,7 @@ type Menu = { query: string; top: number; left: number; node: Text; start: numbe
  */
 export function NoteEditor({ note, onDeleted }: { note: Note; onDeleted: () => void }) {
   const {
+    workspace,
     profile,
     projects,
     isOwn,
@@ -583,8 +584,8 @@ export function NoteEditor({ note, onDeleted }: { note: Note; onDeleted: () => v
         ) : note.meetingId ? null : (
           <span className="text-xs text-ink-3">Note</span>
         )}
-        {/* Project: the owner files the note; collaborators see where it lives. */}
-        {notesCollab && owner ? (
+        {/* Project: the owner files the note; collaborators see where it lives. Personal has no projects. */}
+        {workspace.key !== 'personal' && (notesCollab && owner ? (
           <label
             className={`inline-flex h-7 max-w-[14rem] items-center gap-1.5 rounded-md border px-2 text-xs ${
               note.projectId
@@ -626,7 +627,7 @@ export function NoteEditor({ note, onDeleted }: { note: Note; onDeleted: () => v
               {project.name}
             </span>
           )
-        )}
+        ))}
         {!owner && (
           <span className="text-2xs text-ink-2">Shared by {personName(note.ownerId)}</span>
         )}

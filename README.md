@@ -1,4 +1,4 @@
-# ಆyaama
+# ಸKala²
 
 Project-management workbench with three workspaces (Office, Studio, Personal), built as a
 standalone Node.js app on Next.js 16 (App Router), React 19 and Tailwind CSS v4.
@@ -80,13 +80,13 @@ not let apps read its built-in "Watch later" list, so save videos to a normal pl
 
 ## Reminders (push notifications)
 
-Reminders reach the browser or installed app even when Workbench is closed:
+Reminders reach the browser or installed app even when ಸKala² is closed:
 
 - 10 minutes before a meeting (everyone in the workspace),
 - 1 hour before a task's deadline (workspace members and people tagged on it),
 - at 10:15 in each user's time zone, the tasks due that day.
 
-Each device opts in from the bell → **Turn on reminders** (on iPhone/iPad, add Workbench to
+Each device opts in from the bell → **Turn on reminders** (on iPhone/iPad, add ಸKala² to
 the Home Screen first). Every reminder also appears in the bell.
 
 Setup once:
@@ -115,7 +115,7 @@ Setup once:
 
 ## Appearance
 
-ಆyaama has two intentional themes, both defined as CSS variables in `src/app/globals.css`
+ಸKala² has two intentional themes, both defined as CSS variables in `src/app/globals.css`
 and exposed to Tailwind as `bg-primary`, `text-ink-2`, `border-line` and so on:
 
 - **Light**: lavender-grey sidebar (`#E4E4F1`), white cards on `#F3F4F8`, deep indigo

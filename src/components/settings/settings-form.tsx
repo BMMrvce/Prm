@@ -1,9 +1,12 @@
 'use client'
 
-import { Palette, Settings } from 'lucide-react'
+import { Inbox, Palette, Plug, Settings } from 'lucide-react'
+import Link from 'next/link'
 import { useEffect, useState, type FormEvent } from 'react'
+import { GrowthSettingsPanel } from '@/components/growth/growth-settings-panel'
 import { ThemePicker } from '@/components/shell/theme-controls'
 import { categoriesEnabled } from '@/lib/meetings'
+import { workspacePath } from '@/lib/routes'
 import { useToast, useWorkspace } from '@/state/workbench-store'
 import type { Currency } from '@/types/workbench'
 import { MeetingColors } from './meeting-colors'
@@ -134,6 +137,29 @@ export function SettingsForm() {
       </section>
       {categoriesEnabled(workspace.key) && <MeetingColors />}
       <ProjectColors />
+      {workspace.key === 'personal' && (
+        <section className="neo-card rounded-xl p-6">
+          <h3 className="font-semibold">More</h3>
+          <p className="text-xs text-ink-2">
+            Not in the sidebar, but still here if you need them.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href={workspacePath('personal', 'integrations')}
+              className="flex h-9 items-center gap-1.5 rounded-lg border border-line-strong px-3 text-xs font-medium text-ink-2 hover:bg-surface-2"
+            >
+              <Plug size={14} /> Connected accounts
+            </Link>
+            <Link
+              href={workspacePath('personal', 'inbox')}
+              className="flex h-9 items-center gap-1.5 rounded-lg border border-line-strong px-3 text-xs font-medium text-ink-2 hover:bg-surface-2"
+            >
+              <Inbox size={14} /> Inbox
+            </Link>
+          </div>
+        </section>
+      )}
+      {workspace.key === 'personal' && <GrowthSettingsPanel />}
       <section className="neo-card flex flex-wrap items-center gap-3 rounded-xl p-6">
         <div className="mr-auto min-w-0">
           <h3 className="font-semibold">Account</h3>

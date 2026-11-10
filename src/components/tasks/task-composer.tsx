@@ -32,7 +32,7 @@ export function TaskComposer({
   autoFocus?: boolean
   onAdded?: () => void
 }) {
-  const { ready, projects, addTask } = useWorkspace()
+  const { ready, workspace, projects, addTask } = useWorkspace()
   const [title, setTitle] = useState('')
   const [due, setDue] = useState(defaultDue)
   const [priority, setPriority] = useState<Priority>('none')
@@ -159,7 +159,7 @@ export function TaskComposer({
               ))}
             </select>
           </label>
-          {!projectId && (
+          {!projectId && workspace.key !== 'personal' && (
             <label className={`${chipBase} max-w-full ${project ? chipOn : chipOff}`}>
               <FolderKanban size={13} aria-hidden />
               <select

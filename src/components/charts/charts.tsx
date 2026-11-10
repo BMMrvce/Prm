@@ -4,6 +4,8 @@
  * series color.
  */
 
+import type { KeyboardEvent } from 'react'
+
 // CSS variables so dark mode can use the steps validated for the dark surface (globals.css).
 export const SERIES = ['var(--series-1)', 'var(--series-2)'] as const
 
@@ -171,16 +173,35 @@ export function BarRows({
   rows,
   series,
   format,
+  onSelect,
 }: {
   rows: { label: string; values: number[] }[]
   series: Series[]
   format: (value: number) => string
+  /** Makes each row clickable, e.g. to filter by it. */
+  onSelect?: (index: number) => void
 }) {
   const max = Math.max(0, ...rows.flatMap((row) => row.values)) || 1
   return (
     <ul className="space-y-3">
-      {rows.map((row) => (
-        <li key={row.label} className="min-w-0">
+      {rows.map((row, index) => (
+        <li
+          key={row.label}
+          className={`min-w-0 ${onSelect ? '-mx-1.5 rounded-md px-1.5 py-0.5 hover:bg-surface-2' : ''}`}
+          {...(onSelect
+            ? {
+                tabIndex: 0,
+                role: 'button',
+                onClick: () => onSelect(index),
+                onKeyDown: (event: KeyboardEvent<HTMLLIElement>) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    onSelect(index)
+                  }
+                },
+              }
+            : {})}
+        >
           <p className="truncate text-xs text-ink">{row.label}</p>
           <div className="mt-1 space-y-[2px]">
             {series.map((entry, slot) => {

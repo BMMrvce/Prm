@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the Workbench app.
+# Run the ಸKala² app.
 #
 #   ./run.sh            # development server with hot reload (default)
 #   ./run.sh dev        # same as above

@@ -1,12 +1,16 @@
 'use client'
 
-import { Trash2 } from 'lucide-react'
+import { Plus, Target, Trash2 } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { BarRows, ColumnChart, Legend, SERIES, StatTile } from '@/components/charts/charts'
+import { FocusSessionForm } from '@/components/growth/focus-session-form'
 import { DurationInput } from '@/components/ui/duration-input'
 import { fieldClass } from '@/components/ui/modal'
+import { PanelHeader } from '@/components/ui/panel'
 import { duration, entrySeconds, localDate, shortDate, weekRange } from '@/lib/format'
+import { focusSummary } from '@/lib/habits'
 import { useWorkspace } from '@/state/workbench-store'
+import type { FocusSession } from '@/types/workbench'
 
 const RANGES = [
   { days: 7, label: '7 days' },
@@ -24,7 +28,17 @@ function startOfDay(date: Date) {
 
 /** Your tracked time in this workspace: totals, trends, projects and estimates. */
 export function TimeDashboard() {
-  const { ready, profile, tasks, timeEntries, logTime, deleteTimeEntry } = useWorkspace()
+  const {
+    workspace,
+    ready,
+    profile,
+    tasks,
+    timeEntries,
+    logTime,
+    deleteTimeEntry,
+    focusSessions,
+    deleteFocusSession,
+  } = useWorkspace()
   const [range, setRange] = useState<(typeof RANGES)[number]['days']>(7)
   // Charts depend on the viewer's clock, so they render after mount.
   const [now, setNow] = useState<number | null>(null)
@@ -32,6 +46,8 @@ export function TimeDashboard() {
   const [date, setDate] = useState('')
   const [minutes, setMinutes] = useState<number | null>(null)
   const [note, setNote] = useState('')
+  const [loggingFocus, setLoggingFocus] = useState(false)
+  const [editingFocus, setEditingFocus] = useState<FocusSession | null>(null)
 
   useEffect(() => {
     setNow(Date.now())
@@ -136,6 +152,20 @@ export function TimeDashboard() {
 
   const recent = inRange.slice(0, 25)
   const card = 'neo-card min-w-0 rounded-xl p-5'
+
+  // Focus sessions (deep work) live here too, absorbed from the old standalone Focus page.
+  const focusWeek = focusSummary(focusSessions, weekRange())
+  const focusDays = Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(today)
+    day.setDate(day.getDate() - (6 - index))
+    return localDate(day)
+  })
+  const focusMinutesByDay = focusDays.map((day) => ({
+    label: new Date(day).toLocaleDateString([], { weekday: 'short' }).slice(0, 1),
+    detail: new Date(day).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' }),
+    values: [focusSessions.filter((session) => session.date === day).reduce((sum, s) => sum + s.durationMinutes, 0)],
+  }))
+  const recentFocus = focusSessions.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10)
 
   return (
     <div className="space-y-4">
@@ -332,6 +362,90 @@ export function TimeDashboard() {
           </table>
         </section>
       </div>
+
+      {workspace.key === 'personal' && (
+        <section className={card}>
+          <PanelHeader
+            icon={Target}
+            title="Focus sessions"
+            subtitle="Deep work, absorbed here from the old Focus page"
+          >
+            <button
+              type="button"
+              onClick={() => setLoggingFocus(true)}
+              className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-medium text-on-primary hover:bg-primary-hover"
+            >
+              <Plus size={14} /> Log session
+            </button>
+          </PanelHeader>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <StatTile label="This week" value={String(focusWeek.totalSessions)} note="sessions" />
+            <StatTile label="Deep work" value={`${focusWeek.totalHours}h`} note="this week" />
+            <StatTile
+              label="Concentration"
+              value={focusWeek.avgConcentration === null ? '—' : String(focusWeek.avgConcentration)}
+              note="avg, out of 5"
+            />
+          </div>
+          <div className="mt-5">
+            <ColumnChart
+              data={focusMinutesByDay}
+              series={[{ name: 'Minutes', color: SERIES[0] }]}
+              format={(value) => `${Math.round(value)}m`}
+              height={140}
+            />
+          </div>
+          {recentFocus.length === 0 ? (
+            <p className="mt-5 text-sm text-ink-3">
+              No sessions yet — start the focus timer from Home.
+            </p>
+          ) : (
+            <div className="mt-5 divide-y divide-line-soft">
+              {recentFocus.map((session) => (
+                <div key={session.id} className="group flex items-center gap-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm text-ink">
+                      {new Date(session.date).toLocaleDateString([], {
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'short',
+                      })}
+                      {' · '}
+                      {session.durationMinutes}m · concentration {session.concentrationRating}/5
+                    </p>
+                    {session.note && <p className="truncate text-2xs text-ink-3">{session.note}</p>}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditingFocus(session)}
+                    className="shrink-0 text-xs text-ink-3 opacity-0 hover:text-ink group-hover:opacity-100"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void deleteFocusSession(session.id)}
+                    className="grid size-7 shrink-0 place-items-center rounded-md text-ink-3 opacity-0 hover:bg-error-light hover:text-error-ink group-hover:opacity-100"
+                    aria-label="Delete session"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {(loggingFocus || editingFocus) && (
+        <FocusSessionForm
+          session={editingFocus}
+          onClose={() => {
+            setLoggingFocus(false)
+            setEditingFocus(null)
+          }}
+        />
+      )}
     </div>
   )
 }

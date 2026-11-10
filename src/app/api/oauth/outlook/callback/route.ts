@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     return finish('error', 'Sign-in expired or was tampered with. Please try again.')
   }
   const userId = await currentUserId()
-  if (!userId) return finish('error', 'Your ಆyaama session ended. Sign in and try again.')
+  if (!userId) return finish('error', 'Your ಸKala² session ended. Sign in and try again.')
   try {
     await connectOutlook(userId, space, code, outlookCallbackUrl(request.nextUrl.origin))
   } catch (error) {

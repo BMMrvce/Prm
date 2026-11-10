@@ -1,4 +1,4 @@
-# ಆyaama — Aayaama (formerly Workbench)
+# ಸKala² (formerly ಆyaama / Aayaama / Workbench)
 
 Standalone Next.js 16 (App Router) + React 19 + Tailwind CSS v4 app, run with Node.js and
 pnpm. See `README.md` for routes, file structure and scripts.

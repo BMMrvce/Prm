@@ -18,19 +18,52 @@ import { projectSlug } from '@/lib/routes'
 import { createClient } from '@/lib/supabase/client'
 import type {
   AppNotification,
+  Book,
+  BookChanges,
+  Budget,
+  BudgetChanges,
   Currency,
+  ExpenseChanges,
   ExpenseRecord,
+  FocusSession,
+  FocusSessionChanges,
+  Goal,
+  GoalChanges,
+  GoalMilestone,
+  Habit,
+  HabitChanges,
+  HabitEntry,
+  HabitEntryStatus,
+  LearningTopic,
+  LearningTopicChanges,
   Meeting,
   Note,
   NoteChanges,
+  NewBookInput,
+  NewContributionInput,
   NewExpenseInput,
+  NewFocusSessionInput,
+  NewGoalInput,
+  NewHabitInput,
+  NewLearningTopicInput,
   NewMeetingInput,
+  NewMilestoneInput,
+  NewReadingSessionInput,
+  NewRecurringPaymentInput,
+  NewSavingsGoalInput,
   NewTaskInput,
   NewTimeLogInput,
   Person,
   PlanItem,
   Profile,
   Project,
+  ReadingSession,
+  RecurringFrequency,
+  RecurringPayment,
+  RecurringPaymentChanges,
+  SavingsContribution,
+  SavingsGoal,
+  SavingsGoalChanges,
   SpaceKey,
   TaskChanges,
   TimeEntry,
@@ -72,6 +105,27 @@ type SpaceData = {
   notesReady: boolean
   /** False until the notes projects + collaboration migration has been applied. */
   notesCollab: boolean
+  habits: Habit[]
+  /** Daily habit logs for the last `GROWTH_HISTORY_DAYS` days. */
+  habitEntries: HabitEntry[]
+  books: Book[]
+  readingSessions: ReadingSession[]
+  focusSessions: FocusSession[]
+  /** False until the growth tracker migration has been applied. */
+  growthReady: boolean
+  learningTopics: LearningTopic[]
+  goals: Goal[]
+  goalMilestones: GoalMilestone[]
+  /** False until the learning/goals migration has been applied. */
+  learningGoalsReady: boolean
+  /** Personal only: past daily reflections (`daily_notes`), most recent first. */
+  dailyNoteHistory: { date: string; content: string }[]
+  budget: Budget | null
+  savingsGoals: SavingsGoal[]
+  savingsContributions: SavingsContribution[]
+  recurringPayments: RecurringPayment[]
+  /** False until the personal finance migration has been applied. */
+  financeReady: boolean
 }
 
 // Rows come from untyped PostgREST queries and are mapped to app types below.
@@ -89,11 +143,51 @@ const NOTE_FIELDS_BASE =
 /** With the project link (needs 202611080001_notes_projects_collaboration.sql). */
 const NOTE_FIELDS = `${NOTE_FIELDS_BASE},project_id,project:projects(name,color)`
 const noteFields = (collab: boolean) => (collab ? NOTE_FIELDS : NOTE_FIELDS_BASE)
-const EXPENSE_FIELDS = 'id,kind,expense_date,description,category,amount,currency,status'
+const EXPENSE_FIELDS_BASE = 'id,kind,expense_date,description,category,amount,currency,status'
+/** With payment method and notes (needs 202611100004_personal_finance.sql). */
+const EXPENSE_FIELDS = `${EXPENSE_FIELDS_BASE},payment_method,notes`
+const BUDGET_FIELDS = 'id,monthly_limit,category_limits'
+const SAVINGS_GOAL_FIELDS = 'id,name,target_amount,target_date,position,archived_at'
+const SAVINGS_CONTRIBUTION_FIELDS = 'id,goal_id,amount,direction,occurred_on,note'
+const RECURRING_PAYMENT_FIELDS = 'id,name,kind,category,amount,frequency,next_due_date,active'
 const TIMER_FIELDS =
   'id,workspace_id,task_id,user_id,state,started_at,ended_at,accumulated_seconds,description,task:tasks(title)'
 /** How far back time entries are loaded for charts and per-task totals. */
 const TIME_HISTORY_DAYS = 180
+const HABIT_FIELDS =
+  'id,title,category,frequency,weekdays,target_per_week,target_kind,target_value,target_unit,color,position,archived_at,created_at'
+const HABIT_ENTRY_FIELDS = 'id,habit_id,entry_date,status,logged_at,note,quantity_value'
+const BOOK_FIELDS_BASE = 'id,title,author,status,total_pages,started_at,completed_at,position'
+/** With the reading-enrichment columns (needs 202611100002_reading_focus_enrichment.sql). */
+const BOOK_FIELDS = `${BOOK_FIELDS_BASE},cover_url,category,rating,learned,interesting,apply,action,pages_per_day_goal`
+const READING_SESSION_FIELDS_BASE = 'id,book_id,session_date,pages_read,duration_minutes,takeaway'
+const READING_SESSION_FIELDS = `${READING_SESSION_FIELDS_BASE},chapter`
+const FOCUS_SESSION_FIELDS =
+  'id,session_date,duration_minutes,distraction_count,tasks_completed,concentration_rating,note'
+/** How far back habit entries are loaded, enough for a full GitHub-style year heatmap. */
+const GROWTH_HISTORY_DAYS = 371
+const GROWTH_HINT =
+  'Growth tracker needs a database update: run supabase/migrations/202611100001_growth_tracker.sql in the Supabase SQL editor.'
+const READING_ENRICHMENT_HINT =
+  'Book covers, categories, ratings and reading goals need a database update: run supabase/migrations/202611100002_reading_focus_enrichment.sql in the Supabase SQL editor.'
+const LEARNING_TOPIC_FIELDS = 'id,title,category,status,resources,notes,position,archived_at'
+const GOAL_FIELDS = 'id,title,category,status,target_date,notes,position,completed_at'
+const GOAL_MILESTONE_FIELDS = 'id,goal_id,title,target_date,completed_at,position'
+const LEARNING_GOALS_HINT =
+  'Learning & Goals need a database update: run supabase/migrations/202611100003_learning_goals.sql in the Supabase SQL editor.'
+const FINANCE_HINT =
+  'Budgets, savings goals and recurring payments need a database update: run supabase/migrations/202611100004_personal_finance.sql in the Supabase SQL editor.'
+/** Adds one frequency interval to a `YYYY-MM-DD` day, preserving the day-of-month where possible. */
+function advanceDueDate(date: string, frequency: RecurringFrequency): string {
+  const [year, month, day] = date.split('-').map(Number)
+  const next = new Date(year, month - 1, day)
+  if (frequency === 'weekly') next.setDate(next.getDate() + 7)
+  else if (frequency === 'yearly') next.setFullYear(next.getFullYear() + 1)
+  else next.setMonth(next.getMonth() + 1)
+  return localDate(next)
+}
+/** How many days of past daily reflections the Notes page can browse. */
+const DAILY_NOTE_HISTORY_DAYS = 90
 const SETTINGS_KEY = 'workbench-settings'
 const LEGACY_KEYS = ['workbench-tasks', 'workbench-calendar', 'workbench-expenses']
 
@@ -202,6 +296,48 @@ const toExpense = (row: Row): ExpenseRecord => ({
   amount: Number(row.amount),
   currency: row.currency,
   status: row.status,
+  paymentMethod: row.payment_method ?? null,
+  notes: row.notes ?? null,
+})
+
+const toBudget = (row: Row): Budget => ({
+  id: row.id,
+  monthlyLimit: row.monthly_limit === null ? null : Number(row.monthly_limit),
+  categoryLimits: Object.fromEntries(
+    Object.entries((row.category_limits ?? {}) as Record<string, unknown>).map(([key, value]) => [
+      key,
+      Number(value),
+    ]),
+  ),
+})
+
+const toSavingsGoal = (row: Row): SavingsGoal => ({
+  id: row.id,
+  name: row.name,
+  targetAmount: Number(row.target_amount),
+  targetDate: row.target_date,
+  position: Number(row.position),
+  archivedAt: row.archived_at,
+})
+
+const toSavingsContribution = (row: Row): SavingsContribution => ({
+  id: row.id,
+  goalId: row.goal_id,
+  amount: Number(row.amount),
+  direction: row.direction,
+  occurredOn: row.occurred_on,
+  note: row.note,
+})
+
+const toRecurringPayment = (row: Row): RecurringPayment => ({
+  id: row.id,
+  name: row.name,
+  kind: row.kind,
+  category: row.category,
+  amount: Number(row.amount),
+  frequency: row.frequency,
+  nextDueDate: row.next_due_date,
+  active: row.active,
 })
 
 const toNotification = (row: Row): AppNotification => ({
@@ -224,6 +360,232 @@ const toTimer = (row: Row): TimeEntry => ({
   accumulatedSeconds: row.accumulated_seconds,
   description: row.description,
 })
+
+const toHabit = (row: Row): Habit => ({
+  id: row.id,
+  title: row.title,
+  category: row.category,
+  frequency: row.frequency,
+  weekdays: row.weekdays ?? null,
+  targetPerWeek: row.target_per_week ?? null,
+  targetKind: row.target_kind,
+  targetValue: row.target_value === null || row.target_value === undefined ? null : Number(row.target_value),
+  targetUnit: row.target_unit ?? null,
+  color: row.color,
+  position: Number(row.position),
+  archivedAt: row.archived_at ?? null,
+  createdAt: row.created_at,
+})
+
+const toHabitEntry = (row: Row): HabitEntry => ({
+  id: row.id,
+  habitId: row.habit_id,
+  date: row.entry_date,
+  status: row.status,
+  loggedAt: row.logged_at,
+  note: row.note ?? null,
+  quantityValue:
+    row.quantity_value === null || row.quantity_value === undefined ? null : Number(row.quantity_value),
+})
+
+const toBook = (row: Row): Book => ({
+  id: row.id,
+  title: row.title,
+  author: row.author ?? '',
+  status: row.status,
+  totalPages: row.total_pages ?? null,
+  startedAt: row.started_at ?? null,
+  completedAt: row.completed_at ?? null,
+  position: Number(row.position),
+  coverUrl: row.cover_url ?? null,
+  category: row.category ?? null,
+  rating: row.rating ?? null,
+  learned: row.learned ?? null,
+  interesting: row.interesting ?? null,
+  apply: row.apply ?? null,
+  action: row.action ?? null,
+  pagesPerDayGoal: row.pages_per_day_goal === null || row.pages_per_day_goal === undefined ? null : Number(row.pages_per_day_goal),
+})
+
+const toReadingSession = (row: Row): ReadingSession => ({
+  id: row.id,
+  bookId: row.book_id,
+  date: row.session_date,
+  pagesRead: row.pages_read ?? null,
+  durationMinutes: row.duration_minutes ?? null,
+  takeaway: row.takeaway ?? null,
+  chapter: row.chapter ?? null,
+})
+
+const toFocusSession = (row: Row): FocusSession => ({
+  id: row.id,
+  date: row.session_date,
+  durationMinutes: row.duration_minutes,
+  distractionCount: row.distraction_count,
+  tasksCompleted: row.tasks_completed,
+  concentrationRating: row.concentration_rating,
+  note: row.note ?? null,
+})
+
+const toLearningTopic = (row: Row): LearningTopic => ({
+  id: row.id,
+  title: row.title,
+  category: row.category,
+  status: row.status,
+  resources: row.resources ?? null,
+  notes: row.notes ?? null,
+  position: Number(row.position),
+  archivedAt: row.archived_at ?? null,
+})
+
+const toGoal = (row: Row): Goal => ({
+  id: row.id,
+  title: row.title,
+  category: row.category,
+  status: row.status,
+  targetDate: row.target_date ?? null,
+  notes: row.notes ?? null,
+  position: Number(row.position),
+  completedAt: row.completed_at ?? null,
+})
+
+const toGoalMilestone = (row: Row): GoalMilestone => ({
+  id: row.id,
+  goalId: row.goal_id,
+  title: row.title,
+  targetDate: row.target_date ?? null,
+  completedAt: row.completed_at ?? null,
+  position: Number(row.position),
+})
+
+/** The 16 suggested starter habits across the 5 requested categories; editable/removable after seeding. */
+const DEFAULT_HABITS: Array<{
+  title: string
+  category: Habit['category']
+  frequency: Habit['frequency']
+  weekdays?: number[]
+  targetPerWeek?: number
+  targetKind?: Habit['targetKind']
+  targetValue?: number
+  targetUnit?: string
+  color: Habit['color']
+}> = [
+  // Focus & Productivity
+  {
+    title: '45 minutes of uninterrupted deep work',
+    category: 'focus',
+    frequency: 'daily',
+    targetKind: 'duration',
+    targetValue: 45,
+    targetUnit: 'minutes',
+    color: 'blue',
+  },
+  { title: 'No unnecessary phone usage during work', category: 'focus', frequency: 'daily', color: 'blue' },
+  {
+    title: 'Complete three priority tasks',
+    category: 'focus',
+    frequency: 'daily',
+    targetKind: 'quantity',
+    targetValue: 3,
+    targetUnit: 'tasks',
+    color: 'blue',
+  },
+  { title: "Review the day's productivity", category: 'focus', frequency: 'daily', color: 'blue' },
+  // Reading
+  {
+    title: 'Read for 20 minutes',
+    category: 'reading',
+    frequency: 'daily',
+    targetKind: 'duration',
+    targetValue: 20,
+    targetUnit: 'minutes',
+    color: 'violet',
+  },
+  { title: 'Write one takeaway from the reading session', category: 'reading', frequency: 'daily', color: 'violet' },
+  // Technical Growth
+  {
+    title: 'Study system design',
+    category: 'technical',
+    frequency: 'daily',
+    targetKind: 'duration',
+    targetValue: 30,
+    targetUnit: 'minutes',
+    color: 'teal',
+  },
+  { title: 'Practise Linux', category: 'technical', frequency: 'weekdays', weekdays: [1, 2, 3, 4, 5], color: 'teal' },
+  { title: 'Learn AWS and DevOps concepts', category: 'technical', frequency: 'weekly', targetPerWeek: 3, color: 'teal' },
+  {
+    title: 'Build or improve a personal technical project',
+    category: 'technical',
+    frequency: 'weekly',
+    targetPerWeek: 2,
+    color: 'teal',
+  },
+  // Health
+  {
+    title: 'Exercise or walk',
+    category: 'health',
+    frequency: 'daily',
+    targetKind: 'duration',
+    targetValue: 20,
+    targetUnit: 'minutes',
+    color: 'green',
+  },
+  { title: 'Maintain a consistent sleep schedule', category: 'health', frequency: 'daily', color: 'green' },
+  {
+    title: 'Drink sufficient water',
+    category: 'health',
+    frequency: 'daily',
+    targetKind: 'quantity',
+    targetValue: 2,
+    targetUnit: 'liters',
+    color: 'green',
+  },
+  // Financial Discipline
+  { title: 'Record daily expenses', category: 'financial', frequency: 'daily', color: 'amber' },
+  { title: 'Avoid unnecessary purchases', category: 'financial', frequency: 'daily', color: 'amber' },
+  { title: 'Review savings progress', category: 'financial', frequency: 'weekly', targetPerWeek: 1, color: 'amber' },
+]
+
+const DEFAULT_BOOKS = [
+  { title: 'Deep Work', author: 'Cal Newport' },
+  { title: 'Psycho-Cybernetics', author: 'Maxwell Maltz' },
+  { title: 'The Psychology of Money', author: 'Morgan Housel' },
+]
+
+/** One-time seed of starter habits and books for a freshly migrated workspace. */
+async function seedDefaultGrowthData(supabase: SupabaseClient, workspaceId: string, userId: string) {
+  const habitRows = DEFAULT_HABITS.map((habit, index) => ({
+    workspace_id: workspaceId,
+    user_id: userId,
+    title: habit.title,
+    category: habit.category,
+    frequency: habit.frequency,
+    weekdays: habit.weekdays ?? null,
+    target_per_week: habit.targetPerWeek ?? null,
+    target_kind: habit.targetKind ?? 'boolean',
+    target_value: habit.targetValue ?? null,
+    target_unit: habit.targetUnit ?? null,
+    color: habit.color,
+    position: (index + 1) * 1000,
+  }))
+  const bookRows = DEFAULT_BOOKS.map((book, index) => ({
+    workspace_id: workspaceId,
+    user_id: userId,
+    title: book.title,
+    author: book.author,
+    status: 'planned',
+    position: (index + 1) * 1000,
+  }))
+  const [habits, books] = await Promise.all([
+    supabase.from('habits').insert(habitRows).select(HABIT_FIELDS),
+    // Base fields only: seeding must not depend on the later reading-enrichment migration.
+    supabase.from('books').insert(bookRows).select(BOOK_FIELDS_BASE),
+  ])
+  // Marked last, after both inserts succeed, so a failed/interrupted seed just retries next load.
+  await supabase.from('workspaces').update({ growth_seeded_at: new Date().toISOString() }).eq('id', workspaceId)
+  return { habits: (check(habits) ?? []).map(toHabit), books: (check(books) ?? []).map(toBook) }
+}
 
 /** PostgREST error for a table or function that does not exist yet (migration not run). */
 const missingFromSchema = (error: { code?: string; message: string } | null) =>
@@ -262,7 +624,11 @@ function checkRow<T>(result: { data: T; error: { message: string } | null }): No
 async function ensureWorkspace(supabase: SupabaseClient, space: SpaceKey, userId: string) {
   const slug = workspaceSlug(space, userId)
   const find = () =>
-    supabase.from('workspaces').select('id,name,task_prefix').eq('slug', slug).maybeSingle()
+    supabase
+      .from('workspaces')
+      .select('id,name,task_prefix,growth_seeded_at')
+      .eq('slug', slug)
+      .maybeSingle()
   const existing = check(await find())
   if (existing) return existing as Row
   const created = await supabase.rpc('create_workspace', {
@@ -289,6 +655,7 @@ async function loadSpace(
   // Other people's workspaces for the same space, e.g. their Office for your Office.
   const sameSpace = `${space}-%`
   const since = new Date(Date.now() - TIME_HISTORY_DAYS * 86_400_000).toISOString()
+  const growthSince = new Date(Date.now() - GROWTH_HISTORY_DAYS * 86_400_000).toISOString().slice(0, 10)
   const [
     projects,
     tasks,
@@ -302,6 +669,18 @@ async function loadSpace(
     memberships,
     entries,
     noteRows,
+    habitRows,
+    habitEntryRows,
+    bookRows,
+    readingSessionRows,
+    focusSessionRows,
+    learningRows,
+    goalRows,
+    goalMilestoneRows,
+    budgetRows,
+    savingsGoalRows,
+    savingsContributionRows,
+    recurringPaymentRows,
   ] = await Promise.all([
     supabase
       .from('projects')
@@ -382,6 +761,58 @@ async function loadSpace(
       .eq('user_id', userId)
       .order('updated_at', { ascending: false })
       .limit(500),
+    supabase.from('habits').select(HABIT_FIELDS).eq('workspace_id', id).eq('user_id', userId).order('position'),
+    supabase
+      .from('habit_entries')
+      .select(HABIT_ENTRY_FIELDS)
+      .eq('workspace_id', id)
+      .eq('user_id', userId)
+      .gte('entry_date', growthSince),
+    supabase.from('books').select(BOOK_FIELDS).eq('workspace_id', id).eq('user_id', userId).order('position'),
+    supabase
+      .from('reading_sessions')
+      .select(READING_SESSION_FIELDS)
+      .eq('workspace_id', id)
+      .eq('user_id', userId)
+      .gte('session_date', since.slice(0, 10)),
+    supabase
+      .from('focus_sessions')
+      .select(FOCUS_SESSION_FIELDS)
+      .eq('workspace_id', id)
+      .eq('user_id', userId)
+      .gte('session_date', since.slice(0, 10)),
+    supabase
+      .from('learning_topics')
+      .select(LEARNING_TOPIC_FIELDS)
+      .eq('workspace_id', id)
+      .eq('user_id', userId)
+      .order('position'),
+    supabase.from('goals').select(GOAL_FIELDS).eq('workspace_id', id).eq('user_id', userId).order('position'),
+    supabase
+      .from('goal_milestones')
+      .select(GOAL_MILESTONE_FIELDS)
+      .eq('workspace_id', id)
+      .eq('user_id', userId)
+      .order('position'),
+    supabase.from('budgets').select(BUDGET_FIELDS).eq('workspace_id', id).eq('user_id', userId).maybeSingle(),
+    supabase
+      .from('savings_goals')
+      .select(SAVINGS_GOAL_FIELDS)
+      .eq('workspace_id', id)
+      .eq('user_id', userId)
+      .order('position'),
+    supabase
+      .from('savings_contributions')
+      .select(SAVINGS_CONTRIBUTION_FIELDS)
+      .eq('workspace_id', id)
+      .eq('user_id', userId)
+      .order('occurred_on', { ascending: false }),
+    supabase
+      .from('recurring_payments')
+      .select(RECURRING_PAYMENT_FIELDS)
+      .eq('workspace_id', id)
+      .eq('user_id', userId)
+      .order('next_due_date'),
   ])
   // Before the notes migration the table is missing; everything else still loads.
   const notesReady = !missingFromSchema(noteRows.error)
@@ -490,6 +921,92 @@ async function loadSpace(
     memberRows.filter((row) => row.user_id === userId).map((row) => row.project_id),
   )
 
+  // Before the growth tracker migration, these tables are missing; everything else still loads.
+  const growthReady = !missingFromSchema(habitRows.error)
+  // Before the reading-enrichment migration, `books`/`reading_sessions` are missing their new
+  // columns; fall back to the base fields so Habits/Reading/Focus keep working regardless.
+  // Rows may lack the enrichment columns when falling back; the mappers already read every
+  // field defensively (`row.x ?? null`), so the wider type here is a formality, not a risk.
+  let bookResult = bookRows
+  if (growthReady && missingColumn(bookRows.error)) {
+    bookResult = (await supabase
+      .from('books')
+      .select(BOOK_FIELDS_BASE)
+      .eq('workspace_id', id)
+      .eq('user_id', userId)
+      .order('position')) as typeof bookRows
+  }
+  let readingSessionResult = readingSessionRows
+  if (growthReady && missingColumn(readingSessionRows.error)) {
+    readingSessionResult = (await supabase
+      .from('reading_sessions')
+      .select(READING_SESSION_FIELDS_BASE)
+      .eq('workspace_id', id)
+      .eq('user_id', userId)
+      .gte('session_date', since.slice(0, 10))) as typeof readingSessionRows
+  }
+  let habits = growthReady ? (check(habitRows) ?? []).map(toHabit) : []
+  let books = growthReady ? (check(bookResult) ?? []).map(toBook) : []
+  if (growthReady && !workspace.growth_seeded_at) {
+    const seeded = await seedDefaultGrowthData(supabase, id, userId)
+    habits = seeded.habits
+    books = seeded.books
+  }
+  const habitEntries = growthReady ? (check(habitEntryRows) ?? []).map(toHabitEntry) : []
+  const readingSessions = growthReady ? (check(readingSessionResult) ?? []).map(toReadingSession) : []
+  const focusSessions = growthReady ? (check(focusSessionRows) ?? []).map(toFocusSession) : []
+
+  // Before the learning/goals migration, these tables are missing; everything else still loads.
+  const learningGoalsReady = !missingFromSchema(learningRows.error)
+  const learningTopics = learningGoalsReady ? (check(learningRows) ?? []).map(toLearningTopic) : []
+  const goals = learningGoalsReady ? (check(goalRows) ?? []).map(toGoal) : []
+  const goalMilestones = learningGoalsReady ? (check(goalMilestoneRows) ?? []).map(toGoalMilestone) : []
+
+  // Before the personal finance migration, expense_entries has no payment_method column yet;
+  // fall back to the base fields so Office/Studio's (and pre-migration Personal's) load never fails.
+  let expenseResult = expenses
+  if (missingColumn(expenses.error)) {
+    expenseResult = (await supabase
+      .from('expense_entries')
+      .select(EXPENSE_FIELDS_BASE)
+      .eq('workspace_id', id)
+      .order('expense_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(500)) as typeof expenses
+  }
+
+  // Before the personal finance migration, these tables are missing; everything else still loads.
+  const financeReady = !missingFromSchema(budgetRows.error)
+  const budgetRow = financeReady ? (check(budgetRows) as Row | null) : null
+  const budget: Budget | null = budgetRow ? toBudget(budgetRow) : null
+  const savingsGoals = financeReady ? (check(savingsGoalRows) ?? []).map(toSavingsGoal) : []
+  const savingsContributions = financeReady
+    ? (check(savingsContributionRows) ?? []).map(toSavingsContribution)
+    : []
+  const recurringPayments = financeReady
+    ? (check(recurringPaymentRows) ?? []).map(toRecurringPayment)
+    : []
+
+  // Personal only: a browsable history of past daily reflections, for the Notes page.
+  // Gated so Office/Studio's load never runs this extra query.
+  let dailyNoteHistory: { date: string; content: string }[] = []
+  if (space === 'personal') {
+    const historySince = new Date(Date.now() - DAILY_NOTE_HISTORY_DAYS * 86_400_000)
+      .toISOString()
+      .slice(0, 10)
+    const historyRows = await supabase
+      .from('daily_notes')
+      .select('note_date,content')
+      .eq('workspace_id', id)
+      .eq('user_id', userId)
+      .gte('note_date', historySince)
+      .neq('note_date', today)
+      .order('note_date', { ascending: false })
+    dailyNoteHistory = ((check(historyRows) ?? []) as Row[])
+      .filter((row) => (row.content ?? '').trim())
+      .map((row) => ({ date: row.note_date, content: row.content }))
+  }
+
   return {
     workspaceId: id,
     name: workspace.name,
@@ -510,7 +1027,7 @@ async function loadSpace(
     meetingWeeks: [localDate(weekStart)],
     note: (check(note) as Row | null)?.content ?? '',
     plan: (check(plan) ?? []).map(toPlanItem),
-    expenses: (check(expenses) ?? []).map(toExpense),
+    expenses: (check(expenseResult) ?? []).map(toExpense),
     notifications: (check(notifications) ?? []).map(toNotification),
     timeEntries,
     people,
@@ -524,6 +1041,22 @@ async function loadSpace(
       : [],
     notesReady,
     notesCollab,
+    dailyNoteHistory,
+    habits,
+    habitEntries,
+    books,
+    readingSessions,
+    focusSessions,
+    growthReady,
+    learningTopics,
+    goals,
+    goalMilestones,
+    learningGoalsReady,
+    budget,
+    savingsGoals,
+    savingsContributions,
+    recurringPayments,
+    financeReady,
   }
 }
 
@@ -1331,6 +1864,491 @@ function useWorkbenchState() {
         }))
       }),
 
+    addHabit: (space: SpaceKey, input: NewHabitInput) =>
+      run(async () => {
+        const { data, userId } = requireData(space)
+        if (!data.growthReady) throw new Error(GROWTH_HINT)
+        const position = Math.max(0, ...data.habits.map((habit) => habit.position)) + 1000
+        const row = checkRow(
+          await supabase
+            .from('habits')
+            .insert({
+              workspace_id: data.workspaceId,
+              user_id: userId,
+              title: input.title,
+              category: input.category,
+              frequency: input.frequency,
+              weekdays: input.weekdays ?? null,
+              target_per_week: input.targetPerWeek ?? null,
+              target_kind: input.targetKind ?? 'boolean',
+              target_value: input.targetValue ?? null,
+              target_unit: input.targetUnit ?? null,
+              color: input.color ?? 'blue',
+              position,
+            })
+            .select(HABIT_FIELDS)
+            .single(),
+        )
+        update(space, (current) => ({ ...current, habits: [...current.habits, toHabit(row)] }))
+      }, 'Habit added.'),
+
+    updateHabit: (space: SpaceKey, id: string, changes: HabitChanges) =>
+      run(async () => {
+        const columns: Row = {}
+        if (changes.title !== undefined) columns.title = changes.title
+        if (changes.category !== undefined) columns.category = changes.category
+        if (changes.frequency !== undefined) columns.frequency = changes.frequency
+        if (changes.weekdays !== undefined) columns.weekdays = changes.weekdays
+        if (changes.targetPerWeek !== undefined) columns.target_per_week = changes.targetPerWeek
+        if (changes.targetKind !== undefined) columns.target_kind = changes.targetKind
+        if (changes.targetValue !== undefined) columns.target_value = changes.targetValue
+        if (changes.targetUnit !== undefined) columns.target_unit = changes.targetUnit
+        if (changes.color !== undefined) columns.color = changes.color
+        const row = checkRow(
+          await supabase.from('habits').update(columns).eq('id', id).select(HABIT_FIELDS).single(),
+        )
+        update(space, (current) => ({
+          ...current,
+          habits: current.habits.map((habit) => (habit.id === id ? toHabit(row) : habit)),
+        }))
+      }, 'Habit updated.'),
+
+    archiveHabit: (space: SpaceKey, id: string) =>
+      run(async () => {
+        const archivedAt = new Date().toISOString()
+        check(await supabase.from('habits').update({ archived_at: archivedAt }).eq('id', id))
+        update(space, (current) => ({
+          ...current,
+          habits: current.habits.map((habit) => (habit.id === id ? { ...habit, archivedAt } : habit)),
+        }))
+      }, 'Habit archived.'),
+
+    restoreHabit: (space: SpaceKey, id: string) =>
+      run(async () => {
+        check(await supabase.from('habits').update({ archived_at: null }).eq('id', id))
+        update(space, (current) => ({
+          ...current,
+          habits: current.habits.map((habit) => (habit.id === id ? { ...habit, archivedAt: null } : habit)),
+        }))
+      }, 'Habit restored.'),
+
+    deleteHabit: (space: SpaceKey, id: string) =>
+      run(async () => {
+        check(await supabase.from('habits').delete().eq('id', id))
+        update(space, (current) => ({
+          ...current,
+          habits: current.habits.filter((habit) => habit.id !== id),
+          habitEntries: current.habitEntries.filter((entry) => entry.habitId !== id),
+        }))
+      }, 'Habit deleted.'),
+
+    /** Logs a day's state for a habit; logging the same state again clears it (undo). */
+    logHabitEntry: (
+      space: SpaceKey,
+      habitId: string,
+      date: string,
+      status: HabitEntryStatus,
+      options?: { note?: string; quantityValue?: number },
+    ) =>
+      run(async () => {
+        const { data, userId } = requireData(space)
+        const existing = data.habitEntries.find(
+          (entry) => entry.habitId === habitId && entry.date === date,
+        )
+        if (existing?.status === status) {
+          check(await supabase.from('habit_entries').delete().eq('id', existing.id))
+          update(space, (current) => ({
+            ...current,
+            habitEntries: current.habitEntries.filter((entry) => entry.id !== existing.id),
+          }))
+          return
+        }
+        const row = checkRow(
+          await supabase
+            .from('habit_entries')
+            .upsert(
+              {
+                workspace_id: data.workspaceId,
+                user_id: userId,
+                habit_id: habitId,
+                entry_date: date,
+                status,
+                logged_at: new Date().toISOString(),
+                note: options?.note ?? null,
+                quantity_value: options?.quantityValue ?? null,
+              },
+              { onConflict: 'habit_id,entry_date' },
+            )
+            .select(HABIT_ENTRY_FIELDS)
+            .single(),
+        )
+        update(space, (current) => ({
+          ...current,
+          habitEntries: [
+            ...current.habitEntries.filter((entry) => entry.id !== existing?.id),
+            toHabitEntry(row),
+          ],
+        }))
+      }),
+
+    clearHabitEntry: (space: SpaceKey, habitId: string, date: string) =>
+      run(async () => {
+        const { data } = requireData(space)
+        const existing = data.habitEntries.find(
+          (entry) => entry.habitId === habitId && entry.date === date,
+        )
+        if (!existing) return
+        check(await supabase.from('habit_entries').delete().eq('id', existing.id))
+        update(space, (current) => ({
+          ...current,
+          habitEntries: current.habitEntries.filter((entry) => entry.id !== existing.id),
+        }))
+      }),
+
+    addBook: (space: SpaceKey, input: NewBookInput) =>
+      run(async () => {
+        const { data, userId } = requireData(space)
+        const position = Math.max(0, ...data.books.map((book) => book.position)) + 1000
+        const result = await supabase
+          .from('books')
+          .insert({
+            workspace_id: data.workspaceId,
+            user_id: userId,
+            title: input.title,
+            author: input.author ?? '',
+            status: input.status ?? 'planned',
+            total_pages: input.totalPages ?? null,
+            cover_url: input.coverUrl ?? null,
+            category: input.category ?? null,
+            pages_per_day_goal: input.pagesPerDayGoal ?? null,
+            position,
+          })
+          .select(BOOK_FIELDS)
+          .single()
+        if (missingColumn(result.error)) throw new Error(READING_ENRICHMENT_HINT)
+        const row = checkRow(result)
+        update(space, (current) => ({ ...current, books: [...current.books, toBook(row)] }))
+      }, 'Book added.'),
+
+    updateBook: (space: SpaceKey, id: string, changes: BookChanges) =>
+      run(async () => {
+        const columns: Row = {}
+        if (changes.title !== undefined) columns.title = changes.title
+        if (changes.author !== undefined) columns.author = changes.author
+        if (changes.status !== undefined) columns.status = changes.status
+        if (changes.totalPages !== undefined) columns.total_pages = changes.totalPages
+        if (changes.startedAt !== undefined) columns.started_at = changes.startedAt
+        if (changes.completedAt !== undefined) columns.completed_at = changes.completedAt
+        if (changes.coverUrl !== undefined) columns.cover_url = changes.coverUrl
+        if (changes.category !== undefined) columns.category = changes.category
+        if (changes.pagesPerDayGoal !== undefined) columns.pages_per_day_goal = changes.pagesPerDayGoal
+        if (changes.rating !== undefined) columns.rating = changes.rating
+        if (changes.learned !== undefined) columns.learned = changes.learned
+        if (changes.interesting !== undefined) columns.interesting = changes.interesting
+        if (changes.apply !== undefined) columns.apply = changes.apply
+        if (changes.action !== undefined) columns.action = changes.action
+        const result = await supabase.from('books').update(columns).eq('id', id).select(BOOK_FIELDS).single()
+        if (missingColumn(result.error)) throw new Error(READING_ENRICHMENT_HINT)
+        const row = checkRow(result)
+        update(space, (current) => ({
+          ...current,
+          books: current.books.map((book) => (book.id === id ? toBook(row) : book)),
+        }))
+      }, 'Book updated.'),
+
+    deleteBook: (space: SpaceKey, id: string) =>
+      run(async () => {
+        check(await supabase.from('books').delete().eq('id', id))
+        update(space, (current) => ({
+          ...current,
+          books: current.books.filter((book) => book.id !== id),
+          readingSessions: current.readingSessions.filter((session) => session.bookId !== id),
+        }))
+      }, 'Book removed.'),
+
+    addReadingSession: (space: SpaceKey, input: NewReadingSessionInput) =>
+      run(async () => {
+        const { data, userId } = requireData(space)
+        const result = await supabase
+          .from('reading_sessions')
+          .insert({
+            workspace_id: data.workspaceId,
+            user_id: userId,
+            book_id: input.bookId,
+            session_date: input.date,
+            pages_read: input.pagesRead ?? null,
+            duration_minutes: input.durationMinutes ?? null,
+            takeaway: input.takeaway ?? null,
+            chapter: input.chapter ?? null,
+          })
+          .select(READING_SESSION_FIELDS)
+          .single()
+        if (missingColumn(result.error)) throw new Error(READING_ENRICHMENT_HINT)
+        const row = checkRow(result)
+        update(space, (current) => ({
+          ...current,
+          readingSessions: [toReadingSession(row), ...current.readingSessions],
+        }))
+      }, 'Reading session logged.'),
+
+    deleteReadingSession: (space: SpaceKey, id: string) =>
+      run(async () => {
+        check(await supabase.from('reading_sessions').delete().eq('id', id))
+        update(space, (current) => ({
+          ...current,
+          readingSessions: current.readingSessions.filter((session) => session.id !== id),
+        }))
+      }, 'Reading session removed.'),
+
+    addFocusSession: (space: SpaceKey, input: NewFocusSessionInput) =>
+      run(async () => {
+        const { data, userId } = requireData(space)
+        const row = checkRow(
+          await supabase
+            .from('focus_sessions')
+            .insert({
+              workspace_id: data.workspaceId,
+              user_id: userId,
+              session_date: input.date,
+              duration_minutes: input.durationMinutes,
+              distraction_count: input.distractionCount ?? 0,
+              tasks_completed: input.tasksCompleted ?? 0,
+              concentration_rating: input.concentrationRating,
+              note: input.note ?? null,
+            })
+            .select(FOCUS_SESSION_FIELDS)
+            .single(),
+        )
+        update(space, (current) => ({
+          ...current,
+          focusSessions: [toFocusSession(row), ...current.focusSessions],
+        }))
+      }, 'Focus session logged.'),
+
+    updateFocusSession: (space: SpaceKey, id: string, changes: FocusSessionChanges) =>
+      run(async () => {
+        const columns: Row = {}
+        if (changes.durationMinutes !== undefined) columns.duration_minutes = changes.durationMinutes
+        if (changes.distractionCount !== undefined) columns.distraction_count = changes.distractionCount
+        if (changes.tasksCompleted !== undefined) columns.tasks_completed = changes.tasksCompleted
+        if (changes.concentrationRating !== undefined)
+          columns.concentration_rating = changes.concentrationRating
+        if (changes.note !== undefined) columns.note = changes.note
+        const row = checkRow(
+          await supabase
+            .from('focus_sessions')
+            .update(columns)
+            .eq('id', id)
+            .select(FOCUS_SESSION_FIELDS)
+            .single(),
+        )
+        update(space, (current) => ({
+          ...current,
+          focusSessions: current.focusSessions.map((session) =>
+            session.id === id ? toFocusSession(row) : session,
+          ),
+        }))
+      }, 'Focus session updated.'),
+
+    deleteFocusSession: (space: SpaceKey, id: string) =>
+      run(async () => {
+        check(await supabase.from('focus_sessions').delete().eq('id', id))
+        update(space, (current) => ({
+          ...current,
+          focusSessions: current.focusSessions.filter((session) => session.id !== id),
+        }))
+      }, 'Focus session removed.'),
+
+    addLearningTopic: (space: SpaceKey, input: NewLearningTopicInput) =>
+      run(async () => {
+        const { data, userId } = requireData(space)
+        if (!data.learningGoalsReady) throw new Error(LEARNING_GOALS_HINT)
+        const position = Math.max(0, ...data.learningTopics.map((topic) => topic.position)) + 1000
+        const row = checkRow(
+          await supabase
+            .from('learning_topics')
+            .insert({
+              workspace_id: data.workspaceId,
+              user_id: userId,
+              title: input.title,
+              category: input.category,
+              status: input.status ?? 'not_started',
+              resources: input.resources ?? null,
+              notes: input.notes ?? null,
+              position,
+            })
+            .select(LEARNING_TOPIC_FIELDS)
+            .single(),
+        )
+        update(space, (current) => ({
+          ...current,
+          learningTopics: [...current.learningTopics, toLearningTopic(row)],
+        }))
+      }, 'Topic added.'),
+
+    updateLearningTopic: (space: SpaceKey, id: string, changes: LearningTopicChanges) =>
+      run(async () => {
+        const columns: Row = {}
+        if (changes.title !== undefined) columns.title = changes.title
+        if (changes.category !== undefined) columns.category = changes.category
+        if (changes.status !== undefined) columns.status = changes.status
+        if (changes.resources !== undefined) columns.resources = changes.resources
+        if (changes.notes !== undefined) columns.notes = changes.notes
+        const row = checkRow(
+          await supabase
+            .from('learning_topics')
+            .update(columns)
+            .eq('id', id)
+            .select(LEARNING_TOPIC_FIELDS)
+            .single(),
+        )
+        update(space, (current) => ({
+          ...current,
+          learningTopics: current.learningTopics.map((topic) =>
+            topic.id === id ? toLearningTopic(row) : topic,
+          ),
+        }))
+      }, 'Topic updated.'),
+
+    archiveLearningTopic: (space: SpaceKey, id: string) =>
+      run(async () => {
+        const archivedAt = new Date().toISOString()
+        check(await supabase.from('learning_topics').update({ archived_at: archivedAt }).eq('id', id))
+        update(space, (current) => ({
+          ...current,
+          learningTopics: current.learningTopics.map((topic) =>
+            topic.id === id ? { ...topic, archivedAt } : topic,
+          ),
+        }))
+      }, 'Topic archived.'),
+
+    restoreLearningTopic: (space: SpaceKey, id: string) =>
+      run(async () => {
+        check(await supabase.from('learning_topics').update({ archived_at: null }).eq('id', id))
+        update(space, (current) => ({
+          ...current,
+          learningTopics: current.learningTopics.map((topic) =>
+            topic.id === id ? { ...topic, archivedAt: null } : topic,
+          ),
+        }))
+      }, 'Topic restored.'),
+
+    deleteLearningTopic: (space: SpaceKey, id: string) =>
+      run(async () => {
+        check(await supabase.from('learning_topics').delete().eq('id', id))
+        update(space, (current) => ({
+          ...current,
+          learningTopics: current.learningTopics.filter((topic) => topic.id !== id),
+        }))
+      }, 'Topic deleted.'),
+
+    addGoal: (space: SpaceKey, input: NewGoalInput) =>
+      run(async () => {
+        const { data, userId } = requireData(space)
+        if (!data.learningGoalsReady) throw new Error(LEARNING_GOALS_HINT)
+        const position = Math.max(0, ...data.goals.map((goal) => goal.position)) + 1000
+        const row = checkRow(
+          await supabase
+            .from('goals')
+            .insert({
+              workspace_id: data.workspaceId,
+              user_id: userId,
+              title: input.title,
+              category: input.category,
+              target_date: input.targetDate ?? null,
+              notes: input.notes ?? null,
+              position,
+            })
+            .select(GOAL_FIELDS)
+            .single(),
+        )
+        update(space, (current) => ({ ...current, goals: [...current.goals, toGoal(row)] }))
+      }, 'Goal added.'),
+
+    updateGoal: (space: SpaceKey, id: string, changes: GoalChanges) =>
+      run(async () => {
+        const columns: Row = {}
+        if (changes.title !== undefined) columns.title = changes.title
+        if (changes.category !== undefined) columns.category = changes.category
+        if (changes.targetDate !== undefined) columns.target_date = changes.targetDate
+        if (changes.notes !== undefined) columns.notes = changes.notes
+        if (changes.status !== undefined) {
+          columns.status = changes.status
+          columns.completed_at = changes.status === 'completed' ? new Date().toISOString() : null
+        }
+        const row = checkRow(
+          await supabase.from('goals').update(columns).eq('id', id).select(GOAL_FIELDS).single(),
+        )
+        update(space, (current) => ({
+          ...current,
+          goals: current.goals.map((goal) => (goal.id === id ? toGoal(row) : goal)),
+        }))
+      }, 'Goal updated.'),
+
+    deleteGoal: (space: SpaceKey, id: string) =>
+      run(async () => {
+        check(await supabase.from('goals').delete().eq('id', id))
+        update(space, (current) => ({
+          ...current,
+          goals: current.goals.filter((goal) => goal.id !== id),
+          goalMilestones: current.goalMilestones.filter((milestone) => milestone.goalId !== id),
+        }))
+      }, 'Goal deleted.'),
+
+    addMilestone: (space: SpaceKey, input: NewMilestoneInput) =>
+      run(async () => {
+        const { data, userId } = requireData(space)
+        const position =
+          Math.max(
+            0,
+            ...data.goalMilestones
+              .filter((milestone) => milestone.goalId === input.goalId)
+              .map((milestone) => milestone.position),
+          ) + 1000
+        const row = checkRow(
+          await supabase
+            .from('goal_milestones')
+            .insert({
+              workspace_id: data.workspaceId,
+              user_id: userId,
+              goal_id: input.goalId,
+              title: input.title,
+              target_date: input.targetDate ?? null,
+              position,
+            })
+            .select(GOAL_MILESTONE_FIELDS)
+            .single(),
+        )
+        update(space, (current) => ({
+          ...current,
+          goalMilestones: [...current.goalMilestones, toGoalMilestone(row)],
+        }))
+      }, 'Milestone added.'),
+
+    toggleMilestone: (space: SpaceKey, id: string) =>
+      run(async () => {
+        const { data } = requireData(space)
+        const milestone = data.goalMilestones.find((item) => item.id === id)
+        if (!milestone) return
+        const completedAt = milestone.completedAt ? null : new Date().toISOString()
+        update(space, (current) => ({
+          ...current,
+          goalMilestones: current.goalMilestones.map((item) =>
+            item.id === id ? { ...item, completedAt } : item,
+          ),
+        }))
+        check(await supabase.from('goal_milestones').update({ completed_at: completedAt }).eq('id', id))
+      }),
+
+    deleteMilestone: (space: SpaceKey, id: string) =>
+      run(async () => {
+        check(await supabase.from('goal_milestones').delete().eq('id', id))
+        update(space, (current) => ({
+          ...current,
+          goalMilestones: current.goalMilestones.filter((item) => item.id !== id),
+        }))
+      }),
+
     addExpense: (space: SpaceKey, input: NewExpenseInput) =>
       run(
         async () => {
@@ -1348,6 +2366,8 @@ function useWorkbenchState() {
               currency: settings[space]?.currency ?? DEFAULT_CURRENCY,
               expense_date: input.date ?? localDate(),
               status: office ? 'pending' : 'recorded',
+              payment_method: input.paymentMethod ?? null,
+              notes: input.notes ?? null,
             })
             .select(EXPENSE_FIELDS)
             .single()
@@ -1367,6 +2387,28 @@ function useWorkbenchState() {
             : 'Expense saved.',
       ),
 
+    updateExpense: (space: SpaceKey, id: string, changes: ExpenseChanges) =>
+      run(async () => {
+        const columns: Row = {}
+        if (changes.description !== undefined) columns.description = changes.description
+        if (changes.category !== undefined) columns.category = changes.category
+        if (changes.amount !== undefined) columns.amount = changes.amount
+        if (changes.date !== undefined) columns.expense_date = changes.date
+        if (changes.kind !== undefined) columns.kind = changes.kind
+        if (changes.paymentMethod !== undefined) columns.payment_method = changes.paymentMethod
+        if (changes.notes !== undefined) columns.notes = changes.notes
+        const row = checkRow(
+          await supabase.from('expense_entries').update(columns).eq('id', id).select(EXPENSE_FIELDS).single(),
+        )
+        const record = toExpense(row)
+        update(space, (current) => ({
+          ...current,
+          expenses: current.expenses
+            .map((item) => (item.id === id ? record : item))
+            .sort((a, b) => b.date.localeCompare(a.date)),
+        }))
+      }, 'Entry updated.'),
+
     deleteExpense: (space: SpaceKey, id: string) =>
       run(async () => {
         const result = check(
@@ -1378,6 +2420,222 @@ function useWorkbenchState() {
           expenses: current.expenses.filter((item) => item.id !== id),
         }))
       }, 'Entry deleted.'),
+
+    saveBudget: (space: SpaceKey, changes: BudgetChanges) =>
+      run(async () => {
+        const { data, userId } = requireData(space)
+        if (!data.financeReady) throw new Error(FINANCE_HINT)
+        const columns: Row = {
+          workspace_id: data.workspaceId,
+          user_id: userId,
+        }
+        if (changes.monthlyLimit !== undefined) columns.monthly_limit = changes.monthlyLimit
+        if (changes.categoryLimits !== undefined) columns.category_limits = changes.categoryLimits
+        const row = checkRow(
+          await supabase
+            .from('budgets')
+            .upsert(columns, { onConflict: 'workspace_id,user_id' })
+            .select(BUDGET_FIELDS)
+            .single(),
+        )
+        update(space, (current) => ({ ...current, budget: toBudget(row) }))
+      }, 'Budget saved.'),
+
+    addSavingsGoal: (space: SpaceKey, input: NewSavingsGoalInput) =>
+      run(async () => {
+        const { data, userId } = requireData(space)
+        if (!data.financeReady) throw new Error(FINANCE_HINT)
+        const position = Math.max(0, ...data.savingsGoals.map((goal) => goal.position)) + 1000
+        const row = checkRow(
+          await supabase
+            .from('savings_goals')
+            .insert({
+              workspace_id: data.workspaceId,
+              user_id: userId,
+              name: input.name,
+              target_amount: input.targetAmount,
+              target_date: input.targetDate ?? null,
+              position,
+            })
+            .select(SAVINGS_GOAL_FIELDS)
+            .single(),
+        )
+        update(space, (current) => ({ ...current, savingsGoals: [...current.savingsGoals, toSavingsGoal(row)] }))
+      }, 'Savings goal added.'),
+
+    updateSavingsGoal: (space: SpaceKey, id: string, changes: SavingsGoalChanges) =>
+      run(async () => {
+        const columns: Row = {}
+        if (changes.name !== undefined) columns.name = changes.name
+        if (changes.targetAmount !== undefined) columns.target_amount = changes.targetAmount
+        if (changes.targetDate !== undefined) columns.target_date = changes.targetDate
+        const row = checkRow(
+          await supabase.from('savings_goals').update(columns).eq('id', id).select(SAVINGS_GOAL_FIELDS).single(),
+        )
+        update(space, (current) => ({
+          ...current,
+          savingsGoals: current.savingsGoals.map((goal) => (goal.id === id ? toSavingsGoal(row) : goal)),
+        }))
+      }, 'Savings goal updated.'),
+
+    archiveSavingsGoal: (space: SpaceKey, id: string) =>
+      run(async () => {
+        const archivedAt = new Date().toISOString()
+        check(await supabase.from('savings_goals').update({ archived_at: archivedAt }).eq('id', id))
+        update(space, (current) => ({
+          ...current,
+          savingsGoals: current.savingsGoals.map((goal) =>
+            goal.id === id ? { ...goal, archivedAt } : goal,
+          ),
+        }))
+      }, 'Savings goal archived.'),
+
+    deleteSavingsGoal: (space: SpaceKey, id: string) =>
+      run(async () => {
+        check(await supabase.from('savings_goals').delete().eq('id', id))
+        update(space, (current) => ({
+          ...current,
+          savingsGoals: current.savingsGoals.filter((goal) => goal.id !== id),
+          savingsContributions: current.savingsContributions.filter((item) => item.goalId !== id),
+        }))
+      }, 'Savings goal deleted.'),
+
+    addSavingsContribution: (space: SpaceKey, input: NewContributionInput) =>
+      run(async () => {
+        const { data, userId } = requireData(space)
+        if (!data.financeReady) throw new Error(FINANCE_HINT)
+        const row = checkRow(
+          await supabase
+            .from('savings_contributions')
+            .insert({
+              workspace_id: data.workspaceId,
+              user_id: userId,
+              goal_id: input.goalId,
+              amount: input.amount,
+              direction: input.direction,
+              occurred_on: input.occurredOn ?? localDate(),
+              note: input.note ?? null,
+            })
+            .select(SAVINGS_CONTRIBUTION_FIELDS)
+            .single(),
+        )
+        update(space, (current) => ({
+          ...current,
+          savingsContributions: [toSavingsContribution(row), ...current.savingsContributions],
+        }))
+      }, input.direction === 'withdrawal' ? 'Withdrawal recorded.' : 'Contribution added.'),
+
+    deleteSavingsContribution: (space: SpaceKey, id: string) =>
+      run(async () => {
+        check(await supabase.from('savings_contributions').delete().eq('id', id))
+        update(space, (current) => ({
+          ...current,
+          savingsContributions: current.savingsContributions.filter((item) => item.id !== id),
+        }))
+      }, 'Entry deleted.'),
+
+    addRecurringPayment: (space: SpaceKey, input: NewRecurringPaymentInput) =>
+      run(async () => {
+        const { data, userId } = requireData(space)
+        if (!data.financeReady) throw new Error(FINANCE_HINT)
+        const row = checkRow(
+          await supabase
+            .from('recurring_payments')
+            .insert({
+              workspace_id: data.workspaceId,
+              user_id: userId,
+              name: input.name,
+              kind: input.kind,
+              category: input.category ?? null,
+              amount: input.amount,
+              frequency: input.frequency,
+              next_due_date: input.nextDueDate,
+            })
+            .select(RECURRING_PAYMENT_FIELDS)
+            .single(),
+        )
+        update(space, (current) => ({
+          ...current,
+          recurringPayments: [...current.recurringPayments, toRecurringPayment(row)].sort((a, b) =>
+            a.nextDueDate.localeCompare(b.nextDueDate),
+          ),
+        }))
+      }, 'Recurring payment added.'),
+
+    updateRecurringPayment: (space: SpaceKey, id: string, changes: RecurringPaymentChanges) =>
+      run(async () => {
+        const columns: Row = {}
+        if (changes.name !== undefined) columns.name = changes.name
+        if (changes.kind !== undefined) columns.kind = changes.kind
+        if (changes.category !== undefined) columns.category = changes.category
+        if (changes.amount !== undefined) columns.amount = changes.amount
+        if (changes.frequency !== undefined) columns.frequency = changes.frequency
+        if (changes.nextDueDate !== undefined) columns.next_due_date = changes.nextDueDate
+        if (changes.active !== undefined) columns.active = changes.active
+        const row = checkRow(
+          await supabase
+            .from('recurring_payments')
+            .update(columns)
+            .eq('id', id)
+            .select(RECURRING_PAYMENT_FIELDS)
+            .single(),
+        )
+        update(space, (current) => ({
+          ...current,
+          recurringPayments: current.recurringPayments
+            .map((item) => (item.id === id ? toRecurringPayment(row) : item))
+            .sort((a, b) => a.nextDueDate.localeCompare(b.nextDueDate)),
+        }))
+      }, 'Recurring payment updated.'),
+
+    deleteRecurringPayment: (space: SpaceKey, id: string) =>
+      run(async () => {
+        check(await supabase.from('recurring_payments').delete().eq('id', id))
+        update(space, (current) => ({
+          ...current,
+          recurringPayments: current.recurringPayments.filter((item) => item.id !== id),
+        }))
+      }, 'Recurring payment deleted.'),
+
+    /** Confirms a recurring payment was paid: logs a real transaction and advances the due date. */
+    markRecurringPaymentPaid: (space: SpaceKey, id: string) =>
+      run(async () => {
+        const { data, userId } = requireData(space)
+        const item = data.recurringPayments.find((entry) => entry.id === id)
+        if (!item) return
+        const nextDueDate = advanceDueDate(item.nextDueDate, item.frequency)
+        const expenseResult = await supabase
+          .from('expense_entries')
+          .insert({
+            workspace_id: data.workspaceId,
+            user_id: userId,
+            kind: item.kind,
+            description: item.name,
+            category: item.category ?? 'Other',
+            amount: item.amount,
+            currency: settings[space]?.currency ?? DEFAULT_CURRENCY,
+            expense_date: localDate(),
+            status: 'recorded',
+          })
+          .select(EXPENSE_FIELDS)
+          .single()
+        const record = toExpense(checkRow(expenseResult))
+        const row = checkRow(
+          await supabase
+            .from('recurring_payments')
+            .update({ next_due_date: nextDueDate })
+            .eq('id', id)
+            .select(RECURRING_PAYMENT_FIELDS)
+            .single(),
+        )
+        update(space, (current) => ({
+          ...current,
+          expenses: [record, ...current.expenses].sort((a, b) => b.date.localeCompare(a.date)),
+          recurringPayments: current.recurringPayments
+            .map((entry) => (entry.id === id ? toRecurringPayment(row) : entry))
+            .sort((a, b) => a.nextDueDate.localeCompare(b.nextDueDate)),
+        }))
+      }, 'Marked as paid.'),
 
     renameWorkspace: (space: SpaceKey, name: string) =>
       run(async () => {
@@ -1653,8 +2911,71 @@ export function useWorkspace() {
     addPlanItem: (title: string) => store.addPlanItem(key, title),
     togglePlanItem: (id: string) => store.togglePlanItem(key, id),
     removePlanItem: (id: string) => store.removePlanItem(key, id),
+    habits: data?.habits ?? [],
+    habitEntries: data?.habitEntries ?? [],
+    books: data?.books ?? [],
+    readingSessions: data?.readingSessions ?? [],
+    focusSessions: data?.focusSessions ?? [],
+    growthReady: data?.growthReady ?? true,
+    addHabit: (input: NewHabitInput) => store.addHabit(key, input),
+    updateHabit: (id: string, changes: HabitChanges) => store.updateHabit(key, id, changes),
+    archiveHabit: (id: string) => store.archiveHabit(key, id),
+    restoreHabit: (id: string) => store.restoreHabit(key, id),
+    deleteHabit: (id: string) => store.deleteHabit(key, id),
+    logHabitEntry: (
+      habitId: string,
+      date: string,
+      status: HabitEntryStatus,
+      options?: { note?: string; quantityValue?: number },
+    ) => store.logHabitEntry(key, habitId, date, status, options),
+    clearHabitEntry: (habitId: string, date: string) => store.clearHabitEntry(key, habitId, date),
+    addBook: (input: NewBookInput) => store.addBook(key, input),
+    updateBook: (id: string, changes: BookChanges) => store.updateBook(key, id, changes),
+    deleteBook: (id: string) => store.deleteBook(key, id),
+    addReadingSession: (input: NewReadingSessionInput) => store.addReadingSession(key, input),
+    deleteReadingSession: (id: string) => store.deleteReadingSession(key, id),
+    addFocusSession: (input: NewFocusSessionInput) => store.addFocusSession(key, input),
+    updateFocusSession: (id: string, changes: FocusSessionChanges) =>
+      store.updateFocusSession(key, id, changes),
+    deleteFocusSession: (id: string) => store.deleteFocusSession(key, id),
+    dailyNoteHistory: data?.dailyNoteHistory ?? [],
+    learningTopics: data?.learningTopics ?? [],
+    goals: data?.goals ?? [],
+    goalMilestones: data?.goalMilestones ?? [],
+    learningGoalsReady: data?.learningGoalsReady ?? true,
+    addLearningTopic: (input: NewLearningTopicInput) => store.addLearningTopic(key, input),
+    updateLearningTopic: (id: string, changes: LearningTopicChanges) =>
+      store.updateLearningTopic(key, id, changes),
+    archiveLearningTopic: (id: string) => store.archiveLearningTopic(key, id),
+    restoreLearningTopic: (id: string) => store.restoreLearningTopic(key, id),
+    deleteLearningTopic: (id: string) => store.deleteLearningTopic(key, id),
+    addGoal: (input: NewGoalInput) => store.addGoal(key, input),
+    updateGoal: (id: string, changes: GoalChanges) => store.updateGoal(key, id, changes),
+    deleteGoal: (id: string) => store.deleteGoal(key, id),
+    addMilestone: (input: NewMilestoneInput) => store.addMilestone(key, input),
+    toggleMilestone: (id: string) => store.toggleMilestone(key, id),
+    deleteMilestone: (id: string) => store.deleteMilestone(key, id),
     addExpense: (input: NewExpenseInput) => store.addExpense(key, input),
+    updateExpense: (id: string, changes: ExpenseChanges) => store.updateExpense(key, id, changes),
     deleteExpense: (id: string) => store.deleteExpense(key, id),
+    budget: data?.budget ?? null,
+    savingsGoals: data?.savingsGoals ?? [],
+    savingsContributions: data?.savingsContributions ?? [],
+    recurringPayments: data?.recurringPayments ?? [],
+    financeReady: data?.financeReady ?? true,
+    saveBudget: (changes: BudgetChanges) => store.saveBudget(key, changes),
+    addSavingsGoal: (input: NewSavingsGoalInput) => store.addSavingsGoal(key, input),
+    updateSavingsGoal: (id: string, changes: SavingsGoalChanges) =>
+      store.updateSavingsGoal(key, id, changes),
+    archiveSavingsGoal: (id: string) => store.archiveSavingsGoal(key, id),
+    deleteSavingsGoal: (id: string) => store.deleteSavingsGoal(key, id),
+    addSavingsContribution: (input: NewContributionInput) => store.addSavingsContribution(key, input),
+    deleteSavingsContribution: (id: string) => store.deleteSavingsContribution(key, id),
+    addRecurringPayment: (input: NewRecurringPaymentInput) => store.addRecurringPayment(key, input),
+    updateRecurringPayment: (id: string, changes: RecurringPaymentChanges) =>
+      store.updateRecurringPayment(key, id, changes),
+    deleteRecurringPayment: (id: string) => store.deleteRecurringPayment(key, id),
+    markRecurringPaymentPaid: (id: string) => store.markRecurringPaymentPaid(key, id),
     renameWorkspace: (name: string) => store.renameWorkspace(key, name),
     updateProfileName: store.updateProfileName,
     saveSettings: (next: WorkspaceSettings) => store.saveSettings(key, next),

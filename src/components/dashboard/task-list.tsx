@@ -34,18 +34,28 @@ const VISIBLE_TASKS = 8
  */
 export function TaskList({
   narrow = false,
+  bare = false,
+  fixedView,
+  limit,
 }: {
   /** Half-width layout: the view tabs always get their own row under the title. */
   narrow?: boolean
+  /** Skips the outer card and header, for composing inside another card (e.g. Home). */
+  bare?: boolean
+  /** Locks the view and hides the Today/Upcoming/All tabs. */
+  fixedView?: View
+  /** Caps how many open rows are shown before "View all" takes over. Defaults to 8. */
+  limit?: number
 } = {}) {
   const { workspace, ready, tasks, meetings } = useWorkspace()
   useMeetingsAhead()
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null)
   const { secondsFor } = useTaskTime()
   const now = useNow()
-  const [view, setView] = useState<View>('today')
+  const [view, setView] = useState<View>(fixedView ?? 'today')
   const [editing, setEditing] = useState<string | null>(null)
   const [showDone, setShowDone] = useState(false)
+  const maxVisible = limit ?? VISIBLE_TASKS
 
   const open = tasks.filter((task) => task.state === 'open')
   const doneToday = now
@@ -58,7 +68,7 @@ export function TaskList({
 
   // Cap the dashboard list, trimming whole rows from the last groups first. Meetings lead.
   type Row = { kind: 'meeting'; meeting: Meeting } | { kind: 'task'; task: WorkspaceTask }
-  let budget = VISIBLE_TASKS
+  let budget = maxVisible
   const shown = groups
     .map((group) => {
       const all: Row[] = [
@@ -72,22 +82,48 @@ export function TaskList({
     .filter((group) => group.rows.length)
 
   return (
-    <section className="neo-card flex min-w-0 flex-col rounded-xl p-4 sm:p-5">
-      <PanelHeader
-        icon={ListChecks}
-        title="My Tasks"
-        subtitle={
-          ready
-            ? `${open.length} open · ${doneToday.length} done today${
-                meetingsToday
-                  ? ` · ${meetingsToday} meeting${meetingsToday === 1 ? '' : 's'} today`
-                  : ''
-              }`
-            : 'Loading your tasks…'
-        }
-      >
+    <section className={bare ? 'flex min-w-0 flex-col' : 'neo-card flex min-w-0 flex-col rounded-xl p-4 sm:p-5'}>
+      {!bare && (
+        <PanelHeader
+          icon={ListChecks}
+          title="My Tasks"
+          subtitle={
+            ready
+              ? `${open.length} open · ${doneToday.length} done today${
+                  meetingsToday
+                    ? ` · ${meetingsToday} meeting${meetingsToday === 1 ? '' : 's'} today`
+                    : ''
+                }`
+              : 'Loading your tasks…'
+          }
+        >
+          {!fixedView && (
+            <div
+              className={`hidden rounded-lg border border-line bg-surface-2 p-0.5 text-xs font-medium ${narrow ? '' : 'sm:flex'}`}
+              role="tablist"
+              aria-label="Task view"
+            >
+              {VIEWS.map((item) => (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={view === item.key}
+                  key={item.key}
+                  onClick={() => setView(item.key)}
+                  className={`rounded-md px-3 py-1.5 ${view === item.key ? 'bg-segment text-ink shadow-sm' : 'text-ink-2 hover:text-ink'}`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </PanelHeader>
+      )}
+
+      {/* Phones: the view tabs get their own full-width row. */}
+      {!fixedView && (
         <div
-          className={`hidden rounded-lg border border-line bg-surface-2 p-0.5 text-xs font-medium ${narrow ? '' : 'sm:flex'}`}
+          className={`mt-3 grid grid-cols-3 rounded-lg border border-line bg-surface-2 p-0.5 text-xs font-medium ${narrow ? '' : 'sm:hidden'}`}
           role="tablist"
           aria-label="Task view"
         >
@@ -98,41 +134,24 @@ export function TaskList({
               aria-selected={view === item.key}
               key={item.key}
               onClick={() => setView(item.key)}
-              className={`rounded-md px-3 py-1.5 ${view === item.key ? 'bg-segment text-ink shadow-sm' : 'text-ink-2 hover:text-ink'}`}
+              className={`rounded-md py-1.5 ${view === item.key ? 'bg-segment text-ink shadow-sm' : 'text-ink-2'}`}
             >
               {item.label}
             </button>
           ))}
         </div>
-      </PanelHeader>
-
-      {/* Phones: the view tabs get their own full-width row. */}
-      <div
-        className={`mt-3 grid grid-cols-3 rounded-lg border border-line bg-surface-2 p-0.5 text-xs font-medium ${narrow ? '' : 'sm:hidden'}`}
-        role="tablist"
-        aria-label="Task view"
-      >
-        {VIEWS.map((item) => (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === item.key}
-            key={item.key}
-            onClick={() => setView(item.key)}
-            className={`rounded-md py-1.5 ${view === item.key ? 'bg-segment text-ink shadow-sm' : 'text-ink-2'}`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      )}
 
       <div className="mt-4">
         <TaskComposer defaultDue={view === 'today' && now ? dayFromToday(0, now) : ''} />
       </div>
 
-      <div className="mt-3 min-h-[220px] flex-1">
-        {(!ready || !now) && <TaskRowSkeleton rows={4} />}
-        {ready && now && !total && (
+      <div className={`mt-3 flex-1 ${bare ? '' : 'min-h-[220px]'}`}>
+        {(!ready || !now) && <TaskRowSkeleton rows={bare ? 3 : 4} />}
+        {ready && now && !total && bare && (
+          <p className="py-6 text-center text-sm text-ink-3">Nothing due today — add one above.</p>
+        )}
+        {ready && now && !total && !bare && (
           <div className="flex flex-col items-center px-4 py-10 text-center">
             <span className="grid size-11 place-items-center rounded-full bg-accent-light text-accent-ink">
               <PartyPopper size={20} />
@@ -195,43 +214,70 @@ export function TaskList({
         ))}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line-soft pt-3">
-        {doneToday.length > 0 ? (
-          <button
-            type="button"
-            onClick={() => setShowDone((value) => !value)}
-            aria-expanded={showDone}
-            className="flex items-center gap-1.5 text-xs font-medium text-ink-2 hover:text-ink"
+      {bare ? (
+        <>
+          {doneToday.length > 0 && (
+            <div className="mt-1 border-t border-line-soft pt-1">
+              {doneToday.map((task) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  seconds={secondsFor(task.id)}
+                  now={now}
+                  onOpen={setEditing}
+                  compact
+                />
+              ))}
+            </div>
+          )}
+          <Link
+            href={workspacePath(workspace.key, 'tasks')}
+            className="mt-2 block text-xs font-semibold text-primary-ink hover:underline"
           >
-            <ChevronDown
-              size={14}
-              className={`transition-transform ${showDone ? 'rotate-0' : '-rotate-90'}`}
-            />
-            Completed today · {doneToday.length}
-          </button>
-        ) : (
-          <span className="text-xs text-ink-3">Nothing completed yet today</span>
-        )}
-        <Link
-          href={workspacePath(workspace.key, 'tasks')}
-          className="text-xs font-semibold text-primary-ink hover:underline"
-        >
-          {total > VISIBLE_TASKS ? `View all ${total}` : 'Open My Tasks'} →
-        </Link>
-      </div>
-      {showDone && (
-        <div className="animate-reveal mt-1">
-          {doneToday.map((task) => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              seconds={secondsFor(task.id)}
-              now={now}
-              onOpen={setEditing}
-              compact={narrow}
-            />
-          ))}
-        </div>
+            Open My Tasks →
+          </Link>
+        </>
+      ) : (
+        <>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line-soft pt-3">
+            {doneToday.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setShowDone((value) => !value)}
+                aria-expanded={showDone}
+                className="flex items-center gap-1.5 text-xs font-medium text-ink-2 hover:text-ink"
+              >
+                <ChevronDown
+                  size={14}
+                  className={`transition-transform ${showDone ? 'rotate-0' : '-rotate-90'}`}
+                />
+                Completed today · {doneToday.length}
+              </button>
+            ) : (
+              <span className="text-xs text-ink-3">Nothing completed yet today</span>
+            )}
+            <Link
+              href={workspacePath(workspace.key, 'tasks')}
+              className="text-xs font-semibold text-primary-ink hover:underline"
+            >
+              {total > maxVisible ? `View all ${total}` : 'Open My Tasks'} →
+            </Link>
+          </div>
+          {showDone && (
+            <div className="animate-reveal mt-1">
+              {doneToday.map((task) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  seconds={secondsFor(task.id)}
+                  now={now}
+                  onOpen={setEditing}
+                  compact={narrow}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
       {editing && <TaskDialog taskId={editing} onClose={() => setEditing(null)} />}
       {editingMeeting && (

@@ -18,6 +18,7 @@ import { mailDate } from '@/lib/format'
 import { meetingStyle } from '@/lib/meetings'
 import { htmlToText } from '@/lib/sanitize-html'
 import { useWorkspace } from '@/state/workbench-store'
+import { DailyReflections, TodayReflection } from './daily-reflections'
 import { NoteEditor } from './note-editor'
 
 type Filter = 'all' | 'meetings' | 'shared' | 'pinned'
@@ -31,7 +32,7 @@ const NONE = '__none'
  * (opened from the calendar). `?note=<id>` selects one, so links can open a note directly.
  */
 export function NotesView() {
-  const { ready, notes, notesReady, notesCollab, addNote, profile, projects } = useWorkspace()
+  const { ready, workspace, notes, notesReady, notesCollab, addNote, profile, projects } = useWorkspace()
   const categories = useMeetingCategories()
   const router = useRouter()
   const pathname = usePathname()
@@ -126,7 +127,14 @@ export function NotesView() {
   }
 
   return (
-    <div className="grid min-h-[calc(100dvh-10rem)] min-w-0 gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+    <div>
+      {workspace.key === 'personal' && (
+        <>
+          <TodayReflection />
+          <DailyReflections />
+        </>
+      )}
+      <div className="grid min-h-[calc(100dvh-10rem)] min-w-0 gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
       <section
         className={`neo-card min-w-0 flex-col overflow-hidden rounded-xl ${selected ? 'hidden lg:flex' : 'flex'}`}
       >
@@ -164,7 +172,7 @@ export function NotesView() {
               <Plus size={14} /> New
             </button>
           </div>
-          {notesCollab && (
+          {notesCollab && workspace.key !== 'personal' && (
             <label className="relative flex items-center">
               <FolderKanban
                 size={13}
@@ -362,6 +370,7 @@ export function NotesView() {
           </div>
         )}
       </section>
+      </div>
     </div>
   )
 }

@@ -4,7 +4,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * ಆyaama design tokens. Every color in the UI comes from these variables, exposed to
+ * ಸKala² design tokens. Every color in the UI comes from these variables, exposed to
  * Tailwind as `bg-primary`, `text-ink-2`, `border-line` and so on; `html.dark` swaps the
  * values, so components never need dark-specific classes.
  *

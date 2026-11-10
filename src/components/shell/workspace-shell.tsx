@@ -112,7 +112,13 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
       ? `${greeting.salutation}${firstName ? `, ${firstName}` : ''}`
       : workspace.name
     : pageTitle(workspace, projects, pathname, workspace.name)
-  const subtitle = home ? (greeting?.when ?? ' ') : pageSubtitle(workspace, pathname)
+  // Personal's home content starts with its own daily-progress line, so the header only
+  // needs the date there, not a live clock duplicating that timestamp.
+  const subtitle = home
+    ? workspace.key === 'personal'
+      ? (greeting?.date ?? ' ')
+      : (greeting?.when ?? ' ')
+    : pageSubtitle(workspace, pathname)
 
   return (
     <div className="workbench-scale flex min-h-screen bg-canvas text-ink">

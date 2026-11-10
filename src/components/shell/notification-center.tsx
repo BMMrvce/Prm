@@ -52,10 +52,10 @@ export function NotificationCenter() {
                   : push.state === 'blocked'
                     ? 'Notifications are blocked in this browser’s site settings'
                     : push.state === 'needs-install'
-                      ? 'On iPhone, add ಆyaama to the Home Screen to get reminders'
+                      ? 'On iPhone, add ಸKala² to the Home Screen to get reminders'
                       : push.state === 'unsupported'
                         ? 'This browser can’t show reminders'
-                        : 'Get reminders even when ಆyaama is closed'}
+                        : 'Get reminders even when ಸKala² is closed'}
               </p>
             </div>
             {push.state === 'off' && (

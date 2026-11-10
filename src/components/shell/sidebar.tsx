@@ -1,14 +1,18 @@
 'use client'
 
 import {
+  BookOpen,
   CalendarDays,
   Check,
   CheckSquare,
   ChevronsUpDown,
   Clock3,
+  Flag,
   FolderKanban,
+  GraduationCap,
   Home,
   Inbox,
+  ListChecks,
   NotebookText,
   LogOut,
   PanelLeftClose,
@@ -16,6 +20,7 @@ import {
   Plug,
   Plus,
   Settings,
+  Target,
   Wallet,
   X,
   type LucideIcon,
@@ -49,6 +54,11 @@ const ICONS: Record<Exclude<NavIcon, 'project'>, LucideIcon> = {
   calendar: CalendarDays,
   time: Clock3,
   money: Wallet,
+  habits: ListChecks,
+  reading: BookOpen,
+  focus: Target,
+  learning: GraduationCap,
+  goals: Flag,
   projects: FolderKanban,
   integrations: Plug,
   settings: Settings,
@@ -180,7 +190,7 @@ export function Sidebar({
             /* eslint-disable-next-line @next/next/no-img-element -- static brand icon */
             <img
               src="/brand/icon-48.png"
-              alt="ಆyaama"
+              alt="ಸKala²"
               className="hidden size-8 rounded-lg lg:block"
             />
           )}
@@ -216,20 +226,46 @@ export function Sidebar({
           )}
         </button>
 
-        <nav className="mt-4 space-y-0.5" aria-label="Workspace navigation">
-          {mainNav(workspace).map(navLink)}
-        </nav>
-        {sectionLabel('Projects')}
-        <nav className="space-y-0.5" aria-label="Projects">
-          {projectNav(workspace, projects).map(navLink)}
-          {!projects.length && (
-            <p className={`px-2.5 py-1.5 text-ui text-sidebar-muted ${rail}`}>No projects yet</p>
-          )}
-        </nav>
-        {sectionLabel('Manage')}
-        <nav className="space-y-0.5" aria-label="Management">
-          {manageNav(workspace).map(navLink)}
-        </nav>
+        {(() => {
+          const items = mainNav(workspace)
+          if (!items.some((item) => item.group)) {
+            return (
+              <nav className="mt-4 space-y-0.5" aria-label="Workspace navigation">
+                {items.map(navLink)}
+              </nav>
+            )
+          }
+          // Grouped sidebar (Personal): cluster items under their section header,
+          // in the order each group first appears.
+          const groups = [...new Set(items.map((item) => item.group!))]
+          return groups.map((group) => (
+            <div key={group}>
+              {sectionLabel(group)}
+              <nav className="space-y-0.5" aria-label={group}>
+                {items.filter((item) => item.group === group).map(navLink)}
+              </nav>
+            </div>
+          ))
+        })()}
+        {workspace.key !== 'personal' && (
+          <>
+            {sectionLabel('Projects')}
+            <nav className="space-y-0.5" aria-label="Projects">
+              {projectNav(workspace, projects).map(navLink)}
+              {!projects.length && (
+                <p className={`px-2.5 py-1.5 text-ui text-sidebar-muted ${rail}`}>No projects yet</p>
+              )}
+            </nav>
+          </>
+        )}
+        {manageNav(workspace).length > 0 && (
+          <>
+            {sectionLabel('Manage')}
+            <nav className="space-y-0.5" aria-label="Management">
+              {manageNav(workspace).map(navLink)}
+            </nav>
+          </>
+        )}
 
         <div className="mt-auto space-y-1 pt-4">
           <button

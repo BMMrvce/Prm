@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { ExpenseTracker } from '@/components/expenses/expense-tracker'
+import { ExpensesRouter } from '@/components/expenses/expenses-router'
 import { expensesLabel } from '@/lib/routes'
 import { resolveWorkspace, type SpaceParams } from '@/lib/workspace'
 
@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: { params: SpaceParams }): Pro
 export default function ExpensesPage() {
   return (
     <div className="mt-5">
-      <ExpenseTracker />
+      <ExpensesRouter />
     </div>
   )
 }

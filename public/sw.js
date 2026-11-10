@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aayaama-shell-v7'
+const CACHE_NAME = 'kala2-shell-v8'
 // Pages require a session (the proxy redirects to /login), so only static assets are precached.
 const APP_SHELL = ['/manifest.webmanifest', '/brand/icon-192.png', '/brand/icon-512.png']
 
@@ -42,10 +42,10 @@ self.addEventListener('push', (event) => {
   try {
     payload = event.data ? event.data.json() : {}
   } catch {
-    payload = { title: 'ಆyaama', body: event.data ? event.data.text() : '' }
+    payload = { title: 'ಸKala²', body: event.data ? event.data.text() : '' }
   }
   event.waitUntil(
-    self.registration.showNotification(payload.title || 'ಆyaama', {
+    self.registration.showNotification(payload.title || 'ಸKala²', {
       body: payload.body || '',
       icon: '/brand/icon-192.png',
       badge: '/brand/icon-192.png',
@@ -61,7 +61,7 @@ self.addEventListener('notificationclick', (event) => {
   const target = new URL(event.notification.data?.url || '/', self.location.origin)
   event.waitUntil(
     (async () => {
-      // Meeting links open in a new window; app pages reuse an open ಆyaama window.
+      // Meeting links open in a new window; app pages reuse an open ಸKala² window.
       if (target.origin !== self.location.origin) return self.clients.openWindow(target.href)
       const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
       const existing = windows.find((client) => 'focus' in client)

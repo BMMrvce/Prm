@@ -1,4 +1,4 @@
-# Workbench Supabase setup
+# ಸKala² Supabase setup
 
 These scripts are ready to apply when you connect a Supabase project.
 

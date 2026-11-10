@@ -8,7 +8,7 @@ import { SquareCheck } from '@/components/ui/square-check'
 import { useWorkspace } from '@/state/workbench-store'
 
 /** Today's plan of action from `plan_items`. */
-export function PlanPanel() {
+export function PlanPanel({ bare = false }: { bare?: boolean } = {}) {
   const { ready, plan, addPlanItem, togglePlanItem, removePlanItem } = useWorkspace()
   const [title, setTitle] = useState('')
 
@@ -20,16 +20,18 @@ export function PlanPanel() {
   }
 
   return (
-    <section className="neo-card flex min-w-0 flex-col rounded-xl p-4 sm:p-5">
-      <PanelHeader
-        icon={Route}
-        title="Plan of Action"
-        subtitle={
-          plan.length
-            ? `${plan.filter((item) => item.completedAt).length} of ${plan.length} steps done`
-            : "Today's steps"
-        }
-      />
+    <section className={bare ? 'flex min-w-0 flex-col' : 'neo-card flex min-w-0 flex-col rounded-xl p-4 sm:p-5'}>
+      {!bare && (
+        <PanelHeader
+          icon={Route}
+          title="Plan of Action"
+          subtitle={
+            plan.length
+              ? `${plan.filter((item) => item.completedAt).length} of ${plan.length} steps done`
+              : "Today's steps"
+          }
+        />
+      )}
       {plan.length > 0 && (
         <div
           className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-2"

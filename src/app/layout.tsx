@@ -18,13 +18,13 @@ const handwrittenFont = Shantell_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
   title: {
-    default: 'ಆyaama — Clarity. Focus. Structure. Progress.',
-    template: '%s · ಆyaama',
+    default: 'ಸKala² — Clarity. Focus. Structure. Progress.',
+    template: '%s · ಸKala²',
   },
   description: 'Designed for teams who value clarity over complexity.',
-  applicationName: 'ಆyaama',
+  applicationName: 'ಸKala²',
   // Latin spelling, so searches for the name in English letters find it too.
-  keywords: ['Aayaama', 'ಆyaama', 'productivity', 'project management'],
+  keywords: ['Kala²', 'Kala2', 'ಸKala²', 'productivity', 'project management'],
   icons: {
     icon: [
       { url: '/brand/icon-32.png', sizes: '32x32', type: 'image/png' },
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'ಆyaama',
+    title: 'ಸKala²',
   },
 }
 

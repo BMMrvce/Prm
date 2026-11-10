@@ -14,12 +14,24 @@ export type NavIcon =
   | 'calendar'
   | 'time'
   | 'money'
+  | 'habits'
+  | 'reading'
+  | 'focus'
+  | 'learning'
+  | 'goals'
   | 'projects'
   | 'integrations'
   | 'settings'
   | 'project'
 
-export type NavItem = { label: string; href: string; icon: NavIcon; color?: string }
+export type NavItem = {
+  label: string
+  href: string
+  icon: NavIcon
+  color?: string
+  /** Sidebar section header to cluster under; unset renders a flat list (Office/Studio). */
+  group?: string
+}
 
 export function workspacePath(space: SpaceKey, ...segments: string[]) {
   return ['', space, ...segments].join('/')
@@ -38,11 +50,32 @@ export function projectPath(space: SpaceKey, project: Pick<Project, 'slug'>) {
 }
 
 export function expensesLabel(workspace: Pick<WorkspaceData, 'key'>) {
-  return workspace.key === 'office' ? 'Reimbursements' : 'Income & Expenses'
+  if (workspace.key === 'office') return 'Reimbursements'
+  if (workspace.key === 'personal') return 'Finance'
+  return 'Income & Expenses'
 }
 
 export function mainNav(workspace: WorkspaceData): NavItem[] {
   const path = (...segments: string[]) => workspacePath(workspace.key, ...segments)
+  if (workspace.key === 'personal') {
+    return [
+      { label: 'Home', href: path(), icon: 'home', group: 'Personal' },
+      { label: 'Tasks', href: path('tasks'), icon: 'tasks', group: 'Personal' },
+      { label: 'Calendar', href: path('calendar'), icon: 'calendar', group: 'Personal' },
+      { label: 'Habits', href: path('habits'), icon: 'habits', group: 'Growth' },
+      { label: 'Reading', href: path('reading'), icon: 'reading', group: 'Growth' },
+      { label: 'Learning', href: path('learning'), icon: 'learning', group: 'Growth' },
+      { label: 'Goals', href: path('goals'), icon: 'goals', group: 'Growth' },
+      { label: 'Notes', href: path('notes'), icon: 'notes', group: 'Resources' },
+      {
+        label: expensesLabel(workspace),
+        href: path('expenses'),
+        icon: 'money',
+        group: 'Resources',
+      },
+      { label: 'Settings', href: path('settings'), icon: 'settings', group: 'Settings' },
+    ]
+  }
   return [
     { label: 'Home', href: path(), icon: 'home' },
     { label: 'My Tasks', href: path('tasks'), icon: 'tasks' },
@@ -65,6 +98,9 @@ export function projectNav(workspace: WorkspaceData, projects: Project[]): NavIt
 
 export function manageNav(workspace: WorkspaceData): NavItem[] {
   const path = (...segments: string[]) => workspacePath(workspace.key, ...segments)
+  // Personal's sidebar is fully covered by mainNav()'s 4 groups (Settings included);
+  // Projects/Integrations stay reachable by URL and via a link from Settings, just unlinked here.
+  if (workspace.key === 'personal') return []
   return [
     { label: 'All Projects', href: path('projects'), icon: 'projects' },
     { label: 'Integrations', href: path('integrations'), icon: 'integrations' },
@@ -95,6 +131,10 @@ const SUBTITLES: Record<string, string> = {
   projects: 'Projects in this workspace and ones shared with you',
   integrations: 'Connect your mailbox and other services',
   settings: 'Workspace, appearance and account',
+  habits: 'Daily routines, streaks and consistency',
+  reading: 'Your book library, sessions and takeaways',
+  learning: 'Technical topics, resources and progress',
+  goals: 'Career, financial and personal goals with milestones',
 }
 
 export function pageSubtitle(workspace: WorkspaceData, pathname: string) {

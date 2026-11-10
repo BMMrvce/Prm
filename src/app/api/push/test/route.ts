@@ -7,7 +7,7 @@ export async function POST() {
   if (!userId) return Response.json({ error: 'Not signed in' }, { status: 401 })
   try {
     const sent = await pushToUsers([userId], {
-      title: 'ಆyaama reminders are on',
+      title: 'ಸKala² reminders are on',
       body: 'You will be reminded 10 min before meetings, 1 hour before deadlines and at 10:15 each morning.',
       url: '/',
       tag: 'test',

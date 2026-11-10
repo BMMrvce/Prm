@@ -1,4 +1,4 @@
-project_id = "workbench"
+project_id = "kala2"
 
 [api]
 enabled = true

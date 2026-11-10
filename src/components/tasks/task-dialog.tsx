@@ -21,6 +21,7 @@ export function TaskDialog({ taskId, onClose }: { taskId: string; onClose: () =>
 
 function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => void }) {
   const {
+    workspace,
     profile,
     projects,
     timeEntries,
@@ -119,25 +120,27 @@ function TaskEditor({ task, onClose }: { task: WorkspaceTask; onClose: () => voi
             required
           />
         </label>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className={labelClass}>
-            Project
-            <select
-              value={projectId}
-              onChange={(event) => setProjectId(event.target.value)}
-              className={`${fieldClass} mt-2`}
-              disabled={projectOptions.length < 2}
-            >
-              {!projectOptions.some((item) => item.id === projectId) && (
-                <option value={projectId}>{task.projectName ?? 'Project'}</option>
-              )}
-              {projectOptions.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className={`grid gap-3 ${workspace.key === 'personal' ? '' : 'sm:grid-cols-2'}`}>
+          {workspace.key !== 'personal' && (
+            <label className={labelClass}>
+              Project
+              <select
+                value={projectId}
+                onChange={(event) => setProjectId(event.target.value)}
+                className={`${fieldClass} mt-2`}
+                disabled={projectOptions.length < 2}
+              >
+                {!projectOptions.some((item) => item.id === projectId) && (
+                  <option value={projectId}>{task.projectName ?? 'Project'}</option>
+                )}
+                {projectOptions.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className={labelClass}>
             Status
             <select

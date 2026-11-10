@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   if (!code || !flow)
     return finish('error', 'Sign-in expired or was tampered with. Please try again.')
   const userId = await currentUserId()
-  if (!userId) return finish('error', 'Your ಆyaama session ended. Sign in and try again.')
+  if (!userId) return finish('error', 'Your ಸKala² session ended. Sign in and try again.')
   try {
     const grant = await exchangeGoogleCode(code, googleCallbackUrl(request.nextUrl.origin))
     if (purpose === 'youtube') {

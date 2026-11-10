@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'ಆyaama',
-    short_name: 'ಆyaama',
+    name: 'ಸKala²',
+    short_name: 'ಸKala²',
     description: 'Designed for teams who value clarity over complexity.',
     start_url: '/',
     display: 'standalone',

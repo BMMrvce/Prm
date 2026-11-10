@@ -10,3 +10,10 @@ export async function resolveWorkspace(params: SpaceParams) {
   if (!workspace) notFound()
   return workspace
 }
+
+/** Like `resolveWorkspace`, but also 404s Office and Studio for personal-only pages. */
+export async function requirePersonalWorkspace(params: SpaceParams) {
+  const workspace = await resolveWorkspace(params)
+  if (workspace.key !== 'personal') notFound()
+  return workspace
+}

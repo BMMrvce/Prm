@@ -31,7 +31,7 @@ async function save(subscription: PushSubscription) {
 
 /**
  * Turns Web Push reminders on or off for this device. iPhone and iPad only allow it once
- * ಆyaama is added to the Home Screen.
+ * ಸKala² is added to the Home Screen.
  */
 export function usePushReminders() {
   const [state, setState] = useState<PushState>('checking')

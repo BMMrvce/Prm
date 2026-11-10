@@ -38,7 +38,7 @@ export function PeoplePicker({
         const people = await searchPeople(query)
         if (cancelled) return
         setResults(people)
-        setMessage(people.length ? null : 'No one found. They need a ಆyaama account first.')
+        setMessage(people.length ? null : 'No one found. They need a ಸKala² account first.')
       } catch (error) {
         if (!cancelled) setMessage(error instanceof Error ? error.message : 'Search failed.')
       }

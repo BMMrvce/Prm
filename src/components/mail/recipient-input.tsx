@@ -28,7 +28,7 @@ const currentToken = (value: string) => value.slice(value.lastIndexOf(',') + 1).
 
 /**
  * "To" field that suggests people after 3 letters: everyone you have mailed with in this
- * workspace's mailbox, plus ಆyaama users. Picking one completes the current address.
+ * workspace's mailbox, plus ಸKala² users. Picking one completes the current address.
  */
 export function RecipientInput({
   space,
@@ -60,7 +60,7 @@ export function RecipientInput({
     }
   }, [space])
 
-  // ಆyaama users by name or email, debounced.
+  // ಸKala² users by name or email, debounced.
   useEffect(() => {
     if (query.length < MIN_CHARS) {
       setPeople([])

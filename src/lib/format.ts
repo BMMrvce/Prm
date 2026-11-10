@@ -70,7 +70,7 @@ export function greetingParts(now = new Date()) {
   const salutation = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
   const date = now.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })
   const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-  return { salutation, when: `${date} · ${time}` }
+  return { salutation, date, when: `${date} · ${time}` }
 }
 
 /** `HH:MM:SS` stopwatch text. */

@@ -4,15 +4,14 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { CalendarPanel } from '@/components/calendar/calendar-panel'
 import { MeetingCategories } from '@/components/calendar/meeting-categories'
-import { WatchLaterPanel } from '@/components/youtube/watch-later-panel'
 import { timeOfDay } from '@/lib/format'
-import { categoriesEnabled } from '@/lib/meetings'
 import { workspacePath } from '@/lib/routes'
 import { useToast, useWorkspace } from '@/state/workbench-store'
 import type { Meeting } from '@/types/workbench'
 import { ActivityFeed } from './activity-feed'
 import { DayNote } from './day-note'
 import { MailPanel } from './mail-panel'
+import { PersonalHomeView } from './personal-home-view'
 import { PlanPanel } from './plan-panel'
 import { TaskList } from './task-list'
 import { TimerCard } from './timer-card'
@@ -29,6 +28,10 @@ function upcomingMeeting(meetings: Meeting[], now: number) {
   })
 }
 
+/**
+ * Office and Studio's dashboard. Personal has its own, much simpler `PersonalHomeView` —
+ * `HomeView` delegates to it immediately below, so this layout only ever runs for Office/Studio.
+ */
 export function HomeView() {
   const { workspace, meetings } = useWorkspace()
   const { showToast } = useToast()
@@ -41,6 +44,8 @@ export function HomeView() {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000)
     return () => window.clearInterval(timer)
   }, [])
+
+  if (workspace.key === 'personal') return <PersonalHomeView />
 
   const meeting = now ? upcomingMeeting(meetings, now) : undefined
   const visible = meeting && now && (hidden[meeting.id] ?? 0) < now
@@ -87,72 +92,35 @@ export function HomeView() {
     </section>
   )
 
-  if (categoriesEnabled(workspace.key)) {
-    /*
-     * Office and Studio: the calendar and the meetings-by-person window hold the top-right quarter of
-     * the screen, and tasks share their row with mail. Placement is explicit so that below
-     * xl the calendar follows the tasks.
-     */
-    return (
-      <div className="mt-4 grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,25vw)] xl:grid-rows-[auto_1fr]">
-        <div className="grid min-w-0 gap-4 xl:col-start-1 xl:row-start-1">
-          {banner}
-          <TodayOverview />
-          {/* Tasks and mail share the row, half each (stacked on phones). */}
-          <div className="grid min-w-0 gap-4 md:grid-cols-2">
-            <TaskList narrow />
-            <MailPanel workspace={workspace} />
-          </div>
-        </div>
-        <aside
-          className="grid min-w-0 gap-4 md:grid-cols-2 xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:grid-cols-1"
-          aria-label="Calendar and meetings"
-        >
-          <CalendarPanel defaultRange="Month" side />
-          <MeetingCategories />
-        </aside>
-        <div className="grid min-w-0 items-start gap-4 md:grid-cols-2 xl:col-start-1 xl:row-start-2">
-          <TimerCard />
-          <PlanPanel />
-          <DayNote />
-          <ActivityFeed />
-        </div>
-      </div>
-    )
-  }
-
+  /*
+   * Office and Studio: the calendar and the meetings-by-person window hold the top-right quarter of
+   * the screen, and tasks share their row with mail. Placement is explicit so that below
+   * xl the calendar follows the tasks.
+   */
   return (
-    <>
-      {banner && <div className="mt-4">{banner}</div>}
-
-      <div className="mt-4">
+    <div className="mt-4 grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,25vw)] xl:grid-rows-[auto_1fr]">
+      <div className="grid min-w-0 gap-4 xl:col-start-1 xl:row-start-1">
+        {banner}
         <TodayOverview />
-      </div>
-
-      {/*
-       * Main column: tasks, then the calendar. Rail: timer, plan, note, mail and activity.
-       * Below xl the rail flows into a two-column grid under the main column.
-       */}
-      <div className="mt-4 grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="grid min-w-0 gap-4">
-          <TaskList />
-          <CalendarPanel defaultRange="Month" compact />
-        </div>
-        <aside
-          className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-1"
-          aria-label="Focus and updates"
-        >
-          <TimerCard />
-          <PlanPanel />
-          <DayNote />
+        {/* Tasks and mail share the row, half each (stacked on phones). */}
+        <div className="grid min-w-0 gap-4 md:grid-cols-2">
+          <TaskList narrow />
           <MailPanel workspace={workspace} />
-          <div className="md:col-span-2 xl:col-span-1">
-            <ActivityFeed />
-          </div>
-        </aside>
+        </div>
       </div>
-
-      {workspace.key === 'personal' && <WatchLaterPanel />}
-    </>
+      <aside
+        className="grid min-w-0 gap-4 md:grid-cols-2 xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:grid-cols-1"
+        aria-label="Calendar and meetings"
+      >
+        <CalendarPanel defaultRange="Month" side />
+        <MeetingCategories />
+      </aside>
+      <div className="grid min-w-0 items-start gap-4 md:grid-cols-2 xl:col-start-1 xl:row-start-2">
+        <TimerCard />
+        <PlanPanel />
+        <DayNote />
+        <ActivityFeed />
+      </div>
+    </div>
   )
 }

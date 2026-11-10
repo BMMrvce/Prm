@@ -147,7 +147,7 @@ export function AuthForm() {
         </button>
       </form>
       <p className="mt-8 text-center text-sm text-ink-2">
-        {mode === 'signin' ? 'New to ಆyaama? ' : 'Already have an account? '}
+        {mode === 'signin' ? 'New to ಸKala²? ' : 'Already have an account? '}
         <button
           type="button"
           onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}

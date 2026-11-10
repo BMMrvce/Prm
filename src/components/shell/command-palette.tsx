@@ -223,15 +223,17 @@ export function CommandPalette({
         keywords: 'workspace switch',
         run: () => go(workspacePath(key)),
       })),
-      ...projects.map((project) => ({
-        id: `project-${project.id}`,
-        group: 'Projects' as const,
-        title: project.name,
-        subtitle: project.sharedBy ? `Shared by ${project.sharedBy}` : 'Project',
-        icon: FolderKanban,
-        color: project.color,
-        run: () => go(projectPath(workspace.key, project)),
-      })),
+      ...(workspace.key === 'personal'
+        ? []
+        : projects.map((project) => ({
+            id: `project-${project.id}`,
+            group: 'Projects' as const,
+            title: project.name,
+            subtitle: project.sharedBy ? `Shared by ${project.sharedBy}` : 'Project',
+            icon: FolderKanban,
+            color: project.color,
+            run: () => go(projectPath(workspace.key, project)),
+          }))),
       ...tasks
         .filter((task) => task.state !== 'cancelled')
         .map((task) => ({

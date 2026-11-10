@@ -87,7 +87,7 @@ export type PlanItem = {
   completedAt: string | null
 }
 
-export type EntryKind = 'expense' | 'income' | 'reimbursement'
+export type EntryKind = 'expense' | 'income' | 'reimbursement' | 'transfer'
 
 export type ExpenseRecord = {
   id: string
@@ -98,7 +98,19 @@ export type ExpenseRecord = {
   amount: number
   currency: Currency
   status: 'recorded' | 'pending' | 'approved' | 'rejected' | 'paid'
+  paymentMethod: string | null
+  notes: string | null
 }
+
+export type ExpenseChanges = Partial<{
+  description: string
+  category: string
+  amount: number
+  date: string
+  kind: EntryKind
+  paymentMethod: string | null
+  notes: string | null
+}>
 
 export type TimeEntry = {
   id: string
@@ -202,4 +214,284 @@ export type NewExpenseInput = {
   date?: string
   category: string
   amount: number
+  paymentMethod?: string | null
+  notes?: string | null
 }
+
+export type HabitCategory = 'focus' | 'reading' | 'technical' | 'health' | 'financial' | 'other'
+export type HabitFrequency = 'daily' | 'weekly' | 'weekdays'
+export type HabitTargetKind = 'boolean' | 'duration' | 'quantity'
+
+export type Habit = {
+  id: string
+  title: string
+  category: HabitCategory
+  frequency: HabitFrequency
+  /** Only set when frequency is `weekdays`. 0 = Sunday .. 6 = Saturday. */
+  weekdays: number[] | null
+  /** Only set when frequency is `weekly`: how many times a week it must be done. */
+  targetPerWeek: number | null
+  targetKind: HabitTargetKind
+  targetValue: number | null
+  targetUnit: string | null
+  color: CategoryColor
+  position: number
+  archivedAt: string | null
+  createdAt: string
+}
+
+export type NewHabitInput = {
+  title: string
+  category: HabitCategory
+  frequency: HabitFrequency
+  weekdays?: number[] | null
+  targetPerWeek?: number | null
+  targetKind?: HabitTargetKind
+  targetValue?: number | null
+  targetUnit?: string | null
+  color?: CategoryColor
+}
+
+export type HabitChanges = Partial<NewHabitInput>
+
+export type HabitEntryStatus = 'completed' | 'skipped'
+
+export type HabitEntry = {
+  id: string
+  habitId: string
+  /** Local `YYYY-MM-DD` the entry is for. */
+  date: string
+  status: HabitEntryStatus
+  loggedAt: string
+  note: string | null
+  quantityValue: number | null
+}
+
+export type BookStatus = 'planned' | 'reading' | 'completed'
+
+export type Book = {
+  id: string
+  title: string
+  author: string
+  status: BookStatus
+  totalPages: number | null
+  startedAt: string | null
+  completedAt: string | null
+  position: number
+  coverUrl: string | null
+  category: string | null
+  /** Your personal rating, 1-5. */
+  rating: number | null
+  /** Knowledge extraction, one reflection per book (not per session). */
+  learned: string | null
+  interesting: string | null
+  apply: string | null
+  action: string | null
+  /** Reading goal: pages per day. */
+  pagesPerDayGoal: number | null
+}
+
+export type NewBookInput = {
+  title: string
+  author?: string
+  status?: BookStatus
+  totalPages?: number | null
+  coverUrl?: string | null
+  category?: string | null
+  pagesPerDayGoal?: number | null
+}
+
+export type BookChanges = Partial<NewBookInput> & {
+  startedAt?: string | null
+  completedAt?: string | null
+  rating?: number | null
+  learned?: string | null
+  interesting?: string | null
+  apply?: string | null
+  action?: string | null
+}
+
+export type ReadingSession = {
+  id: string
+  bookId: string
+  /** Local `YYYY-MM-DD` the session happened on. */
+  date: string
+  pagesRead: number | null
+  durationMinutes: number | null
+  takeaway: string | null
+  chapter: string | null
+}
+
+export type NewReadingSessionInput = {
+  bookId: string
+  date: string
+  pagesRead?: number | null
+  durationMinutes?: number | null
+  takeaway?: string | null
+  chapter?: string | null
+}
+
+export type FocusSession = {
+  id: string
+  /** Local `YYYY-MM-DD` the session happened on. */
+  date: string
+  durationMinutes: number
+  distractionCount: number
+  tasksCompleted: number
+  /** Self-rated concentration, 1-5. Not a medical or clinical assessment. */
+  concentrationRating: number
+  note: string | null
+}
+
+export type NewFocusSessionInput = {
+  date: string
+  durationMinutes: number
+  distractionCount?: number
+  tasksCompleted?: number
+  concentrationRating: number
+  note?: string | null
+}
+
+export type FocusSessionChanges = Partial<Omit<NewFocusSessionInput, 'date'>>
+
+export type LearningCategory =
+  | 'system_design'
+  | 'linux'
+  | 'aws'
+  | 'devops'
+  | 'software_engineering'
+  | 'software_architecture'
+  | 'other'
+
+export type LearningStatus = 'not_started' | 'learning' | 'practised' | 'mastered'
+
+export type LearningTopic = {
+  id: string
+  title: string
+  category: LearningCategory
+  status: LearningStatus
+  resources: string | null
+  notes: string | null
+  position: number
+  archivedAt: string | null
+}
+
+export type NewLearningTopicInput = {
+  title: string
+  category: LearningCategory
+  status?: LearningStatus
+  resources?: string | null
+  notes?: string | null
+}
+
+export type LearningTopicChanges = Partial<NewLearningTopicInput>
+
+export type GoalCategory = 'career' | 'financial' | 'personal_development' | 'learning' | 'other'
+export type GoalStatus = 'active' | 'completed' | 'abandoned'
+
+export type Goal = {
+  id: string
+  title: string
+  category: GoalCategory
+  status: GoalStatus
+  targetDate: string | null
+  notes: string | null
+  position: number
+  completedAt: string | null
+}
+
+export type NewGoalInput = {
+  title: string
+  category: GoalCategory
+  targetDate?: string | null
+  notes?: string | null
+}
+
+export type GoalChanges = Partial<NewGoalInput> & { status?: GoalStatus }
+
+export type GoalMilestone = {
+  id: string
+  goalId: string
+  title: string
+  targetDate: string | null
+  completedAt: string | null
+  position: number
+}
+
+export type NewMilestoneInput = {
+  goalId: string
+  title: string
+  targetDate?: string | null
+}
+
+/** One active budget: an overall monthly limit plus a `{category: limit}` map. */
+export type Budget = {
+  id: string
+  monthlyLimit: number | null
+  categoryLimits: Record<string, number>
+}
+
+export type BudgetChanges = {
+  monthlyLimit?: number | null
+  categoryLimits?: Record<string, number>
+}
+
+export type SavingsGoal = {
+  id: string
+  name: string
+  targetAmount: number
+  targetDate: string | null
+  position: number
+  archivedAt: string | null
+}
+
+export type NewSavingsGoalInput = {
+  name: string
+  targetAmount: number
+  targetDate?: string | null
+}
+
+export type SavingsGoalChanges = Partial<NewSavingsGoalInput>
+
+export type ContributionDirection = 'contribution' | 'withdrawal'
+
+export type SavingsContribution = {
+  id: string
+  goalId: string
+  amount: number
+  direction: ContributionDirection
+  occurredOn: string
+  note: string | null
+}
+
+export type NewContributionInput = {
+  goalId: string
+  amount: number
+  direction: ContributionDirection
+  occurredOn?: string
+  note?: string | null
+}
+
+export type RecurringFrequency = 'monthly' | 'weekly' | 'yearly'
+
+export type RecurringPayment = {
+  id: string
+  name: string
+  kind: 'expense' | 'income'
+  category: string | null
+  amount: number
+  frequency: RecurringFrequency
+  nextDueDate: string
+  active: boolean
+}
+
+export type NewRecurringPaymentInput = {
+  name: string
+  kind: 'expense' | 'income'
+  category?: string | null
+  amount: number
+  frequency: RecurringFrequency
+  nextDueDate: string
+}
+
+export type RecurringPaymentChanges = Partial<NewRecurringPaymentInput> & { active?: boolean }
